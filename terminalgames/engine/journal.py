@@ -1,8 +1,7 @@
 """Structured, engine-tracked evidence log the player can review.
 
-Distinct from player notes (engine/shell.py `notes` command): journal entries
-are added by story content and read by engine logic (to gate hub choices,
-NPC topics, etc). Notes are free-form and never parsed by the engine.
+Entries are added by story content and read by engine logic (to gate hub
+choices, NPC topics, etc).
 """
 
 from __future__ import annotations

@@ -10,8 +10,6 @@ changes (the "escalating depth" plan).
 
 from __future__ import annotations
 
-import os
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Optional
@@ -254,8 +252,7 @@ class TerminalRunner:
     @property
     def sandbox_root(self) -> Optional[Path]:
         """Where this slot's real host filesystems live on disk. Derived
-        from `save_slot_path` (same pattern as `GameState.notes_path_for`)
-        rather than a separate constructor argument."""
+        from `save_slot_path` rather than a separate constructor argument."""
         if self.save_slot_path is None:
             return None
         return GameState.sandbox_dir_for(self.save_slot_path)
@@ -579,23 +576,3 @@ def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
     if args[0] == "sync":
         return _mail_sync(runner)
     return "usage: mail [list|read <id>|send <contact> <topic>|sync]"
-
-
-@command("notes")
-def cmd_notes(args: list[str], runner: TerminalRunner) -> str:
-    if runner.save_slot_path is None:
-        return "notes: no active save slot"
-    notes_path = GameState.notes_path_for(runner.save_slot_path)
-    notes_path.parent.mkdir(parents=True, exist_ok=True)
-    if not notes_path.exists():
-        notes_path.write_text("")
-    candidates = [os.environ.get("VISUAL"), os.environ.get("EDITOR"), "nano", "vi"]
-    for editor in candidates:
-        if not editor:
-            continue
-        try:
-            subprocess.call([editor, str(notes_path)])
-            return f"(closed notes editor: {editor})"
-        except FileNotFoundError:
-            continue
-    return "notes: no editor found (set $EDITOR)"

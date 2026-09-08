@@ -7,9 +7,9 @@ of *Hackers*, *WarGames*, and *23*. Ships with one complete story, **Zero
 Day** -- a 3-chapter campaign that also doubles as an in-fiction tutorial: by
 the end you'll have used every shell command the fake terminal understands
 (`help`, `whoami`, `scan`, `connect`/`disconnect`, `ls`/`cd`/`cat`/`grep`,
-`set` + `systemctl`, `decrypt` with both cipher types, `journal`, `chat`,
-`mail`, and `notes`), plus trust-building, gated dialogue, and a branching
-set of five endings.
+`set` + `systemctl`, `decrypt` with both cipher types, `journal`, `chat`, and
+`mail`), plus trust-building, gated dialogue, and a branching set of five
+endings.
 
 ## Running it
 
@@ -211,9 +211,7 @@ Shell commands available to the player: `help`, `whoami`, `scan <host>`,
 `connect <host>`, `disconnect`/`exit`, `ls [path]`, `cd <path>`,
 `cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,
 `systemctl status|restart <service>`, `decrypt <file> <key>`,
-`journal`/`notebook`, `chat <npc> [topic]`, `mail [list|read <id>|send <npc> <topic>|sync]`,
-`notes` (opens `$VISUAL`/`$EDITOR`/`nano`/`vi` on a free-form scratchpad file
--- never read by the engine, purely for the player).
+`journal`/`notebook`, `chat <npc> [topic]`, `mail [list|read <id>|send <npc> <topic>|sync]`.
 
 There's deliberately no `crack`-style instant password break. The
 config-edit-and-restart puzzle (`cat` a config, `set` the wrong key, `systemctl

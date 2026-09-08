@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest.mock import patch
 
 import yaml
 
@@ -345,25 +344,3 @@ def test_mail_sync_does_not_reprocess_a_bounced_draft(tmp_path):
     runner.execute("mail sync")
 
     assert runner.execute("mail sync") == "mail sync: no drafts to send."
-
-
-def test_notes_shells_out_to_editor(tmp_path, monkeypatch):
-    monkeypatch.delenv("VISUAL", raising=False)
-    monkeypatch.setenv("EDITOR", "fake-editor")
-    runner = build_runner(tmp_path)
-    with patch("terminalgames.engine.shell.subprocess.call") as mock_call:
-        mock_call.return_value = 0
-        output = runner.execute("notes")
-    mock_call.assert_called_once()
-    called_editor = mock_call.call_args[0][0][0]
-    assert called_editor == "fake-editor"
-    assert "fake-editor" in output
-
-
-def test_notes_falls_back_when_editor_missing(tmp_path, monkeypatch):
-    monkeypatch.delenv("EDITOR", raising=False)
-    monkeypatch.delenv("VISUAL", raising=False)
-    runner = build_runner(tmp_path)
-    with patch("terminalgames.engine.shell.subprocess.call", side_effect=FileNotFoundError):
-        output = runner.execute("notes")
-    assert "no editor found" in output
