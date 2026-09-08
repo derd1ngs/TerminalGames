@@ -7,6 +7,7 @@ Textual app (see tui.py).
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -48,8 +49,7 @@ def save_slot_path(story_id: str) -> Path:
     return SAVES_DIR / f"{story_id}.json"
 
 
-def select_story() -> Path:
-    stories = discover_stories()
+def select_story(stories: list[Path]) -> Path:
     if not stories:
         console.print(f"[bold red]No stories found in {STORIES_DIR}[/bold red]")
         sys.exit(1)
@@ -63,9 +63,29 @@ def select_story() -> Path:
         console.print("[bold red]Invalid choice.[/bold red]")
 
 
-def new_or_continue(story: Story) -> GameState:
+def find_story(story_ref: str, stories: list[Path]) -> Path | None:
+    """Match a --story argument against a story directory name, or (if that
+    fails) each story's manifest id -- so both `story_01_zero_day` and
+    `zero_day` work."""
+    for story_dir in stories:
+        if story_dir.name == story_ref:
+            return story_dir
+    for story_dir in stories:
+        manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
+        if manifest.get("id") == story_ref:
+            return story_dir
+    return None
+
+
+def new_or_continue(story: Story, *, new: bool = False, cont: bool = False) -> GameState:
     slot_path = save_slot_path(story.id)
-    if slot_path.exists():
+    has_save = slot_path.exists()
+    if cont:
+        if not has_save:
+            console.print(f"[bold red]No save found for '{story.id}'.[/bold red]")
+            sys.exit(1)
+        return GameState.load(slot_path)
+    if has_save and not new:
         choice = console.input("Save found. (c)ontinue or (n)ew game? ").strip().lower()
         if choice.startswith("c"):
             return GameState.load(slot_path)
@@ -73,15 +93,59 @@ def new_or_continue(story: Story) -> GameState:
     return GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
 
 
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="terminalgames", description="A hacker-themed CLI text adventure engine."
+    )
+    parser.add_argument(
+        "story",
+        nargs="?",
+        help="Story to launch directly (directory name or manifest id), skipping the picker.",
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List available stories and exit, without launching."
+    )
+    save_state = parser.add_mutually_exclusive_group()
+    save_state.add_argument(
+        "--new", action="store_true", help="Start a new game, ignoring any existing save."
+    )
+    save_state.add_argument(
+        "--continue",
+        dest="cont",
+        action="store_true",
+        help="Continue from the existing save (fails if there isn't one).",
+    )
+    return parser.parse_args(argv)
+
+
 def main() -> None:
-    story_dir = select_story()
+    args = parse_args()
+    stories = discover_stories()
+
+    if args.list:
+        if not stories:
+            console.print(f"[bold red]No stories found in {STORIES_DIR}[/bold red]")
+            sys.exit(1)
+        console.print("[bold]Available stories:[/bold]")
+        for available in stories:
+            console.print(f"  {available.name}")
+        return
+
+    if args.story:
+        story_dir = find_story(args.story, stories)
+        if story_dir is None:
+            console.print(f"[bold red]No story matching '{args.story}'.[/bold red]")
+            sys.exit(1)
+    else:
+        story_dir = select_story(stories)
+
     try:
         story = Story.load(story_dir)
     except StoryLoadError as exc:
         console.print(f"[bold red]Failed to load story: {exc}[/bold red]")
         sys.exit(1)
 
-    state = new_or_continue(story)
+    state = new_or_continue(story, new=args.new, cont=args.cont)
     network = load_network(story_dir)
     npcs = load_npc_roster(story_dir)
 

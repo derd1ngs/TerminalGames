@@ -15,11 +15,21 @@ python3 -m venv .venv
 # or: .venv/bin/python -m terminalgames.main
 ```
 
-Story/save selection is a plain pre-flight prompt; the game itself then runs
-full-screen as a two-pane Textual app (`terminalgames/tui.py`): a scrollable
-**story pane** at the top (narration and terminal output) and a **decisions
-pane** below it that switches between a selectable choice list (narrative
-scenes -- arrow keys + Enter) and a command input (terminal scenes).
+With no arguments, story/save selection is a plain pre-flight prompt. You can
+skip it with CLI args instead:
+
+```bash
+.venv/bin/terminalgames --list              # list available stories, then exit
+.venv/bin/terminalgames zero_day            # launch directly (story dir name or manifest id)
+.venv/bin/terminalgames zero_day --new      # launch, ignoring any existing save
+.venv/bin/terminalgames zero_day --continue # launch, failing if there's no save
+```
+
+The game itself then runs full-screen as a two-pane Textual app
+(`terminalgames/tui.py`): a scrollable **story pane** at the top (narration and
+terminal output) and a **decisions pane** below it that switches between a
+selectable choice list (narrative scenes -- arrow keys + Enter) and a command
+input (terminal scenes).
 
 In-game, at any point during a terminal scene you can type:
 - `:save` -- save your progress
