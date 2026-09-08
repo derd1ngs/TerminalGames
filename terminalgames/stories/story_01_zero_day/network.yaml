@@ -56,6 +56,28 @@ hosts:
                   Jan 03 22:41:05 gateway kernel: tap0: unexpected outbound traffic toward sentinel.internal, no rule matched
                   Jan 04 00:05:59 gateway sshd: last login of user op from 10.44.0.9
 
+  archive:
+    address: "10.44.0.9"
+    banner: "archive.mil - decommissioned backup server (still listening, oddly)"
+    filesystem:
+      var:
+        type: dir
+        entries:
+          backups:
+            type: dir
+            entries:
+              log.txt:
+                type: text
+                content: |
+                  old admin used the same rotation everyone did back then --
+                  shift of 7, nothing fancy.
+              incident_report.enc:
+                type: cipher
+                cipher: caesar
+                ciphertext: "Pujpklua 4471: zluapuls svnnlk buzjolkbslk bwspurz mvy dllrz ilmvyl zobakvdu dhz hwwyvclk. Mshnnlk, ulcly ylzvsclk. Jhzl jsvzlk dpaovba lewshuhapvu."
+                plaintext: "Incident 4471: sentinel logged unscheduled uplinks for weeks before shutdown was approved. Flagged, never resolved. Case closed without explanation."
+                on_success_flag: found_archive_report
+
   sentinel:
     address: "10.44.0.7"
     banner: "sentinel.internal - DEFCON_SIM training node"
