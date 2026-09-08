@@ -7,6 +7,7 @@ free, and testable. A future persona could implement its response via a real
 API call behind the same `ask_topic`/`send_topic_by_email` call shape without
 changing `shell.py` or any story content for the existing scripted NPCs.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

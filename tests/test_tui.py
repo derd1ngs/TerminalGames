@@ -4,6 +4,7 @@ engine correctly through the pane-based frontend: narrative choices via the
 decisions pane, command execution via the input pane, and scene transitions
 toggling which pane is visible.
 """
+
 from pathlib import Path
 
 import pytest

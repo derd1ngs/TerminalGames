@@ -1,4 +1,5 @@
 """Player save state: progress, flags/tools, journal, trust, and the async email queue."""
+
 from __future__ import annotations
 
 import json

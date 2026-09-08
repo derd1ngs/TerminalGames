@@ -6,6 +6,7 @@ chapters spanning a long investigation -- scenes can reference scenes in other
 chapters via "chapter_id:scene_id", so a lead found in chapter 3 can pay off
 in chapter 7 without any special-casing.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -32,13 +33,16 @@ class Choice:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Choice":
-        return cls(
-            text=data["text"],
-            next=data["next"],
-            requires=data.get("requires"),
-            sets=dict(data.get("sets", {})),
-            logs=list(data.get("logs", [])),
-        )
+        try:
+            return cls(
+                text=data["text"],
+                next=data["next"],
+                requires=data.get("requires"),
+                sets=dict(data.get("sets", {})),
+                logs=list(data.get("logs", [])),
+            )
+        except KeyError as exc:
+            raise StoryLoadError(f"Choice missing required key {exc}") from exc
 
 
 @dataclass
@@ -55,12 +59,15 @@ class TerminalBlock:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TerminalBlock":
-        return cls(
-            win_flag=data["win_flag"],
-            next=data["next"],
-            host=data.get("host"),
-            logs=list(data.get("logs", [])),
-        )
+        try:
+            return cls(
+                win_flag=data["win_flag"],
+                next=data["next"],
+                host=data.get("host"),
+                logs=list(data.get("logs", [])),
+            )
+        except KeyError as exc:
+            raise StoryLoadError(f"terminal block missing required key {exc}") from exc
 
 
 @dataclass
@@ -73,8 +80,12 @@ class Scene:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Scene":
+        try:
+            scene_id = data["id"]
+        except KeyError as exc:
+            raise StoryLoadError(f"scene missing required key {exc}") from exc
         return cls(
-            id=data["id"],
+            id=scene_id,
             text=data.get("text", ""),
             type=data.get("type", "narrative"),
             choices=[Choice.from_dict(c) for c in data.get("choices", [])],
@@ -93,7 +104,10 @@ class Chapter:
         chapter_id = data.get("id") or path.stem
         scenes: dict[str, Scene] = {}
         for scene_data in data.get("scenes", []):
-            scene = Scene.from_dict(scene_data)
+            try:
+                scene = Scene.from_dict(scene_data)
+            except StoryLoadError as exc:
+                raise StoryLoadError(f"In chapter '{chapter_id}' ({path.name}): {exc}") from exc
             if scene.id in scenes:
                 raise StoryLoadError(f"Duplicate scene id '{scene.id}' in chapter '{chapter_id}'")
             scenes[scene.id] = scene
@@ -130,16 +144,22 @@ class Story:
     @classmethod
     def load(cls, story_dir: Path) -> "Story":
         manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
+        try:
+            manifest_id = manifest["id"]
+            manifest_start = manifest["start"]
+            chapter_filenames = manifest["chapters"]
+        except KeyError as exc:
+            raise StoryLoadError(f"manifest.yaml missing required key {exc}") from exc
         chapters: dict[str, Chapter] = {}
-        for chapter_filename in manifest["chapters"]:
+        for chapter_filename in chapter_filenames:
             chapter = Chapter.from_file(story_dir / "chapters" / chapter_filename)
             if chapter.id in chapters:
                 raise StoryLoadError(f"Duplicate chapter id '{chapter.id}'")
             chapters[chapter.id] = chapter
         story = cls(
-            id=manifest["id"],
-            title=manifest.get("title", manifest["id"]),
-            start=manifest["start"],
+            id=manifest_id,
+            title=manifest.get("title", manifest_id),
+            start=manifest_start,
             chapters=chapters,
         )
         story.validate()

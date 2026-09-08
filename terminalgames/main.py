@@ -4,6 +4,7 @@ Story/save selection happens as a plain pre-flight prompt (it's a launcher,
 not "the story"); the actual game then runs full-screen as a split-pane
 Textual app (see tui.py).
 """
+
 from __future__ import annotations
 
 import sys

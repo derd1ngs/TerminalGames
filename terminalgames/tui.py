@@ -7,6 +7,7 @@ This is purely presentation -- it drives the same engine (`story.py`,
 which is exactly why swapping the frontend didn't require touching any of
 that code.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -7,6 +7,7 @@ right key, `systemctl restart` to apply. Commands can be gated behind
 flags/tools so later stories can unlock more of the shell without engine
 changes (the "escalating depth" plan).
 """
+
 from __future__ import annotations
 
 import os
@@ -17,7 +18,7 @@ from typing import Any, Callable, Optional, Union
 
 import yaml
 
-from .dialogue import DialogueError, NPC, ask_topic, send_topic_by_email
+from .dialogue import NPC, DialogueError, ask_topic, send_topic_by_email
 from .puzzles import decode_cipher, grep_lines, validate_config
 from .state import GameState
 from .story import check_requires
@@ -145,7 +146,8 @@ class Network:
                 for svc_id, sd in (hd.get("services") or {}).items()
             }
             root = parse_fs_node({"type": "dir", "entries": hd.get("filesystem", {})})
-            assert isinstance(root, Directory)
+            if not isinstance(root, Directory):
+                raise StoryLoadError(f"host '{host_id}' filesystem root did not parse as a directory")
             hosts[host_id] = Host(
                 id=host_id,
                 address=hd.get("address", ""),
@@ -296,8 +298,7 @@ def cmd_ls(args: list[str], runner: TerminalRunner) -> str:
     if not node.entries:
         return "(empty)"
     return "  ".join(
-        name + "/" if isinstance(child, Directory) else name
-        for name, child in sorted(node.entries.items())
+        name + "/" if isinstance(child, Directory) else name for name, child in sorted(node.entries.items())
     )
 
 

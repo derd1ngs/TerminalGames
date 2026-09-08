@@ -1,8 +1,8 @@
 import pytest
 
 from terminalgames.engine.dialogue import (
-    DialogueError,
     NPC,
+    DialogueError,
     Topic,
     ask_topic,
     load_npcs,
@@ -41,9 +41,7 @@ def test_topic_gated_by_flag_requirement():
     npc = NPC(
         id="ghost",
         name="GHOST",
-        topics={
-            "secret": Topic(id="secret", prompt="?", response="...", requires={"flag": "trusted"})
-        },
+        topics={"secret": Topic(id="secret", prompt="?", response="...", requires={"flag": "trusted"})},
     )
     state = make_state()
     with pytest.raises(DialogueError):
@@ -58,7 +56,9 @@ def test_topic_gated_by_trust():
         name="Friend",
         topics={
             "deep": Topic(
-                id="deep", prompt="?", response="...",
+                id="deep",
+                prompt="?",
+                response="...",
                 requires={"trust_at_least": {"npc": "friend", "value": 2}},
             )
         },
@@ -88,7 +88,9 @@ def test_misleading_reliability_is_just_data_the_engine_does_not_correct():
         id="ghost",
         name="GHOST",
         topics={
-            "who": Topic(id="who", prompt="who are you?", response="Nobody important.", reliability="misleading")
+            "who": Topic(
+                id="who", prompt="who are you?", response="Nobody important.", reliability="misleading"
+            )
         },
     )
     state = make_state()

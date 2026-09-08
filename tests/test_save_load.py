@@ -8,7 +8,9 @@ def build_state() -> GameState:
     state = GameState(story_id="zero_day", chapter_id="chapter_01", scene_id="intro")
     state.set_flag("met_ghost", True)
     state.add_tool("scanner")
-    state.journal.add(JournalEntry(id="lead1", category="lead", text="A lead.", discovered_at="chapter_01:intro"))
+    state.journal.add(
+        JournalEntry(id="lead1", category="lead", text="A lead.", discovered_at="chapter_01:intro")
+    )
     state.adjust_trust("ghost", 2)
     state.increment_ask_count("ghost")
     state.queue_email(

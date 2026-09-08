@@ -4,6 +4,7 @@ These are pure functions with no dependency on the fake terminal or story
 graph, so they're trivial to unit test in isolation. `shell.py` commands
 (`systemctl`, `decrypt`, `grep`) call into these to do the actual validation.
 """
+
 from __future__ import annotations
 
 from typing import Optional

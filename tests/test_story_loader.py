@@ -73,6 +73,36 @@ def test_dangling_reference_raises(tmp_path: Path):
         Story.load(root)
 
 
+def test_manifest_missing_key_raises_story_load_error(tmp_path: Path):
+    root = write_multichapter_story(tmp_path)
+    manifest_path = root / "manifest.yaml"
+    data = yaml.safe_load(manifest_path.read_text())
+    del data["start"]
+    manifest_path.write_text(yaml.safe_dump(data))
+    with pytest.raises(StoryLoadError, match="start"):
+        Story.load(root)
+
+
+def test_scene_missing_id_raises_story_load_error(tmp_path: Path):
+    root = write_multichapter_story(tmp_path)
+    chapter_path = root / "chapters" / "one.yaml"
+    data = yaml.safe_load(chapter_path.read_text())
+    del data["scenes"][0]["id"]
+    chapter_path.write_text(yaml.safe_dump(data))
+    with pytest.raises(StoryLoadError, match="one.yaml"):
+        Story.load(root)
+
+
+def test_choice_missing_next_raises_story_load_error(tmp_path: Path):
+    root = write_multichapter_story(tmp_path)
+    chapter_path = root / "chapters" / "one.yaml"
+    data = yaml.safe_load(chapter_path.read_text())
+    del data["scenes"][0]["choices"][0]["next"]
+    chapter_path.write_text(yaml.safe_dump(data))
+    with pytest.raises(StoryLoadError, match="next"):
+        Story.load(root)
+
+
 def test_check_requires_flag():
     state = GameState(story_id="s", chapter_id="c", scene_id="a")
     assert check_requires(None, state) is True

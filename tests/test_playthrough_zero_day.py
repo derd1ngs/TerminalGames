@@ -3,6 +3,7 @@ story via the engine directly (no interactive I/O), proving the whole content
 pipeline -- scenes, the fake terminal, config-restart and cipher puzzles, and
 journal logging -- is actually completable.
 """
+
 from pathlib import Path
 
 import yaml
