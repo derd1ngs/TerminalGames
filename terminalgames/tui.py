@@ -35,6 +35,7 @@ class GameApp(App):
         width: 38%;
         min-width: 28;
         height: 1fr;
+        align: left middle;
     }
     #story-pane {
         width: 1fr;
