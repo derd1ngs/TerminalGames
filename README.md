@@ -200,6 +200,11 @@ hosts:
             on_success_flag: found_secret
 ```
 
+A successful `decrypt` writes the plaintext to a real sibling file (same
+name, `.txt` suffix -- `secret.enc` -> `secret.txt`) rather than printing it
+inline, so the player then `cat`s it like any other file. A wrong key just
+prints the garbled result and writes nothing.
+
 Filesystem node types: `dir`, `text`, `config`, `cipher`.
 
 Shell commands available to the player: `help`, `whoami`, `scan <host>`,

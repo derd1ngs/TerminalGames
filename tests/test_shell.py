@@ -183,13 +183,21 @@ def test_set_rejects_unknown_key(tmp_path):
 def test_decrypt_success_and_failure(tmp_path):
     runner = build_runner(tmp_path)
     runner.execute("connect gateway")
+    output_path = GameState.sandbox_dir_for(tmp_path / "s.json") / "hosts" / "gateway" / "var" / "secret.txt"
+
     wrong = runner.execute("decrypt var/secret.enc 1")
     assert "garbage" in wrong
     assert not runner.state.has_flag("found_secret")
+    assert not output_path.exists()
 
     right = runner.execute("decrypt var/secret.enc 3")
     assert "successful" in right
+    assert "hello" not in right  # the plaintext is in the written file, not the message
     assert runner.state.has_flag("found_secret")
+    assert output_path.read_text() == "hello"
+
+    # And the real output file behaves like any other real text file.
+    assert runner.execute("cat var/secret.txt") == "hello"
 
 
 def test_unknown_command_reports_not_found(tmp_path):
