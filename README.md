@@ -1,5 +1,7 @@
 # TerminalGames
 
+[![Tests](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml)
+
 A hacker-themed CLI text adventure engine with a fake terminal, in the spirit
 of *Hackers*, *WarGames*, and *23*. Ships with one short complete story,
 **Zero Day**.
