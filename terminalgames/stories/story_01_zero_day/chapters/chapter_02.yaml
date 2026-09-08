@@ -1,0 +1,103 @@
+id: chapter_02
+scenes:
+  - id: reach_sentinel
+    type: terminal
+    text: |
+      GHOST breaks the silence: "Get off gateway's box before you touch
+      sentinel -- one open session at a time. `disconnect` first, then
+      `scan sentinel` if you want to check it's alive, then `connect
+      sentinel`."
+    terminal:
+      win_flag: connected_sentinel
+      next: "chapter_02:sentinel_shell"
+      logs:
+        - id: trace_sentinel_connect
+          category: trace
+          text: "Connected to sentinel.internal now that netmon's fix exposed the internal topology."
+
+  - id: sentinel_shell
+    type: terminal
+    text: |
+      You're properly logged into sentinel.internal now. GHOST goes quiet
+      in your chat window -- watching, maybe, or just waiting to see what
+      you'll find. `ls` and `cd` through `/var/log/ops`; `cat` the access
+      log, `grep` it for anything that explains the handoff (try
+      `grep handoff /var/log/ops/access.log`), and `decrypt` whatever you
+      find once you've worked out the cipher.
+    terminal:
+      host: sentinel
+      win_flag: found_override_code
+      next: "chapter_02:contact_t"
+      logs:
+        - id: trace_sentinel_uplink
+          category: trace
+          text: "Decrypted sentinel's ops handoff log: the DEFCON_SIM feed is live, not simulated. Override code: FALCON."
+
+  - id: contact_t
+    type: terminal
+    text: |
+      FALCON works, but the access log mentioned something else: a
+      cold-storage backup, re-keyed recently, that only "the old gateway
+      admin" still has the passphrase for. That has to be T -- the same T
+      who signed that note on gateway. `mail send t cold_storage` and see
+      if they still check this address.
+
+      (If you want to keep your own theories straight without cluttering
+      the journal, `notes` opens a private scratchpad only you'll ever
+      see.)
+    terminal:
+      win_flag: emailed_t
+      next: "chapter_02:waiting"
+
+  - id: waiting
+    type: narrative
+    text: |
+      Email doesn't work like chat. You won't get an answer by staring at
+      the screen. GHOST agrees: "Give it time. Go do something else for a
+      minute."
+    choices:
+      - text: "Check back later."
+        next: blackbox
+
+  - id: blackbox
+    type: terminal
+    text: |
+      Sentinel hums along, patient. If T got back to you, `mail list` will
+      show it, and `mail read <id>` will open it. Whatever passphrase they
+      gave you, `decrypt /var/log/ops/blackbox.enc <key>` is what it's for.
+    terminal:
+      win_flag: found_true_operator
+      next: "chapter_02:trust_call"
+      logs:
+        - id: suspect_oracle
+          category: suspect
+          text: "The cold-storage backup names the real operator behind sentinel: ORACLE, not command staff."
+
+  - id: trust_call
+    type: narrative
+    text: |
+      ORACLE. Not a training designation, not a callsign you recognize from
+      anything official -- just a name, sitting where a chain of command
+      should be.
+
+      GHOST: "Okay. Now you know what I know. What do you want to do with
+      that?"
+    choices:
+      - text: "Tell GHOST everything -- you're not doing this half-blind."
+        next: "chapter_03:confrontation"
+        sets:
+          trust.ghost: 1
+          allegiance: "loyalist"
+        logs:
+          - id: note_choice_loyalist
+            category: note
+            text: "Decided to keep GHOST fully in the loop. Whatever happens next, at least it's not just your call."
+      - text: "Keep the ORACLE lead to yourself, for now."
+        next: "chapter_03:confrontation"
+        sets:
+          trust.ghost: -1
+          allegiance: "wary"
+        logs:
+          - id: note_choice_wary
+            category: note
+            text: "Decided to hold the ORACLE lead back. GHOST didn't ask twice, which is its own kind of answer."

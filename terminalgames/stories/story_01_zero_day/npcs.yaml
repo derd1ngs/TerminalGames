@@ -26,3 +26,53 @@ npcs:
           If it's syncing with an external uplink, that's not part of any
           training exercise I ever signed off on.
         reliability: truthful
+
+      - id: why_you
+        prompt: "ask why they're really doing this"
+        response: >
+          "Does it matter? You said yes. Focus on the box in front of you."
+        reliability: evasive
+
+      - id: why_gateway
+        prompt: "ask GHOST why gateway, specifically"
+        requires:
+          trust_at_least:
+            npc: ghost
+            value: 3
+        response: >
+          "I used to have a login on gateway.mil, a long time ago, back
+          when the program was still real. I can't get back in myself --
+          not without leaving a trail with my name on it. You can. That's
+          the only reason I picked you, and the only reason I'm still
+          here."
+        reliability: truthful
+
+  - id: t
+    name: "T"
+    persona: "Gateway's old sysadmin, half-retired. Answers email when they feel like it."
+    channel: email
+    ask_limit: 2
+    email_delay_scenes: 2
+    topics:
+      - id: cold_storage
+        prompt: "ask T about the cold-storage backup"
+        requires:
+          journal_has: lead_t_contact
+        sets:
+          emailed_t: true
+        logs:
+          - id: lead_emailed_t
+            category: lead
+            text: "Emailed T asking about the cold-storage backup passphrase."
+        response: >
+          Still using the old rotation, if nobody's touched it. Passphrase
+          was RAVEN last I set it. Don't go telling people I still have
+          access to that.
+        reliability: truthful
+
+      - id: small_talk
+        prompt: "ask T how they've been"
+        response: >
+          Retired, mostly. This box was the last thing I never quite let
+          go of. Glad someone's finally looking at it again.
+        reliability: truthful

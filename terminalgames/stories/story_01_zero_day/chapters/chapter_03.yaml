@@ -1,0 +1,71 @@
+id: chapter_03
+scenes:
+  - id: confrontation
+    type: narrative
+    text: |
+      ORACLE. A live override code for a system that was supposed to be a
+      training exercise, and someone running it from entirely outside the
+      chain of command. Whoever built this either doesn't know, or doesn't
+      care, that sentinel is quietly pulling a real feed instead of a
+      simulated one.
+
+      GHOST: "So. What are you going to do about it?"
+    choices:
+      - text: "Use the override code yourself, right now, and kill the feed."
+        next: ending_hero_risky
+      - text: "Walk away. You saw nothing. You did nothing."
+        next: ending_walked_away
+      - text: "Log everything you found and disappear -- let someone else decide what it means."
+        next: ending_reported
+      - text: "Loop GHOST in properly and decide together. You didn't get this far alone."
+        next: ending_partners
+        requires:
+          trust_at_least:
+            npc: ghost
+            value: 3
+          flag_equals:
+            key: allegiance
+            value: "loyalist"
+
+  - id: ending_hero_risky
+    type: ending
+    text: |
+      You send the override code yourself. The feed drops. Somewhere, an
+      alarm you'll never hear about goes quiet, or maybe a very different
+      alarm just started. You'll never know for sure which -- and neither
+      will anyone who could trace it back to a single unauthorized session
+      on a network that "doesn't exist."
+
+      -- ENDING: You Pressed the Button --
+
+  - id: ending_walked_away
+    type: ending
+    text: |
+      You disconnect and delete every trace you can find of ever having
+      been there. FALCON stays valid. Sentinel keeps quietly listening.
+      GHOST never messages you again.
+
+      -- ENDING: Some Doors Should Stay Shut --
+
+  - id: ending_reported
+    type: ending
+    text: |
+      You save everything -- the netmon logs, the handoff decryption, the
+      override code -- and walk away from the keyboard for good this time.
+      A week later, sentinel.internal goes dark for good. You never find
+      out who read your files, or whether it mattered. Some things you
+      just have to let go of, unfinished.
+
+      -- ENDING: You Left It Better Than You Found It --
+
+  - id: ending_partners
+    type: ending
+    text: |
+      You lay it all out for GHOST -- netmon, the uplink, FALCON, ORACLE,
+      all of it -- and for once you're not the only one making the call.
+      Between the two of you, killing the feed cleanly and covering the
+      trail back to this session takes twenty minutes instead of one
+      reckless keystroke. GHOST goes quiet afterward, but it's a different
+      kind of quiet than before.
+
+      -- ENDING: You Weren't Alone In This --
