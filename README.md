@@ -281,11 +281,31 @@ still arrive automatically on the same scene-count delay as always, and now
 also land as real files in `mail/inbox/` (`mail list`/`mail read` still work
 too, reading from the same underlying state).
 
+### Checking a story for structural bugs
+
+```bash
+.venv/bin/python -m terminalgames.tools.check_story zero_day   # one story
+.venv/bin/python -m terminalgames.tools.check_story --all      # every shipped story
+```
+
+Explores every reachable combination of choices via the real engine (not a
+separate reimplementation) to report scenes and endings that can never be
+reached, and terminal scenes whose `win_flag` is never actually set by
+anything in that story's `network.yaml`/`npcs.yaml` -- the classic typo
+between two files that's easy to introduce and hard to spot by reading
+either file alone. `tests/test_story_reachability.py` runs this against
+every shipped story as part of the normal test suite, so a broken story
+fails CI the same way a broken test would. See
+`terminalgames/tools/check_story.py`'s module docstring for how the search
+works and what it deliberately doesn't model (e.g. an NPC's `ask_limit`
+running out isn't factored into reachability).
+
 ## Project layout
 
 `terminalgames/engine/` holds the engine modules (`story.py`, `shell.py`,
 `dialogue.py`, `journal.py`, `state.py`, `puzzles.py`) -- pure game logic
 with no UI dependency. `terminalgames/tui.py` is the split-pane Textual
 frontend that drives it; `main.py` is just the pre-flight story/save picker
-that hands off to it. `terminalgames/stories/story_01_zero_day/` is a
-complete worked content example.
+that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
+structural story validator described above. `terminalgames/stories/
+story_01_zero_day/` is a complete worked content example.
