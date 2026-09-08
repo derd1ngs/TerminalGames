@@ -1,7 +1,8 @@
-"""The split-pane game screen: a tmux-style layout with a **terminal pane**
-on the left (choice list for narrative scenes, a command input for terminal
-scenes) and a scrollable **story pane** on the right (narration + terminal
-output).
+"""The 3-pane game screen: a left column with the **story pane** (pure
+narration -- scene text and choice echoes, never command output) stacked
+above a small **choices** pane (the decision list, narrative scenes only),
+and a **terminal** pane filling the right column -- a command's echo/output
+log paired with the command input, terminal scenes only.
 
 This is purely presentation -- it drives the same engine (`story.py`,
 `shell.py`, `dialogue.py`, `state.py`) the old single-stream console UI did,
@@ -36,23 +37,31 @@ class GameApp(App):
         width: 38%;
         min-width: 28;
         height: 1fr;
-        align: left middle;
     }
     #story-pane {
-        width: 1fr;
         height: 1fr;
         border: round $accent;
         padding: 0 1;
     }
     #decisions-pane {
-        height: 1fr;
+        height: 30%;
+        min-height: 5;
         border: round $secondary;
         display: none;
     }
-    #command-input {
-        height: 3;
+    #terminal-group {
+        width: 1fr;
+        height: 1fr;
         border: round $warning;
         display: none;
+    }
+    #terminal-pane {
+        height: 1fr;
+        padding: 0 1;
+    }
+    #command-input {
+        height: 3;
+        border-top: solid $warning;
     }
     """
 
@@ -72,25 +81,47 @@ class GameApp(App):
         yield Header(show_clock=False)
         with Horizontal(id="body"):
             with Vertical(id="left-pane"):
+                # min_width defaults to 78 and floors the wrap width even
+                # with shrink=True -- without overriding it, a pane narrower
+                # than 78 columns (as both of these now routinely are) would
+                # wrap wider than it can display and crop text horizontally.
+                yield RichLog(
+                    id="story-pane", wrap=True, min_width=1, markup=True, highlight=False, auto_scroll=True
+                )
                 yield OptionList(id="decisions-pane")
+            with Vertical(id="terminal-group"):
+                yield RichLog(
+                    id="terminal-pane",
+                    wrap=True,
+                    min_width=1,
+                    markup=True,
+                    highlight=False,
+                    auto_scroll=True,
+                )
                 yield Input(id="command-input")
-            yield RichLog(id="story-pane", wrap=True, markup=True, highlight=False, auto_scroll=True)
         yield Footer()
 
     def on_mount(self) -> None:
-        story_pane = self.query_one("#story-pane", RichLog)
-        story_pane.border_title = "STORY"
+        self.query_one("#story-pane", RichLog).border_title = "STORY"
         self.query_one("#decisions-pane", OptionList).border_title = "CHOICES"
-        self.query_one("#command-input", Input).border_title = "COMMAND"
+        self.query_one("#terminal-group", Vertical).border_title = "TERMINAL"
         self.show_scene()
 
-    def log_text(self, text: str, style: str | None = None) -> None:
-        pane = self.query_one("#story-pane", RichLog)
+    def _write_pane(self, pane_id: str, text: str, style: str | None = None) -> None:
+        pane = self.query_one(pane_id, RichLog)
         if style:
             pane.write(f"[{style}]{text}[/{style}]")
         else:
             pane.write(text)
         pane.write("")
+
+    def log_text(self, text: str, style: str | None = None) -> None:
+        """Pure narration: scene text, choice echoes, endings, system messages."""
+        self._write_pane("#story-pane", text, style)
+
+    def log_terminal(self, text: str, style: str | None = None) -> None:
+        """A command's echo or its output -- the terminal pane's transcript."""
+        self._write_pane("#terminal-pane", text, style)
 
     def maybe_autosave(self, previous_chapter_id: str) -> None:
         """Crossing into a new chapter autosaves -- long stories can span many
@@ -106,6 +137,7 @@ class GameApp(App):
         scene = self.story.get_scene(state.chapter_id, state.scene_id)
         self.current_scene = scene
         decisions = self.query_one("#decisions-pane", OptionList)
+        terminal_group = self.query_one("#terminal-group", Vertical)
         cmd_input = self.query_one("#command-input", Input)
 
         if scene.type == "ending":
@@ -113,7 +145,7 @@ class GameApp(App):
             self.log_text(scene.text, style="bold yellow")
             self.log_text(f"-- THE END ({scene.id}) --", style="bold red")
             decisions.display = False
-            cmd_input.display = False
+            terminal_group.display = False
             return
 
         self.log_text(scene.text)
@@ -126,7 +158,7 @@ class GameApp(App):
                 self.runner.current_host = scene.terminal.host
                 self.runner.cwd = "/"
             decisions.display = False
-            cmd_input.display = True
+            terminal_group.display = True
             cmd_input.placeholder = f"{self.runner.current_host or 'local'}$"
             cmd_input.value = ""
             self.set_focus(cmd_input)
@@ -137,7 +169,7 @@ class GameApp(App):
             for i, choice in enumerate(self.available_choices):
                 decisions.add_option(Option(choice.text, id=str(i)))
             decisions.display = True
-            cmd_input.display = False
+            terminal_group.display = False
             self.set_focus(decisions)
             if self.available_choices:
                 decisions.highlighted = 0
@@ -167,15 +199,15 @@ class GameApp(App):
             return
 
         prompt = f"{self.runner.current_host or 'local'}$"
-        self.log_text(f"{prompt} {escape(raw)}", style="dim")
+        self.log_terminal(f"{prompt} {escape(raw)}", style="dim")
 
         if raw == ":save":
             self.runner.state.save(self.slot_path)
-            self.log_text("Saved.", style="italic green")
+            self.log_terminal("Saved.", style="italic green")
             return
         if raw in (":quit", ":exit"):
             self.runner.state.save(self.slot_path)
-            self.log_text("Saved. Goodbye.", style="italic green")
+            self.log_terminal("Saved. Goodbye.", style="italic green")
             self.exit()
             return
 
@@ -187,7 +219,7 @@ class GameApp(App):
         else:
             output = self.runner.execute(raw)
         if output:
-            self.log_text(escape(output))
+            self.log_terminal(escape(output))
 
         state = self.runner.state
         scene = self.current_scene
