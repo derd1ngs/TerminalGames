@@ -52,11 +52,20 @@ last-saved time) and lets you pick one to continue or name a new one.
 (Saves from before slots existed, at the old flat `saves/<story_id>.json`
 path, are migrated into the `default` slot automatically.)
 
-The game itself then runs full-screen as a two-pane Textual app
-(`terminalgames/tui.py`): a scrollable **story pane** at the top (narration and
-terminal output) and a **decisions pane** below it that switches between a
-selectable choice list (narrative scenes -- arrow keys + Enter) and a command
-input (terminal scenes).
+Each slot also gets a real sandbox directory on disk
+(`saves/<story_id>/<slot>_sandbox/hosts/<host_id>/`) -- every file a story's
+`network.yaml` describes for a host is materialized there as an actual file,
+and `cat`/`ls`/`grep`/`set`/`systemctl`/`decrypt` read and write those real
+files rather than an in-memory simulation. Continuing a slot reuses its
+sandbox as-is (so anything you've edited via `set` stays edited); restarting
+a slot wipes it back to the story's original files.
+
+The game itself then runs full-screen as a three-pane Textual app
+(`terminalgames/tui.py`): a **story pane** (pure narration -- scene text and
+choice echoes) with a small **choices pane** underneath it (narrative
+scenes -- arrow keys + Enter), and a **terminal pane** filling the rest of
+the screen (a command's echo/output log paired with the input line, terminal
+scenes).
 
 In-game, at any point during a terminal scene you can type:
 - `:save` -- save your progress

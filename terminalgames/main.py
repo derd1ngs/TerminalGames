@@ -8,6 +8,7 @@ Textual app (see tui.py).
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -148,19 +149,26 @@ def select_slot(story_id: str) -> str:
         console.print("[bold red]Invalid choice.[/bold red]")
 
 
-def new_or_continue(story: Story, slot_path: Path, *, new: bool = False, cont: bool = False) -> GameState:
+def new_or_continue(
+    story: Story, slot_path: Path, *, new: bool = False, cont: bool = False
+) -> tuple[GameState, bool]:
+    """Returns (state, is_fresh). is_fresh is True whenever a brand-new
+    GameState was constructed (no save yet, --new, or the player chose to
+    restart) -- the caller uses it to decide whether the slot's sandbox
+    directory needs to be wiped and rematerialized alongside it, rather than
+    reused as-is."""
     has_save = slot_path.exists()
     if cont:
         if not has_save:
             console.print(f"[bold red]No save found at slot '{slot_path.stem}'.[/bold red]")
             sys.exit(1)
-        return GameState.load(slot_path)
+        return GameState.load(slot_path), False
     if has_save and not new:
         choice = console.input("Save found. (c)ontinue or (r)estart this slot? ").strip().lower()
         if choice.startswith("c"):
-            return GameState.load(slot_path)
+            return GameState.load(slot_path), False
     chapter_id, scene_id = story.start_ref()
-    return GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
+    return GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id), True
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -231,8 +239,12 @@ def main() -> None:
     slot = args.slot or (DEFAULT_SLOT if args.story else select_slot(story.id))
     slot_path = save_slot_path(story.id, slot)
 
-    state = new_or_continue(story, slot_path, new=args.new, cont=args.cont)
+    state, is_fresh = new_or_continue(story, slot_path, new=args.new, cont=args.cont)
     network = load_network(story_dir)
+    sandbox_root = GameState.sandbox_dir_for(slot_path)
+    if is_fresh:
+        shutil.rmtree(sandbox_root, ignore_errors=True)
+    network.materialize(sandbox_root)
     npcs = load_npc_roster(story_dir)
 
     GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path).run()

@@ -4,6 +4,7 @@ from unittest.mock import patch
 import yaml
 
 from terminalgames.engine.dialogue import NPC, Topic
+from terminalgames.engine.puzzles import parse_config_text
 from terminalgames.engine.shell import Network, TerminalRunner
 from terminalgames.engine.state import GameState
 
@@ -69,9 +70,49 @@ def build_network(tmp_path: Path) -> Network:
 def build_runner(tmp_path: Path, npcs=None) -> TerminalRunner:
     state = GameState(story_id="s", chapter_id="c", scene_id="a")
     network = build_network(tmp_path)
-    runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=tmp_path / "s.json")
+    slot_path = tmp_path / "s.json"
+    network.materialize(GameState.sandbox_dir_for(slot_path))
+    runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
     runner.current_chapter, runner.current_scene = "c", "a"
     return runner
+
+
+def test_materialize_writes_real_files_to_disk(tmp_path):
+    network = build_network(tmp_path)
+    sandbox_root = tmp_path / "sandbox"
+    network.materialize(sandbox_root)
+
+    gateway_dir = sandbox_root / "hosts" / "gateway"
+    assert parse_config_text((gateway_dir / "etc" / "netmon.conf").read_text()) == {
+        "bind_address": "127.0.0.1",
+        "allow_query": "denied",
+    }
+    assert (gateway_dir / "etc" / "README").read_text() == "fix netmon"
+    assert (gateway_dir / "var" / "secret.enc").read_text() == "khoor"
+    assert (sandbox_root / "hosts" / "vault").is_dir()
+
+
+def test_materialize_skips_a_host_whose_directory_already_exists(tmp_path):
+    """Continuing a save must reuse the sandbox as-is, not clobber whatever
+    the player already edited via `set`."""
+    network = build_network(tmp_path)
+    sandbox_root = tmp_path / "sandbox"
+    network.materialize(sandbox_root)
+    edited = sandbox_root / "hosts" / "gateway" / "etc" / "README"
+    edited.write_text("player was here")
+
+    network.materialize(sandbox_root)
+
+    assert edited.read_text() == "player was here"
+
+
+def test_set_command_persists_to_the_real_file_on_disk(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    runner.execute("set /etc/netmon.conf bind_address 0.0.0.0")
+
+    real_path = GameState.sandbox_dir_for(tmp_path / "s.json") / "hosts" / "gateway" / "etc" / "netmon.conf"
+    assert parse_config_text(real_path.read_text())["bind_address"] == "0.0.0.0"
 
 
 def test_scan_reports_services(tmp_path):
@@ -167,10 +208,15 @@ def test_connection_state_survives_save_and_continue(tmp_path):
     runner.state.save(slot_path)
 
     restored_state = GameState.load(slot_path)
-    new_runner = TerminalRunner(state=restored_state, network=build_network(tmp_path))
+    # Same save_slot_path as the original runner (from build_runner), not the
+    # state-only "slot.json" above -- that's what makes this new runner reach
+    # the same already-materialized sandbox directory.
+    new_runner = TerminalRunner(
+        state=restored_state, network=build_network(tmp_path), save_slot_path=tmp_path / "s.json"
+    )
     assert new_runner.current_host == "gateway"
     assert new_runner.cwd == "/etc"
-    assert "not connected" not in new_runner.execute("cat README")
+    assert new_runner.execute("cat README") == "fix netmon"
 
 
 def test_chat_lists_and_asks_topics(tmp_path):

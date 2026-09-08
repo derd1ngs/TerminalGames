@@ -43,13 +43,15 @@ def run_terminal(story, state, runner, commands):
     state.advance_scene()
 
 
-def new_playthrough():
+def new_playthrough(tmp_path: Path):
     story = Story.load(STORY_DIR)
     network = Network.load(STORY_DIR / "network.yaml")
     npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
     chapter_id, scene_id = story.start_ref()
     state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
-    runner = TerminalRunner(state=state, network=network, npcs=npcs)
+    slot_path = tmp_path / "playthrough.json"
+    network.materialize(GameState.sandbox_dir_for(slot_path))
+    runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
     return story, state, runner
 
 
@@ -121,8 +123,8 @@ def play_to_confrontation(story, state, runner):
     assert state.journal.has("suspect_oracle")
 
 
-def test_loyalist_path_unlocks_bonus_ending():
-    story, state, runner = new_playthrough()
+def test_loyalist_path_unlocks_bonus_ending(tmp_path):
+    story, state, runner = new_playthrough(tmp_path)
     play_to_confrontation(story, state, runner)
 
     choose(story, state, 0)  # loyalist: tell GHOST everything
@@ -143,8 +145,8 @@ def test_loyalist_path_unlocks_bonus_ending():
     assert {e.category for e in state.journal.all()} == {"trace", "lead", "suspect", "note"}
 
 
-def test_wary_path_hides_bonus_ending_and_gated_topic():
-    story, state, runner = new_playthrough()
+def test_wary_path_hides_bonus_ending_and_gated_topic(tmp_path):
+    story, state, runner = new_playthrough(tmp_path)
     play_to_confrontation(story, state, runner)
 
     choose(story, state, 1)  # wary: keep the ORACLE lead to yourself
@@ -192,8 +194,8 @@ def test_ghost_chat_topics_gated_by_flag_and_trust():
     assert "why_gateway" in runner.execute("chat ghost")
 
 
-def test_mail_ask_limit_enforced_for_t():
-    story, state, runner = new_playthrough()
+def test_mail_ask_limit_enforced_for_t(tmp_path):
+    story, state, runner = new_playthrough(tmp_path)
     play_to_confrontation(story, state, runner)
     # Two asks (cold_storage during the playthrough, then small_talk) reach
     # T's ask_limit of 2; a third should be refused rather than silently

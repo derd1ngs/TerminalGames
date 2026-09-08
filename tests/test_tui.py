@@ -26,7 +26,9 @@ def build_app(tmp_path: Path) -> GameApp:
     npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
     chapter_id, scene_id = story.start_ref()
     state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
-    return GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=tmp_path / "save.json")
+    slot_path = tmp_path / "save.json"
+    network.materialize(GameState.sandbox_dir_for(slot_path))
+    return GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path)
 
 
 def build_multichapter_story(tmp_path: Path) -> Story:
