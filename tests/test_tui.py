@@ -63,11 +63,11 @@ async def test_narrative_scene_shows_decisions_pane(tmp_path):
     async with app.run_test() as pilot:
         await pilot.pause()
         decisions = app.query_one("#decisions-pane")
-        cmd_input = app.query_one("#command-input")
+        terminal_group = app.query_one("#terminal-group")
         assert app.mode == "narrative"
         assert decisions.display is True
         assert decisions.option_count == 2
-        assert cmd_input.display is False
+        assert terminal_group.display is False
 
 
 @pytest.mark.asyncio
@@ -90,10 +90,11 @@ async def test_reaching_terminal_scene_shows_input_pane(tmp_path):
         await pilot.press("enter")  # -> recon (terminal)
         await pilot.pause()
         decisions = app.query_one("#decisions-pane")
+        terminal_group = app.query_one("#terminal-group")
         cmd_input = app.query_one("#command-input")
         assert app.mode == "terminal"
         assert decisions.display is False
-        assert cmd_input.display is True
+        assert terminal_group.display is True
         assert cmd_input.placeholder == "local$"
 
 
@@ -128,14 +129,19 @@ async def test_terminal_command_solves_puzzle_and_advances(tmp_path):
         assert app.runner.state.scene_id == "discovery"
 
 
-def _story_pane_text(app: GameApp, lines: int = 80) -> str:
-    """Rich markup is enabled on the story pane so authored `[bold]...[/bold]`
+def _pane_text(app: GameApp, selector: str, lines: int = 80) -> str:
+    """Rich markup is enabled on both logs so authored `[bold]...[/bold]`
     text renders; a lowercase bracketed word in *dynamic* output (a journal
     category, a mail id) looks like an invalid markup tag to Rich and gets
     silently dropped unless escaped first. Render the pane's actual lines
-    (not the raw command return value) to catch that class of bug."""
-    pane = app.query_one("#story-pane")
-    return "\n".join(pane.render_line(y).text for y in range(lines))
+    (not the raw command return value) to catch that class of bug.
+
+    Joins with a single space rather than a newline, and strips trailing
+    padding from each line, so a phrase that word-wraps across lines in a
+    narrow pane still forms one contiguous, matchable string."""
+    pane = app.query_one(selector)
+    rendered = (pane.render_line(y).text.rstrip() for y in range(lines))
+    return " ".join(line for line in rendered if line)
 
 
 @pytest.mark.asyncio
@@ -156,7 +162,38 @@ async def test_command_output_with_brackets_is_not_swallowed_by_markup(tmp_path)
         await pilot.press("enter")
         await pilot.pause()
 
-        assert "[trace] Something happened." in _story_pane_text(app)
+        assert "[trace] Something happened." in _pane_text(app, "#terminal-pane")
+
+
+@pytest.mark.asyncio
+async def test_story_pane_holds_narration_only_terminal_pane_holds_commands(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("enter")  # -> briefing
+        await pilot.pause()
+        await pilot.press("enter")  # -> recon (terminal)
+        await pilot.pause()
+
+        cmd_input = app.query_one("#command-input")
+        cmd_input.value = "whoami"
+        await pilot.press("enter")
+        await pilot.pause()
+
+        story_text = _pane_text(app, "#story-pane")
+        terminal_text = _pane_text(app, "#terminal-pane")
+
+        # The scene's narrative intro is story-only.
+        assert "Get your bearings first" in story_text
+        assert "Get your bearings first" not in terminal_text
+
+        # The command echo and its output are terminal-only. (The scene's
+        # own narrative text mentions `whoami` by name while teaching it, so
+        # check for the actual echoed command line rather than the bare word.)
+        assert "local$ whoami" in terminal_text
+        assert "user@localhost" in terminal_text
+        assert "local$ whoami" not in story_text
+        assert "user@localhost" not in story_text
 
 
 @pytest.mark.asyncio
@@ -217,7 +254,7 @@ async def test_ending_scene_hides_both_panes(tmp_path):
         app.runner.state.chapter_id, app.runner.state.scene_id = "chapter_01", "ending_ignored"
         app.show_scene()
         decisions = app.query_one("#decisions-pane")
-        cmd_input = app.query_one("#command-input")
+        terminal_group = app.query_one("#terminal-group")
         assert app.mode == "ended"
         assert decisions.display is False
-        assert cmd_input.display is False
+        assert terminal_group.display is False
