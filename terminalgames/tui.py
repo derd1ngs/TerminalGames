@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from rich.markup import escape
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Input, OptionList, RichLog
@@ -166,7 +167,7 @@ class GameApp(App):
             return
 
         prompt = f"{self.runner.current_host or 'local'}$"
-        self.log_text(f"{prompt} {raw}", style="dim")
+        self.log_text(f"{prompt} {escape(raw)}", style="dim")
 
         if raw == ":save":
             self.runner.state.save(self.slot_path)
@@ -186,7 +187,7 @@ class GameApp(App):
         else:
             output = self.runner.execute(raw)
         if output:
-            self.log_text(output)
+            self.log_text(escape(output))
 
         state = self.runner.state
         scene = self.current_scene

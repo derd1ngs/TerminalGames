@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from terminalgames.engine.dialogue import load_npcs
+from terminalgames.engine.journal import JournalEntry
 from terminalgames.engine.shell import Network
 from terminalgames.engine.state import GameState
 from terminalgames.engine.story import Story
@@ -125,6 +126,37 @@ async def test_terminal_command_solves_puzzle_and_advances(tmp_path):
 
         assert app.runner.state.has_flag("netmon_fixed")
         assert app.runner.state.scene_id == "discovery"
+
+
+def _story_pane_text(app: GameApp, lines: int = 80) -> str:
+    """Rich markup is enabled on the story pane so authored `[bold]...[/bold]`
+    text renders; a lowercase bracketed word in *dynamic* output (a journal
+    category, a mail id) looks like an invalid markup tag to Rich and gets
+    silently dropped unless escaped first. Render the pane's actual lines
+    (not the raw command return value) to catch that class of bug."""
+    pane = app.query_one("#story-pane")
+    return "\n".join(pane.render_line(y).text for y in range(lines))
+
+
+@pytest.mark.asyncio
+async def test_command_output_with_brackets_is_not_swallowed_by_markup(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("enter")  # -> briefing
+        await pilot.pause()
+        await pilot.press("enter")  # -> recon (terminal)
+        await pilot.pause()
+
+        app.runner.state.journal.add(
+            JournalEntry(id="t1", category="trace", text="Something happened.", discovered_at="c:s")
+        )
+        cmd_input = app.query_one("#command-input")
+        cmd_input.value = "journal"
+        await pilot.press("enter")
+        await pilot.pause()
+
+        assert "[trace] Something happened." in _story_pane_text(app)
 
 
 @pytest.mark.asyncio
