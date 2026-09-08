@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -55,6 +56,7 @@ class GameState:
     scenes_visited: int = 0
     current_host: Optional[str] = None
     cwd: str = "/"
+    saved_at: str = ""
 
     def set_flag(self, key: str, value: Any = True) -> None:
         self.flags[key] = value
@@ -112,6 +114,7 @@ class GameState:
             "scenes_visited": self.scenes_visited,
             "current_host": self.current_host,
             "cwd": self.cwd,
+            "saved_at": self.saved_at,
         }
 
     @classmethod
@@ -129,9 +132,11 @@ class GameState:
             scenes_visited=data.get("scenes_visited", 0),
             current_host=data.get("current_host"),
             cwd=data.get("cwd", "/"),
+            saved_at=data.get("saved_at", ""),
         )
 
     def save(self, slot_path: Path) -> None:
+        self.saved_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         slot_path.parent.mkdir(parents=True, exist_ok=True)
         slot_path.write_text(json.dumps(self.to_dict(), indent=2))
 

@@ -42,7 +42,9 @@ def test_roundtrip_via_dict():
 def test_roundtrip_via_file(tmp_path: Path):
     state = build_state()
     slot_path = tmp_path / "zero_day.json"
+    assert state.saved_at == ""
     state.save(slot_path)
+    assert state.saved_at != ""
     restored = GameState.load(slot_path)
     assert restored.to_dict() == state.to_dict()
 
