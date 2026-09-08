@@ -1,6 +1,7 @@
-"""The split-pane game screen: a tmux-style layout with a scrollable story
-pane (narration + terminal output) and a separate decisions pane (choice
-list for narrative scenes, a command input for terminal scenes).
+"""The split-pane game screen: a tmux-style layout with a **terminal pane**
+on the left (choice list for narrative scenes, a command input for terminal
+scenes) and a scrollable **story pane** on the right (narration + terminal
+output).
 
 This is purely presentation -- it drives the same engine (`story.py`,
 `shell.py`, `dialogue.py`, `state.py`) the old single-stream console UI did,
@@ -13,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from textual.app import App, ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Input, OptionList, RichLog
 from textual.widgets.option_list import Option
 
@@ -27,21 +28,29 @@ class GameApp(App):
     Screen {
         layout: vertical;
     }
+    #body {
+        height: 1fr;
+    }
+    #left-pane {
+        width: 38%;
+        min-width: 28;
+        height: 1fr;
+    }
     #story-pane {
+        width: 1fr;
         height: 1fr;
         border: round $accent;
         padding: 0 1;
     }
     #decisions-pane {
-        height: 30%;
-        min-height: 5;
+        height: 1fr;
         border: round $secondary;
         display: none;
     }
     #command-input {
-        dock: bottom;
-        display: none;
+        height: 3;
         border: round $warning;
+        display: none;
     }
     """
 
@@ -59,10 +68,11 @@ class GameApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        with Vertical():
+        with Horizontal(id="body"):
+            with Vertical(id="left-pane"):
+                yield OptionList(id="decisions-pane")
+                yield Input(id="command-input")
             yield RichLog(id="story-pane", wrap=True, markup=True, highlight=False, auto_scroll=True)
-            yield OptionList(id="decisions-pane")
-            yield Input(id="command-input")
         yield Footer()
 
     def on_mount(self) -> None:
