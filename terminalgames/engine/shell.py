@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Optional
 
 import yaml
@@ -456,7 +456,9 @@ def cmd_decrypt(args: list[str], runner: TerminalRunner) -> str:
     if decoded.strip().lower() == meta.plaintext.strip().lower():
         if meta.on_success_flag:
             runner.state.set_flag(meta.on_success_flag, True)
-        return f"Decryption successful:\n{decoded}"
+        real_path.with_suffix(".txt").write_text(decoded)
+        virtual_output_path = str(PurePosixPath(path).with_suffix(".txt"))
+        return f"Decryption successful. Wrote {virtual_output_path}."
     return f"Decryption produced garbage:\n{decoded}"
 
 
