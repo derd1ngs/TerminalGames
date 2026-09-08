@@ -14,6 +14,18 @@ set of five endings.
 ## Running it
 
 ```bash
+./setup.sh   # one-time: creates .venv and installs the package into it
+./start.sh   # launches the game (re-run this any time to play)
+```
+
+`setup.sh` is safe to re-run (e.g. after pulling changes) -- it reuses the
+existing `.venv` and just reinstalls the package. `start.sh` forwards any
+arguments straight to `terminalgames`, e.g. `./start.sh zero_day --new`, and
+tells you to run `setup.sh` first if `.venv` doesn't exist yet.
+
+If you'd rather manage the virtual environment yourself:
+
+```bash
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/terminalgames
@@ -21,14 +33,15 @@ python3 -m venv .venv
 ```
 
 With no arguments, story/save-slot selection is a plain pre-flight prompt. You
-can skip it with CLI args instead:
+can skip it with CLI args instead (via `./start.sh` or `.venv/bin/terminalgames`
+directly -- both take the same arguments):
 
 ```bash
-.venv/bin/terminalgames --list                       # list available stories, then exit
-.venv/bin/terminalgames zero_day --list               # list zero_day's save slots, then exit
-.venv/bin/terminalgames zero_day                       # launch directly (story dir name or manifest id), slot "default"
-.venv/bin/terminalgames zero_day --slot speedrun --new # launch a specific, named slot fresh
-.venv/bin/terminalgames zero_day --slot speedrun --continue # launch that slot, failing if it doesn't exist
+./start.sh --list                       # list available stories, then exit
+./start.sh zero_day --list               # list zero_day's save slots, then exit
+./start.sh zero_day                       # launch directly (story dir name or manifest id), slot "default"
+./start.sh zero_day --slot speedrun --new # launch a specific, named slot fresh
+./start.sh zero_day --slot speedrun --continue # launch that slot, failing if it doesn't exist
 ```
 
 Each story can have multiple save slots (`saves/<story_id>/<slot>.json`), so
