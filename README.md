@@ -15,15 +15,24 @@ python3 -m venv .venv
 # or: .venv/bin/python -m terminalgames.main
 ```
 
-With no arguments, story/save selection is a plain pre-flight prompt. You can
-skip it with CLI args instead:
+With no arguments, story/save-slot selection is a plain pre-flight prompt. You
+can skip it with CLI args instead:
 
 ```bash
-.venv/bin/terminalgames --list              # list available stories, then exit
-.venv/bin/terminalgames zero_day            # launch directly (story dir name or manifest id)
-.venv/bin/terminalgames zero_day --new      # launch, ignoring any existing save
-.venv/bin/terminalgames zero_day --continue # launch, failing if there's no save
+.venv/bin/terminalgames --list                       # list available stories, then exit
+.venv/bin/terminalgames zero_day --list               # list zero_day's save slots, then exit
+.venv/bin/terminalgames zero_day                       # launch directly (story dir name or manifest id), slot "default"
+.venv/bin/terminalgames zero_day --slot speedrun --new # launch a specific, named slot fresh
+.venv/bin/terminalgames zero_day --slot speedrun --continue # launch that slot, failing if it doesn't exist
 ```
+
+Each story can have multiple save slots (`saves/<story_id>/<slot>.json`), so
+you can run several playthroughs of the same story side by side. Launched
+without `--slot`, a direct launch uses the `default` slot; the interactive
+picker instead lists existing slots (with their current chapter/scene and
+last-saved time) and lets you pick one to continue or name a new one.
+(Saves from before slots existed, at the old flat `saves/<story_id>.json`
+path, are migrated into the `default` slot automatically.)
 
 The game itself then runs full-screen as a two-pane Textual app
 (`terminalgames/tui.py`): a scrollable **story pane** at the top (narration and
@@ -35,6 +44,10 @@ In-game, at any point during a terminal scene you can type:
 - `:save` -- save your progress
 - `:quit` / `:exit` -- save and quit
 - `Ctrl+Q` also saves and quits from anywhere
+
+The current slot is also autosaved every time you cross into a new chapter,
+so a crash or an accidental quit never costs you more than the current
+chapter's progress.
 
 Run the test suite with `.venv/bin/pip install -e ".[test]" && .venv/bin/pytest`
 (the TUI tests drive the Textual app headlessly via `pytest-asyncio` +

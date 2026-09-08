@@ -22,6 +22,7 @@ from .tui import GameApp
 
 STORIES_DIR = Path(__file__).parent / "stories"
 SAVES_DIR = Path(__file__).resolve().parent.parent / "saves"
+DEFAULT_SLOT = "default"
 
 console = Console()
 
@@ -45,8 +46,36 @@ def load_npc_roster(story_dir: Path) -> dict:
     return load_npcs(data)
 
 
-def save_slot_path(story_id: str) -> Path:
-    return SAVES_DIR / f"{story_id}.json"
+def story_saves_dir(story_id: str) -> Path:
+    return SAVES_DIR / story_id
+
+
+def save_slot_path(story_id: str, slot: str) -> Path:
+    return story_saves_dir(story_id) / f"{slot}.json"
+
+
+def list_save_slots(story_id: str) -> list[str]:
+    save_dir = story_saves_dir(story_id)
+    if not save_dir.exists():
+        return []
+    return sorted(p.stem for p in save_dir.glob("*.json"))
+
+
+def migrate_legacy_save(story_id: str) -> None:
+    """Saves used to live flat at saves/<story_id>.json, one per story. The
+    first time a story with such a file is loaded under the slot-based
+    layout, move it (and its notes file) into the '<DEFAULT_SLOT>' slot."""
+    legacy_path = SAVES_DIR / f"{story_id}.json"
+    if not legacy_path.exists():
+        return
+    default_path = save_slot_path(story_id, DEFAULT_SLOT)
+    if default_path.exists():
+        return
+    default_path.parent.mkdir(parents=True, exist_ok=True)
+    legacy_path.rename(default_path)
+    legacy_notes = GameState.notes_path_for(legacy_path)
+    if legacy_notes.exists():
+        legacy_notes.rename(GameState.notes_path_for(default_path))
 
 
 def select_story(stories: list[Path]) -> Path:
@@ -77,16 +106,57 @@ def find_story(story_ref: str, stories: list[Path]) -> Path | None:
     return None
 
 
-def new_or_continue(story: Story, *, new: bool = False, cont: bool = False) -> GameState:
-    slot_path = save_slot_path(story.id)
+def _slot_summary(story_id: str, slot: str) -> str:
+    state = GameState.load(save_slot_path(story_id, slot))
+    return f"{slot} -- {state.chapter_id}:{state.scene_id} (saved {state.saved_at or 'unknown'})"
+
+
+def print_save_slots(story_id: str) -> None:
+    slots = list_save_slots(story_id)
+    if not slots:
+        console.print(f"[bold]No saves for '{story_id}'.[/bold]")
+        return
+    console.print(f"[bold]Save slots for '{story_id}':[/bold]")
+    for slot in slots:
+        console.print(f"  {_slot_summary(story_id, slot)}")
+
+
+def select_slot(story_id: str) -> str:
+    """Interactive slot picker: pick an existing slot to continue, or name a
+    new one. With no slots yet, just ask for a name (Enter for the default)."""
+    slots = list_save_slots(story_id)
+    if not slots:
+        name = console.input(f"Save slot name [{DEFAULT_SLOT}]: ").strip()
+        return name or DEFAULT_SLOT
+    console.print(f"[bold]Save slots for '{story_id}':[/bold]")
+    for i, slot in enumerate(slots, start=1):
+        console.print(f"  {i}. {_slot_summary(story_id, slot)}")
+    console.print("  n. new slot")
+    while True:
+        choice = console.input("Select a slot #, or 'n' for a new one: ").strip().lower()
+        if choice == "n":
+            name = console.input("New slot name: ").strip()
+            if not name:
+                console.print("[bold red]Slot name can't be empty.[/bold red]")
+                continue
+            if name in slots:
+                console.print(f"[bold red]Slot '{name}' already exists.[/bold red]")
+                continue
+            return name
+        if choice.isdigit() and 1 <= int(choice) <= len(slots):
+            return slots[int(choice) - 1]
+        console.print("[bold red]Invalid choice.[/bold red]")
+
+
+def new_or_continue(story: Story, slot_path: Path, *, new: bool = False, cont: bool = False) -> GameState:
     has_save = slot_path.exists()
     if cont:
         if not has_save:
-            console.print(f"[bold red]No save found for '{story.id}'.[/bold red]")
+            console.print(f"[bold red]No save found at slot '{slot_path.stem}'.[/bold red]")
             sys.exit(1)
         return GameState.load(slot_path)
     if has_save and not new:
-        choice = console.input("Save found. (c)ontinue or (n)ew game? ").strip().lower()
+        choice = console.input("Save found. (c)ontinue or (r)estart this slot? ").strip().lower()
         if choice.startswith("c"):
             return GameState.load(slot_path)
     chapter_id, scene_id = story.start_ref()
@@ -103,7 +173,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Story to launch directly (directory name or manifest id), skipping the picker.",
     )
     parser.add_argument(
-        "--list", action="store_true", help="List available stories and exit, without launching."
+        "--list",
+        action="store_true",
+        help="List available stories and exit, without launching. "
+        "If a story is also given, lists that story's save slots instead.",
+    )
+    parser.add_argument(
+        "--slot",
+        help=f"Save slot name (default: '{DEFAULT_SLOT}' when launching a story directly).",
     )
     save_state = parser.add_mutually_exclusive_group()
     save_state.add_argument(
@@ -122,7 +199,7 @@ def main() -> None:
     args = parse_args()
     stories = discover_stories()
 
-    if args.list:
+    if args.list and not args.story:
         if not stories:
             console.print(f"[bold red]No stories found in {STORIES_DIR}[/bold red]")
             sys.exit(1)
@@ -145,11 +222,20 @@ def main() -> None:
         console.print(f"[bold red]Failed to load story: {exc}[/bold red]")
         sys.exit(1)
 
-    state = new_or_continue(story, new=args.new, cont=args.cont)
+    migrate_legacy_save(story.id)
+
+    if args.list:
+        print_save_slots(story.id)
+        return
+
+    slot = args.slot or (DEFAULT_SLOT if args.story else select_slot(story.id))
+    slot_path = save_slot_path(story.id, slot)
+
+    state = new_or_continue(story, slot_path, new=args.new, cont=args.cont)
     network = load_network(story_dir)
     npcs = load_npc_roster(story_dir)
 
-    GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=save_slot_path(story.id)).run()
+    GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path).run()
 
 
 if __name__ == "__main__":

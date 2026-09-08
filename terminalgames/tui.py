@@ -80,6 +80,15 @@ class GameApp(App):
             pane.write(text)
         pane.write("")
 
+    def maybe_autosave(self, previous_chapter_id: str) -> None:
+        """Crossing into a new chapter autosaves -- long stories can span many
+        chapters, and this is the natural "checkpoint" granularity."""
+        state = self.runner.state
+        if state.chapter_id == previous_chapter_id:
+            return
+        state.save(self.slot_path)
+        self.log_text(f"Autosaved -- entering chapter '{state.chapter_id}'.", style="dim italic")
+
     def show_scene(self) -> None:
         state = self.runner.state
         scene = self.story.get_scene(state.chapter_id, state.scene_id)
@@ -130,8 +139,10 @@ class GameApp(App):
         assert scene is not None
         self.log_text(f"> {choice.text}", style="dim")
         apply_effects(choice.sets, choice.logs, state, f"{state.chapter_id}:{scene.id}")
+        previous_chapter_id = state.chapter_id
         state.chapter_id, state.scene_id = self.story.resolve(choice.next, state.chapter_id)
         state.advance_scene()
+        self.maybe_autosave(previous_chapter_id)
         self.show_scene()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -171,8 +182,10 @@ class GameApp(App):
         assert scene is not None and scene.terminal is not None
         if state.has_flag(scene.terminal.win_flag):
             apply_effects({}, scene.terminal.logs, state, f"{state.chapter_id}:{scene.id}")
+            previous_chapter_id = state.chapter_id
             state.chapter_id, state.scene_id = self.story.resolve(scene.terminal.next, state.chapter_id)
             state.advance_scene()
+            self.maybe_autosave(previous_chapter_id)
             self.show_scene()
 
     def action_quit_game(self) -> None:

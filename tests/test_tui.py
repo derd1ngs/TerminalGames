@@ -28,6 +28,34 @@ def build_app(tmp_path: Path) -> GameApp:
     return GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=tmp_path / "save.json")
 
 
+def build_multichapter_story(tmp_path: Path) -> Story:
+    root = tmp_path / "story"
+    (root / "chapters").mkdir(parents=True)
+    (root / "manifest.yaml").write_text(
+        yaml.safe_dump(
+            {"id": "multi", "title": "Multi", "start": "one:start", "chapters": ["one.yaml", "two.yaml"]}
+        )
+    )
+    (root / "chapters" / "one.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "id": "one",
+                "scenes": [
+                    {
+                        "id": "start",
+                        "text": "Chapter one.",
+                        "choices": [{"text": "Continue", "next": "two:landing"}],
+                    }
+                ],
+            }
+        )
+    )
+    (root / "chapters" / "two.yaml").write_text(
+        yaml.safe_dump({"id": "two", "scenes": [{"id": "landing", "type": "ending", "text": "The end."}]})
+    )
+    return Story.load(root)
+
+
 @pytest.mark.asyncio
 async def test_narrative_scene_shows_decisions_pane(tmp_path):
     app = build_app(tmp_path)
@@ -118,6 +146,35 @@ async def test_save_meta_command_persists_state(tmp_path):
     assert slot_path.exists()
     restored = GameState.load(slot_path)
     assert restored.scene_id == "recon"
+
+
+@pytest.mark.asyncio
+async def test_crossing_chapter_boundary_autosaves(tmp_path):
+    story = build_multichapter_story(tmp_path)
+    state = GameState(story_id=story.id, chapter_id="one", scene_id="start")
+    slot_path = tmp_path / "save.json"
+    app = GameApp(story=story, network=Network(), npcs={}, state=state, slot_path=slot_path)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert not slot_path.exists()
+        await pilot.press("enter")  # crosses from chapter "one" into chapter "two"
+        await pilot.pause()
+
+    assert slot_path.exists()
+    restored = GameState.load(slot_path)
+    assert (restored.chapter_id, restored.scene_id) == ("two", "landing")
+
+
+@pytest.mark.asyncio
+async def test_staying_in_same_chapter_does_not_autosave(tmp_path):
+    app = build_app(tmp_path)
+    slot_path = app.slot_path
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("enter")  # briefing -- still chapter_01
+        await pilot.pause()
+
+    assert not slot_path.exists()
 
 
 @pytest.mark.asyncio
