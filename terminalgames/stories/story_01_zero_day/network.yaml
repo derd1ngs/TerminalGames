@@ -39,13 +39,29 @@ hosts:
                 type: text
                 content: |
                   Reminder to self: file a ticket about netmon.
-                  Nobody reads these logs anymore anyway. -T
+                  Nobody reads these logs anymore anyway. If it ever dies
+                  again and you need someone who remembers this box, I'm
+                  still reachable by email. -T
+      var:
+        type: dir
+        entries:
+          log:
+            type: dir
+            entries:
+              syslog:
+                type: text
+                content: |
+                  Jan 02 03:00:11 gateway systemd: netmon.service: start request repeated too quickly, refusing to start.
+                  Jan 02 03:00:11 gateway systemd: netmon.service: Failed with result 'exit-code'.
+                  Jan 03 22:41:05 gateway kernel: tap0: unexpected outbound traffic toward sentinel.internal, no rule matched
+                  Jan 04 00:05:59 gateway sshd: last login of user op from 10.44.0.9
 
   sentinel:
     address: "10.44.0.7"
     banner: "sentinel.internal - DEFCON_SIM training node"
     requires_to_connect:
       flag: netmon_fixed
+    on_connect_flag: connected_sentinel
     filesystem:
       var:
         type: dir
@@ -65,9 +81,16 @@ hosts:
                       2024-01-03 22:44 ops: handoff key encrypted in handoff.enc, usual shift-5 cipher
                       2024-01-04 01:02 ops: sim operator away, feed left running
                       2024-01-04 01:03 ops: routine health check ok
+                      2024-01-04 01:15 ops: cold-storage backup (blackbox.enc) re-keyed; only the old gateway admin still has the passphrase
                   handoff.enc:
                     type: cipher
                     cipher: caesar
                     ciphertext: "ymj xnrzqfynts kjji nx qnaj. tajwwnij htij: KFQHTS"
                     plaintext: "the simulation feed is live. override code: FALCON"
                     on_success_flag: found_override_code
+                  blackbox.enc:
+                    type: cipher
+                    cipher: xor
+                    ciphertext: "262933653b222d3f2b25722d39226e252025652b362822202a7c6139372f312d33653c272f25653d372f222c20372d762b21256d762b212661352a233f2038216e2135372328"
+                    plaintext: "the uplink log was edited. oracle runs sentinel now, not command staff"
+                    on_success_flag: found_true_operator

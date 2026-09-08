@@ -3,3 +3,5 @@ title: "Zero Day"
 start: "chapter_01:intro"
 chapters:
   - chapter_01.yaml
+  - chapter_02.yaml
+  - chapter_03.yaml

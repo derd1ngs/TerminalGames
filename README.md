@@ -3,8 +3,13 @@
 [![Tests](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml)
 
 A hacker-themed CLI text adventure engine with a fake terminal, in the spirit
-of *Hackers*, *WarGames*, and *23*. Ships with one short complete story,
-**Zero Day**.
+of *Hackers*, *WarGames*, and *23*. Ships with one complete story, **Zero
+Day** -- a 3-chapter campaign that also doubles as an in-fiction tutorial: by
+the end you'll have used every shell command the fake terminal understands
+(`help`, `whoami`, `scan`, `connect`/`disconnect`, `ls`/`cd`/`cat`/`grep`,
+`set` + `systemctl`, `decrypt` with both cipher types, `journal`, `chat`,
+`mail`, and `notes`), plus trust-building, gated dialogue, and a branching
+set of five endings.
 
 ## Running it
 

@@ -1,7 +1,9 @@
-"""End-to-end smoke test: scripts a full playthrough of the shipped "Zero Day"
+"""End-to-end smoke tests: script full playthroughs of the shipped "Zero Day"
 story via the engine directly (no interactive I/O), proving the whole content
-pipeline -- scenes, the fake terminal, config-restart and cipher puzzles, and
-journal logging -- is actually completable.
+pipeline -- scenes across all three chapters, the fake terminal, config-restart
+and both cipher puzzles, chat/email dialogue, and journal logging -- is
+actually completable, and that every documented shell command has somewhere
+in the story it's put to use.
 """
 
 from pathlib import Path
@@ -41,21 +43,27 @@ def run_terminal(story, state, runner, commands):
     state.advance_scene()
 
 
-def test_full_playthrough_reaches_reported_ending():
+def new_playthrough():
     story = Story.load(STORY_DIR)
     network = Network.load(STORY_DIR / "network.yaml")
     npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
-
     chapter_id, scene_id = story.start_ref()
     state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
     runner = TerminalRunner(state=state, network=network, npcs=npcs)
+    return story, state, runner
 
+
+def play_to_confrontation(story, state, runner):
+    """Drives the shared spine of the story -- chapter 1 through the
+    trust_call choice -- exercising every documented shell command along the
+    way. Returns after the caller still needs to make the trust_call choice
+    and the final confrontation choice."""
     assert story.get_scene(state.chapter_id, state.scene_id).id == "intro"
     choose(story, state, 0)  # ask GHOST -> briefing
     assert state.scene_id == "briefing"
     choose(story, state, 0)  # accept -> recon (terminal)
 
-    run_terminal(story, state, runner, ["scan gateway", "connect gateway"])
+    run_terminal(story, state, runner, ["help", "whoami", "scan gateway", "connect gateway"])
     assert state.scene_id == "gateway_shell"
     assert state.has_flag("connected_gateway")
 
@@ -64,41 +72,101 @@ def test_full_playthrough_reaches_reported_ending():
         state,
         runner,
         [
-            "cat /etc/netmon/README",
+            "ls",
+            "cd etc",
+            "cd netmon",
+            "cat netmon.conf",
+            "cat README",
+            "grep bind /etc/netmon/netmon.conf",
             "set /etc/netmon/netmon.conf bind_address 0.0.0.0",
             "set /etc/netmon/netmon.conf allow_query allow",
+            "systemctl status netmon",
             "systemctl restart netmon",
         ],
     )
     assert state.scene_id == "discovery"
     assert state.has_flag("netmon_fixed")
+    assert state.journal.has("lead_t_contact")
 
-    choose(story, state, 0)  # push further -> sentinel_recon (terminal)
+    choose(story, state, 0)  # push further -> chapter_02:reach_sentinel
+
+    run_terminal(story, state, runner, ["disconnect", "scan sentinel", "connect sentinel"])
+    assert state.scene_id == "sentinel_shell"
+    assert state.has_flag("connected_sentinel")
 
     run_terminal(
         story,
         state,
         runner,
-        [
-            "grep handoff var/log/ops/access.log",
-            "decrypt var/log/ops/handoff.enc 5",
-        ],
+        ["grep handoff /var/log/ops/access.log", "decrypt /var/log/ops/handoff.enc 5"],
     )
-    assert state.scene_id == "confrontation"
+    assert state.scene_id == "contact_t"
     assert state.has_flag("found_override_code")
 
-    choose(story, state, 2)  # log everything and disappear -> ending_reported
+    run_terminal(story, state, runner, ["mail send t cold_storage"])
+    assert state.scene_id == "waiting"
+    assert state.has_flag("emailed_t")
 
+    choose(story, state, 0)  # check back later -> blackbox
+    assert state.scene_id == "blackbox"
+
+    run_terminal(
+        story,
+        state,
+        runner,
+        ["mail list", "mail read t:cold_storage:1", "decrypt /var/log/ops/blackbox.enc RAVEN"],
+    )
+    assert state.scene_id == "trust_call"
+    assert state.has_flag("found_true_operator")
+    assert state.journal.has("suspect_oracle")
+
+
+def test_loyalist_path_unlocks_bonus_ending():
+    story, state, runner = new_playthrough()
+    play_to_confrontation(story, state, runner)
+
+    choose(story, state, 0)  # loyalist: tell GHOST everything
+    assert state.scene_id == "confrontation"
+    assert state.flags["allegiance"] == "loyalist"
+    assert state.get_trust("ghost") == 3
+
+    scene = story.get_scene(state.chapter_id, state.scene_id)
+    available = [c for c in scene.choices if check_requires(c.requires, state)]
+    assert len(available) == 4, "loyalist path with enough trust should unlock the 4th option"
+
+    choose(story, state, 3)  # the trust+allegiance-gated option
+    final_scene = story.get_scene(state.chapter_id, state.scene_id)
+    assert final_scene.id == "ending_partners"
+    assert final_scene.type == "ending"
+
+    # All four journal categories got exercised somewhere along the way.
+    assert {e.category for e in state.journal.all()} == {"trace", "lead", "suspect", "note"}
+
+
+def test_wary_path_hides_bonus_ending_and_gated_topic():
+    story, state, runner = new_playthrough()
+    play_to_confrontation(story, state, runner)
+
+    choose(story, state, 1)  # wary: keep the ORACLE lead to yourself
+    assert state.flags["allegiance"] == "wary"
+    assert state.get_trust("ghost") == 1
+
+    scene = story.get_scene(state.chapter_id, state.scene_id)
+    available = [c for c in scene.choices if check_requires(c.requires, state)]
+    assert len(available) == 3, "insufficient trust/allegiance should hide the bonus option"
+
+    # The high-trust GHOST topic is also gated behind the same trust level.
+    runner.current_chapter, runner.current_scene = state.chapter_id, scene.id
+    listing = runner.execute("chat ghost")
+    assert "why_gateway" not in listing
+
+    choose(story, state, 2)  # log everything and disappear -> ending_reported
     final_scene = story.get_scene(state.chapter_id, state.scene_id)
     assert final_scene.type == "ending"
     assert final_scene.id == "ending_reported"
 
-    # Journal accumulated the traces logged along the way.
-    trace_ids = {e.id for e in state.journal.by_category("trace")}
-    assert {"trace_gateway_connect", "trace_netmon_fixed", "trace_sentinel_uplink"} <= trace_ids
 
-
-def test_ghost_chat_available_during_gateway_shell():
+def test_ghost_chat_topics_gated_by_flag_and_trust():
     story = Story.load(STORY_DIR)
     network = Network.load(STORY_DIR / "network.yaml")
     npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
@@ -110,11 +178,27 @@ def test_ghost_chat_available_during_gateway_shell():
     listing = runner.execute("chat ghost")
     assert "netmon" in listing
     assert "who_are_you" in listing
+    assert "why_you" in listing
     assert "sentinel" not in listing  # gated behind netmon_fixed
+    assert "why_gateway" not in listing  # gated behind trust_at_least(ghost, 3)
 
     reply = runner.execute("chat ghost netmon")
     assert "bind_address" in reply
 
     state.set_flag("netmon_fixed", True)
-    listing_after = runner.execute("chat ghost")
-    assert "sentinel" in listing_after
+    assert "sentinel" in runner.execute("chat ghost")
+
+    state.adjust_trust("ghost", 3)
+    assert "why_gateway" in runner.execute("chat ghost")
+
+
+def test_mail_ask_limit_enforced_for_t():
+    story, state, runner = new_playthrough()
+    play_to_confrontation(story, state, runner)
+    # Two asks (cold_storage during the playthrough, then small_talk) reach
+    # T's ask_limit of 2; a third should be refused rather than silently
+    # accepted.
+    reply = runner.execute("mail send t small_talk")
+    assert "sent" in reply.lower()
+    refusal = runner.execute("mail send t small_talk")
+    assert "isn't responding" in refusal
