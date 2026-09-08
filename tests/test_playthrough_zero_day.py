@@ -160,6 +160,56 @@ def test_mail_sync_reaches_t_via_a_real_drafted_message(tmp_path):
     assert (runner.sandbox_root / "mail" / "sent" / "to_t.txt").exists()
 
 
+def test_archive_sidequest_returns_to_the_discovery_hub(tmp_path):
+    """The 'dig through that old archive box' choice is a genuine sidequest:
+    it branches off the discovery hub into its own terminal puzzle, then
+    loops back to that exact same hub scene, which still offers all of its
+    original choices afterward -- the main quest is entirely unaffected."""
+    story, state, runner = new_playthrough(tmp_path)
+    choose(story, state, 0)  # intro -> briefing
+    choose(story, state, 0)  # briefing -> recon
+    run_terminal(story, state, runner, ["connect gateway"])
+    run_terminal(
+        story,
+        state,
+        runner,
+        [
+            "set /etc/netmon/netmon.conf bind_address 0.0.0.0",
+            "set /etc/netmon/netmon.conf allow_query allow",
+            "systemctl restart netmon",
+        ],
+    )
+    assert state.scene_id == "discovery"
+    hub_scene = story.get_scene(state.chapter_id, state.scene_id)
+    assert len(hub_scene.choices) == 3
+
+    choose(story, state, 1)  # "Dig through that old archive box first."
+    assert state.scene_id == "archive_shell"
+
+    run_terminal(
+        story,
+        state,
+        runner,
+        [
+            "disconnect",
+            "connect archive",
+            "grep shift /var/backups/log.txt",
+            "decrypt /var/backups/incident_report.enc 7",
+        ],
+    )
+    assert state.has_flag("found_archive_report")
+    assert state.journal.has("suspect_sentinel_history")
+    assert state.scene_id == "archive_return"
+
+    choose(story, state, 0)  # "Back to it." -> loops back to the hub
+    assert (state.chapter_id, state.scene_id) == ("chapter_01", "discovery")
+
+    # The hub still works exactly as before -- the sidequest was a detour,
+    # not a detour that broke anything.
+    choose(story, state, 0)  # push further -> chapter_02:reach_sentinel
+    assert state.chapter_id == "chapter_02"
+
+
 def test_loyalist_path_unlocks_bonus_ending(tmp_path):
     story, state, runner = new_playthrough(tmp_path)
     play_to_confrontation(story, state, runner)

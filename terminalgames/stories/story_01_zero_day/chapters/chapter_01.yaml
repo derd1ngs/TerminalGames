@@ -91,6 +91,11 @@ scenes:
       automated. A training simulator that phones home doesn't need to talk
       to anything real.
 
+      There's a third address too -- 10.44.0.9, the same one from that
+      login line in gateway's syslog. archive.mil, an old backup server
+      that has no business still being powered on. Probably nothing.
+      Might be worth a look before you commit to sentinel.
+
       This isn't decommissioned. Something is still watching this network,
       or something on this network is still watching the real world.
     choices:
@@ -98,8 +103,39 @@ scenes:
         next: "chapter_02:reach_sentinel"
         sets:
           trust.ghost: 1
+      - text: "Dig through that old archive box first."
+        next: archive_shell
       - text: "You've seen enough. Disconnect and walk away."
         next: ending_backed_out
+
+  - id: archive_shell
+    type: terminal
+    text: |
+      GHOST: "archive.mil? Huh. Didn't even know that was still up. Go
+      ahead, it's not going anywhere."
+
+      `connect archive` if you want to poke around -- `ls`/`cd`/`cat` to
+      look, `grep` if you're hunting for something specific, `decrypt` if
+      you find something locked.
+    terminal:
+      win_flag: found_archive_report
+      next: "chapter_01:archive_return"
+      logs:
+        - id: suspect_sentinel_history
+          category: suspect
+          text: "An old incident report on archive.mil shows sentinel was already logging unscheduled uplinks years ago -- flagged, never resolved, case closed without explanation."
+
+  - id: archive_return
+    type: narrative
+    text: |
+      Whatever this was, it's not something you can act on right now --
+      just an old paper trail nobody ever followed up on. Still, it's the
+      kind of thing worth remembering.
+
+      GHOST: "Filed away for later, then. Sentinel's still waiting."
+    choices:
+      - text: "Back to it."
+        next: discovery
 
   - id: ending_backed_out
     type: ending
