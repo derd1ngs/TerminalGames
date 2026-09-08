@@ -1,0 +1,153 @@
+id: chapter_01
+scenes:
+  - id: intro
+    type: narrative
+    text: |
+      2:14 AM. Your terminal chimes -- an incoming chat request from a handle
+      you don't recognize: GHOST.
+
+      GHOST: "You're better at this than the people you usually talk to. I
+      need someone who can get into a box called gateway.mil without leaving
+      a mess. Something's running on it that shouldn't be. You in?"
+    choices:
+      - text: "Ask GHOST what's really going on before agreeing to anything."
+        next: briefing
+      - text: "Log off. This smells like a setup."
+        next: ending_ignored
+
+  - id: ending_ignored
+    type: ending
+    text: |
+      You close the connection and pour yourself a coffee. Whatever GHOST
+      wanted, it's someone else's problem now. Some doors are better left
+      unopened.
+
+      -- ENDING: Walked Away Before It Started --
+
+  - id: briefing
+    type: narrative
+    text: |
+      GHOST: "gateway.mil is a decommissioned military training network.
+      It should be dead. It isn't. I don't have a way in myself -- you do.
+      Get in, look around, and tell me what you find. That's all I'm asking."
+
+      You pull up a terminal of your own.
+    choices:
+      - text: "Fine. Let's see what's out there."
+        next: "chapter_01:recon"
+
+  - id: recon
+    type: terminal
+    text: |
+      Your own machine hums quietly. GHOST gave you one address to start
+      with: gateway. Time to see if it's actually listening.
+    terminal:
+      win_flag: connected_gateway
+      next: "chapter_01:gateway_shell"
+      logs:
+        - id: trace_gateway_connect
+          category: trace
+          text: "Connected to gateway.mil (10.44.0.1) using the address GHOST provided."
+
+  - id: gateway_shell
+    type: terminal
+    text: |
+      You're in. gateway.mil looks like it's been running on autopilot for
+      years -- default banners, nobody logged in but you. Something called
+      netmon has been dead for a while, according to the filesystem.
+    terminal:
+      win_flag: netmon_fixed
+      next: "chapter_01:discovery"
+      logs:
+        - id: trace_netmon_fixed
+          category: trace
+          text: "Restored the netmon service on gateway.mil; internal network is now visible."
+
+  - id: discovery
+    type: narrative
+    text: |
+      With netmon back up, the internal topology resolves in front of you:
+      one other live host, sentinel.internal, quietly syncing with something
+      outside this network on a schedule that looks deliberate, not
+      automated. A training simulator that phones home doesn't need to talk
+      to anything real.
+
+      This isn't decommissioned. Something is still watching this network,
+      or something on this network is still watching the real world.
+    choices:
+      - text: "Push further and see what sentinel is actually doing."
+        next: "chapter_01:sentinel_recon"
+      - text: "You've seen enough. Disconnect and walk away."
+        next: ending_backed_out
+
+  - id: ending_backed_out
+    type: ending
+    text: |
+      You cut the connection and never look back. Whatever sentinel was
+      doing, it's not your problem anymore -- or at least that's what
+      you tell yourself at 4 AM, still wide awake.
+
+      -- ENDING: Plausible Deniability --
+
+  - id: sentinel_recon
+    type: terminal
+    text: |
+      Gateway's connection to sentinel.internal is still open. GHOST goes
+      quiet in your chat window -- watching, maybe, or just waiting to see
+      what you'll find.
+    terminal:
+      host: sentinel
+      win_flag: found_override_code
+      next: "chapter_01:confrontation"
+      logs:
+        - id: trace_sentinel_uplink
+          category: trace
+          text: "Decrypted sentinel's ops handoff log: the DEFCON_SIM feed is live, not simulated. Override code: FALCON."
+
+  - id: confrontation
+    type: narrative
+    text: |
+      FALCON. A live override code for a system that was supposed to be a
+      training exercise. Whoever left that door open either doesn't know,
+      or doesn't care, that sentinel is quietly pulling a real feed instead
+      of a simulated one.
+
+      GHOST: "So. What are you going to do about it?"
+    choices:
+      - text: "Use the override code yourself, right now, and kill the feed."
+        next: ending_hero_risky
+      - text: "Walk away. You saw nothing. You did nothing."
+        next: ending_walked_away
+      - text: "Log everything you found and disappear -- let someone else decide what it means."
+        next: ending_reported
+
+  - id: ending_hero_risky
+    type: ending
+    text: |
+      You send the override code yourself. The feed drops. Somewhere, an
+      alarm you'll never hear about goes quiet, or maybe a very different
+      alarm just started. You'll never know for sure which -- and neither
+      will anyone who could trace it back to a single unauthorized session
+      on a network that "doesn't exist."
+
+      -- ENDING: You Pressed the Button --
+
+  - id: ending_walked_away
+    type: ending
+    text: |
+      You disconnect and delete every trace you can find of ever having
+      been there. FALCON stays valid. Sentinel keeps quietly listening.
+      GHOST never messages you again.
+
+      -- ENDING: Some Doors Should Stay Shut --
+
+  - id: ending_reported
+    type: ending
+    text: |
+      You save everything -- the netmon logs, the handoff decryption, the
+      override code -- and walk away from the keyboard for good this time.
+      A week later, sentinel.internal goes dark for good. You never find
+      out who read your files, or whether it mattered. Some things you
+      just have to let go of, unfinished.
+
+      -- ENDING: You Left It Better Than You Found It --

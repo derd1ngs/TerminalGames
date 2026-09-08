@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terminalgames"
+version = "0.1.0"
+description = "A hacker-themed CLI text adventure engine with a fake terminal"
+requires-python = ">=3.10"
+dependencies = [
+    "rich>=13.0",
+    "pyyaml>=6.0",
+    "textual>=0.60",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-asyncio"]
+
+[project.scripts]
+terminalgames = "terminalgames.main:main"
+
+[tool.setuptools.packages.find]
+include = ["terminalgames*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

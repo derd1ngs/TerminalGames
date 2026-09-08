@@ -1,0 +1,5 @@
+id: zero_day
+title: "Zero Day"
+start: "chapter_01:intro"
+chapters:
+  - chapter_01.yaml

@@ -1,0 +1,28 @@
+npcs:
+  - id: ghost
+    name: "GHOST"
+    persona: "Anonymous contact who reached out first. Helpful, but won't say who they really are."
+    channel: chat
+    topics:
+      - id: netmon
+        prompt: "ask about netmon"
+        response: >
+          netmon's config is a mess: bind_address is stuck on 127.0.0.1 and
+          allow_query is set to denied. Fix both and restart the service.
+        reliability: truthful
+
+      - id: who_are_you
+        prompt: "who are you?"
+        response: >
+          Just someone who used to work here. Nothing more. Focus on the job.
+        reliability: misleading
+
+      - id: sentinel
+        prompt: "ask about sentinel"
+        requires:
+          flag: netmon_fixed
+        response: >
+          Sentinel shouldn't be talking to anything outside this network.
+          If it's syncing with an external uplink, that's not part of any
+          training exercise I ever signed off on.
+        reliability: truthful
