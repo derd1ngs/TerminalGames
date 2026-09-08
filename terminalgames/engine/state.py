@@ -91,11 +91,17 @@ class GameState:
             message.delivered = True
         self.email_queue.append(message)
 
-    def advance_scene(self) -> None:
+    def advance_scene(self) -> list[EmailMessage]:
+        """Returns the messages that transitioned to delivered on *this*
+        call (not ones already delivered earlier), so a caller can react to
+        newly-arrived mail -- e.g. materializing a real inbox file."""
         self.scenes_visited += 1
+        newly_delivered = []
         for msg in self.email_queue:
             if not msg.delivered and self.scenes_visited >= msg.deliver_after_scene_count:
                 msg.delivered = True
+                newly_delivered.append(msg)
+        return newly_delivered
 
     def inbox(self) -> list[EmailMessage]:
         return [m for m in self.email_queue if m.delivered]

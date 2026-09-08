@@ -259,6 +259,94 @@ def test_mail_send_and_read(tmp_path):
     assert "All clear." in read
 
 
+def _draft_dir(tmp_path) -> Path:
+    draft_dir = GameState.sandbox_dir_for(tmp_path / "s.json") / "mail" / "draft"
+    draft_dir.mkdir(parents=True, exist_ok=True)
+    return draft_dir
+
+
+def _handler_npc(ask_limit=None) -> NPC:
+    return NPC(
+        id="handler",
+        name="Handler",
+        channel="email",
+        ask_limit=ask_limit,
+        email_delay_scenes=0,
+        topics={
+            "status": Topic(
+                id="status",
+                prompt="status?",
+                response="All clear.",
+                sets={"asked_status": True},
+                outbox_match={"subject_contains": "status"},
+            )
+        },
+    )
+
+
+def test_mail_sync_matches_draft_and_moves_to_sent(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc()})
+    draft = _draft_dir(tmp_path) / "to_handler.txt"
+    draft.write_text("To: handler\nSubject: quick status check\n\nWhat's going on?")
+
+    result = runner.execute("mail sync")
+
+    assert "Sent: to_handler.txt -> Handler" in result
+    assert not draft.exists()
+    sent_path = draft.parent.parent / "sent" / "to_handler.txt"
+    assert sent_path.exists()
+    assert runner.state.has_flag("asked_status")
+
+
+def test_mail_sync_bounces_unknown_contact(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc()})
+    draft = _draft_dir(tmp_path) / "to_nobody.txt"
+    draft.write_text("To: nobody\nSubject: status\n\nHello?")
+
+    result = runner.execute("mail sync")
+
+    assert "Bounced: to_nobody.txt" in result
+    bounced = draft.with_name("to_nobody.txt.bounced")
+    assert bounced.exists()
+    assert bounced.read_text().startswith("[bounced]")
+    assert "unknown contact 'nobody'" in bounced.read_text()
+
+
+def test_mail_sync_bounces_when_no_topic_matches_subject(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc()})
+    draft = _draft_dir(tmp_path) / "to_handler.txt"
+    draft.write_text("To: handler\nSubject: completely unrelated topic\n\nHi.")
+
+    result = runner.execute("mail sync")
+
+    assert "Bounced: to_handler.txt -> Handler doesn't recognize" in result
+    assert draft.with_name("to_handler.txt.bounced").exists()
+
+
+def test_mail_sync_bounces_when_ask_limit_exceeded(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc(ask_limit=0)})
+    draft = _draft_dir(tmp_path) / "to_handler.txt"
+    draft.write_text("To: handler\nSubject: status update please\n\nHi.")
+
+    result = runner.execute("mail sync")
+
+    assert "Bounced: to_handler.txt -> Handler isn't responding anymore for now." in result
+
+
+def test_mail_sync_with_no_drafts_reports_nothing_to_send(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc()})
+    assert runner.execute("mail sync") == "mail sync: no drafts to send."
+
+
+def test_mail_sync_does_not_reprocess_a_bounced_draft(tmp_path):
+    runner = build_runner(tmp_path, npcs={"handler": _handler_npc()})
+    draft = _draft_dir(tmp_path) / "to_nobody.txt"
+    draft.write_text("To: nobody\nSubject: status\n\nHello?")
+    runner.execute("mail sync")
+
+    assert runner.execute("mail sync") == "mail sync: no drafts to send."
+
+
 def test_notes_shells_out_to_editor(tmp_path, monkeypatch):
     monkeypatch.delenv("VISUAL", raising=False)
     monkeypatch.setenv("EDITOR", "fake-editor")

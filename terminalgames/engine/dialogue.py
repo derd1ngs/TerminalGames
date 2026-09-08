@@ -11,6 +11,7 @@ changing `shell.py` or any story content for the existing scripted NPCs.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional
 
 from .state import EmailMessage, GameState
@@ -26,6 +27,11 @@ class Topic:
     sets: dict[str, Any] = field(default_factory=dict)
     logs: list[dict[str, Any]] = field(default_factory=list)
     reliability: str = "truthful"  # "truthful" | "misleading" | "evasive"
+    # Only email topics that declare this are matchable by `mail sync`
+    # against a real drafted message's Subject line (see match_outbox_topic
+    # below); the direct `mail send <npc> <topic>` shortcut addresses a
+    # topic by id and doesn't need it.
+    outbox_match: Optional[dict[str, Any]] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Topic":
@@ -37,6 +43,7 @@ class Topic:
             sets=dict(data.get("sets", {})),
             logs=list(data.get("logs", [])),
             reliability=data.get("reliability", "truthful"),
+            outbox_match=data.get("outbox_match"),
         )
 
 
@@ -106,3 +113,56 @@ def send_topic_by_email(npc: NPC, topic_id: str, state: GameState, discovered_at
     )
     state.queue_email(message)
     return message
+
+
+# --- mail as real files -------------------------------------------------------
+#
+# Sending is explicit (a real draft file + `mail sync`, see shell.py);
+# receiving stays automatic, tied to the same scene-count delay as always --
+# newly delivered replies just also materialize as real files now.
+
+
+def parse_mail_text(text: str) -> tuple[str, str, str]:
+    """Parse a minimal `To:`/`Subject:` + blank line + body message, the
+    same shape `mail read` already renders. Missing headers come back as
+    empty strings rather than raising -- an unrecognized recipient or
+    subject is a normal "bounce", not a parse error."""
+    to = ""
+    subject = ""
+    lines = text.splitlines()
+    body_start = len(lines)
+    for i, line in enumerate(lines):
+        if line.startswith("To:"):
+            to = line[len("To:") :].strip()
+        elif line.startswith("Subject:"):
+            subject = line[len("Subject:") :].strip()
+        elif line.strip() == "":
+            body_start = i + 1
+            break
+    body = "\n".join(lines[body_start:]).strip()
+    return to, subject, body
+
+
+def match_outbox_topic(npc: NPC, subject: str, state: GameState) -> Optional[Topic]:
+    """Which of `npc`'s currently-available topics (already `requires`-
+    gated, same rule the `mail send` shortcut follows) a drafted message's
+    subject line matches, by loose keyword rather than an exact topic id --
+    lets the player write a real message in their own words."""
+    subject_lower = subject.lower()
+    for topic in npc.available_topics(state):
+        match = topic.outbox_match
+        if match and match.get("subject_contains", "").lower() in subject_lower:
+            return topic
+    return None
+
+
+def materialize_delivered_mail(messages: list[EmailMessage], inbox_dir: Path) -> None:
+    """Write one real file per newly-delivered message into `inbox_dir`,
+    same From:/Subject:/body shape `mail read` renders. `:` in a message id
+    isn't a valid filename character on every platform, so it's replaced."""
+    if not messages:
+        return
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    for msg in messages:
+        filename = msg.id.replace(":", "_") + ".txt"
+        (inbox_dir / filename).write_text(f"From: {msg.npc_id}\nSubject: {msg.subject}\n\n{msg.body}")

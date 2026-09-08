@@ -123,6 +123,43 @@ def play_to_confrontation(story, state, runner):
     assert state.journal.has("suspect_oracle")
 
 
+def test_mail_sync_reaches_t_via_a_real_drafted_message(tmp_path):
+    """Same win_flag ('emailed_t') as the mail-send shortcut, but reached by
+    actually writing a real draft file and running `mail sync` -- proving
+    the freeform path works against T's real outbox_match content, not just
+    a synthetic NPC fixture."""
+    story, state, runner = new_playthrough(tmp_path)
+    choose(story, state, 0)
+    choose(story, state, 0)
+    run_terminal(story, state, runner, ["connect gateway"])
+    run_terminal(
+        story,
+        state,
+        runner,
+        [
+            "set /etc/netmon/netmon.conf bind_address 0.0.0.0",
+            "set /etc/netmon/netmon.conf allow_query allow",
+            "systemctl restart netmon",
+        ],
+    )
+    choose(story, state, 0)
+    run_terminal(story, state, runner, ["connect sentinel"])
+    run_terminal(story, state, runner, ["decrypt /var/log/ops/handoff.enc 5"])
+    assert state.scene_id == "contact_t"
+
+    draft_dir = runner.sandbox_root / "mail" / "draft"
+    draft_dir.mkdir(parents=True, exist_ok=True)
+    (draft_dir / "to_t.txt").write_text(
+        "To: t\nSubject: cold storage backup passphrase?\n\n"
+        "Saw in the access log you re-keyed it. Any chance you remember it?"
+    )
+
+    run_terminal(story, state, runner, ["mail sync"])
+    assert state.scene_id == "waiting"
+    assert state.has_flag("emailed_t")
+    assert (runner.sandbox_root / "mail" / "sent" / "to_t.txt").exists()
+
+
 def test_loyalist_path_unlocks_bonus_ending(tmp_path):
     story, state, runner = new_playthrough(tmp_path)
     play_to_confrontation(story, state, runner)

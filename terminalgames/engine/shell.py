@@ -18,9 +18,17 @@ from typing import Any, Callable, Optional
 
 import yaml
 
-from .dialogue import NPC, DialogueError, ask_topic, send_topic_by_email
+from .dialogue import (
+    NPC,
+    DialogueError,
+    ask_topic,
+    match_outbox_topic,
+    materialize_delivered_mail,
+    parse_mail_text,
+    send_topic_by_email,
+)
 from .puzzles import decode_cipher, grep_lines, parse_config_text, render_config_text, validate_config
-from .state import GameState
+from .state import EmailMessage, GameState
 from .story import check_requires
 
 
@@ -254,6 +262,16 @@ class TerminalRunner:
 
     def discovered_at(self) -> str:
         return f"{self.current_chapter}:{self.current_scene}"
+
+    def advance_scene(self) -> list[EmailMessage]:
+        """Advances the scene counter and, since that's also what drives
+        async email delivery timing, materializes any mail that just came
+        due into a real inbox file. Returns the newly-delivered messages so
+        a caller (the TUI) can notify the player."""
+        newly_delivered = self.state.advance_scene()
+        if newly_delivered and self.sandbox_root:
+            materialize_delivered_mail(newly_delivered, self.sandbox_root / "mail" / "inbox")
+        return newly_delivered
 
     def execute(self, raw: str) -> str:
         raw = raw.strip()
@@ -493,6 +511,48 @@ def cmd_chat(args: list[str], runner: TerminalRunner) -> str:
     return f"{npc.name}: {response}"
 
 
+def _mail_sync(runner: TerminalRunner) -> str:
+    sandbox_root = runner.sandbox_root
+    if sandbox_root is None:
+        raise CommandError("no active save slot -- can't reach mail.")
+    draft_dir = sandbox_root / "mail" / "draft"
+    draft_dir.mkdir(parents=True, exist_ok=True)
+    drafts = sorted(p for p in draft_dir.iterdir() if p.is_file() and not p.name.endswith(".bounced"))
+    if not drafts:
+        return "mail sync: no drafts to send."
+
+    results = []
+    for draft in drafts:
+        to, subject, _ = parse_mail_text(draft.read_text())
+        npc = runner.npcs.get(to)
+        reason: Optional[str] = None
+        if npc is None or npc.channel != "email":
+            reason = f"unknown contact '{to}'"
+        else:
+            topic = match_outbox_topic(npc, subject, runner.state)
+            if topic is None:
+                reason = f"{npc.name} doesn't recognize what you're asking about."
+            else:
+                try:
+                    send_topic_by_email(npc, topic.id, runner.state, runner.discovered_at())
+                except DialogueError as exc:
+                    reason = str(exc)
+                else:
+                    sent_dir = sandbox_root / "mail" / "sent"
+                    sent_dir.mkdir(parents=True, exist_ok=True)
+                    draft.rename(sent_dir / draft.name)
+                    results.append(f"Sent: {draft.name} -> {npc.name}")
+                    continue
+
+        original = draft.read_text()
+        bounced_path = draft.with_name(draft.name + ".bounced")
+        draft.rename(bounced_path)
+        bounced_path.write_text(f"[bounced] {reason}\n\n{original}")
+        results.append(f"Bounced: {draft.name} -> {reason}")
+
+    return "\n".join(results)
+
+
 @command("mail")
 def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
     if not args or args[0] == "list":
@@ -516,7 +576,9 @@ def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
         except DialogueError as exc:
             return str(exc)
         return f"Message sent to {npc.name}. Expect a reply later."
-    return "usage: mail [list|read <id>|send <contact> <topic>]"
+    if args[0] == "sync":
+        return _mail_sync(runner)
+    return "usage: mail [list|read <id>|send <contact> <topic>|sync]"
 
 
 @command("notes")
