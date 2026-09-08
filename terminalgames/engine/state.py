@@ -147,3 +147,7 @@ class GameState:
     @staticmethod
     def notes_path_for(slot_path: Path) -> Path:
         return slot_path.with_name(slot_path.stem + "_notes.txt")
+
+    @staticmethod
+    def sandbox_dir_for(slot_path: Path) -> Path:
+        return slot_path.with_name(slot_path.stem + "_sandbox")

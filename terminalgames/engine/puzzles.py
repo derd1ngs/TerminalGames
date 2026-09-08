@@ -19,6 +19,23 @@ def validate_config(current: dict[str, str], required: dict[str, str]) -> tuple[
     return True, None
 
 
+def parse_config_text(text: str) -> dict[str, str]:
+    """Parse a real `key=value`-per-line config file's content."""
+    values: dict[str, str] = {}
+    for line in text.splitlines():
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        values[key.strip()] = value.strip()
+    return values
+
+
+def render_config_text(values: dict[str, str]) -> str:
+    """The inverse of `parse_config_text` -- also what a config file looks
+    like the moment it's materialized from story content."""
+    return "\n".join(f"{k}={v}" for k, v in values.items())
+
+
 def grep_lines(text: str, pattern: str) -> list[str]:
     """Log-grep puzzle: substring-match lines, like a simplified `grep`."""
     return [line for line in text.splitlines() if pattern in line]

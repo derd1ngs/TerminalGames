@@ -1,8 +1,11 @@
+import shutil
 from pathlib import Path
 
 import pytest
 
 from terminalgames import main as main_module
+from terminalgames.engine.puzzles import parse_config_text
+from terminalgames.engine.shell import Network
 from terminalgames.engine.state import GameState
 from terminalgames.engine.story import Story
 
@@ -135,8 +138,9 @@ def test_new_or_continue_new_flag_ignores_existing_save(tmp_path, monkeypatch):
     story = Story.load(ZERO_DAY_DIR)
     slot_path = _save_state_at(story, main_module.DEFAULT_SLOT)
 
-    state = main_module.new_or_continue(story, slot_path, new=True)
+    state, is_fresh = main_module.new_or_continue(story, slot_path, new=True)
     assert (state.chapter_id, state.scene_id) == story.start_ref()
+    assert is_fresh is True
 
 
 def test_new_or_continue_continue_flag_loads_save(tmp_path, monkeypatch):
@@ -144,8 +148,9 @@ def test_new_or_continue_continue_flag_loads_save(tmp_path, monkeypatch):
     story = Story.load(ZERO_DAY_DIR)
     slot_path = _save_state_at(story, main_module.DEFAULT_SLOT)
 
-    state = main_module.new_or_continue(story, slot_path, cont=True)
+    state, is_fresh = main_module.new_or_continue(story, slot_path, cont=True)
     assert (state.chapter_id, state.scene_id) == ("chapter_01", "gateway_shell")
+    assert is_fresh is False
 
 
 def test_new_or_continue_continue_flag_without_save_exits(tmp_path, monkeypatch):
@@ -163,5 +168,56 @@ def test_new_or_continue_prompts_when_save_exists_and_no_flags(tmp_path, monkeyp
     slot_path = _save_state_at(story, main_module.DEFAULT_SLOT)
     monkeypatch.setattr(main_module.console, "input", lambda prompt="": "c")
 
-    state = main_module.new_or_continue(story, slot_path)
+    state, is_fresh = main_module.new_or_continue(story, slot_path)
     assert (state.chapter_id, state.scene_id) == ("chapter_01", "gateway_shell")
+    assert is_fresh is False
+
+
+def test_new_or_continue_restart_choice_returns_fresh_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(main_module, "SAVES_DIR", tmp_path)
+    story = Story.load(ZERO_DAY_DIR)
+    slot_path = _save_state_at(story, main_module.DEFAULT_SLOT)
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": "r")
+
+    state, is_fresh = main_module.new_or_continue(story, slot_path)
+    assert (state.chapter_id, state.scene_id) == story.start_ref()
+    assert is_fresh is True
+
+
+def _load_and_materialize(story, network, slot_path, **kwargs):
+    """Mirrors exactly what main() does with new_or_continue's result: wipe
+    the sandbox only when a fresh GameState was constructed, then
+    materialize (a no-op for any host directory that already exists)."""
+    state, is_fresh = main_module.new_or_continue(story, slot_path, **kwargs)
+    sandbox_root = GameState.sandbox_dir_for(slot_path)
+    if is_fresh:
+        shutil.rmtree(sandbox_root, ignore_errors=True)
+    network.materialize(sandbox_root)
+    return state, sandbox_root
+
+
+def test_continuing_a_slot_reuses_the_sandbox_but_restarting_wipes_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(main_module, "SAVES_DIR", tmp_path)
+    story = Story.load(ZERO_DAY_DIR)
+    network = Network.load(ZERO_DAY_DIR / "network.yaml")
+    slot_path = main_module.save_slot_path(story.id, "run1")
+
+    state, sandbox_root = _load_and_materialize(story, network, slot_path, new=True)
+    state.save(slot_path)
+    netmon_conf = sandbox_root / "hosts" / "gateway" / "etc" / "netmon" / "netmon.conf"
+    netmon_conf.write_text("bind_address=0.0.0.0\nallow_query=allow")  # simulates a `set`
+
+    # Continuing must not touch the player's edit.
+    _, sandbox_root = _load_and_materialize(story, network, slot_path, cont=True)
+    assert parse_config_text(netmon_conf.read_text()) == {
+        "bind_address": "0.0.0.0",
+        "allow_query": "allow",
+    }
+
+    # Restarting (fresh GameState for an existing slot) must wipe it back to
+    # the story's original values.
+    _, sandbox_root = _load_and_materialize(story, network, slot_path, new=True)
+    assert parse_config_text(netmon_conf.read_text()) == {
+        "bind_address": "127.0.0.1",
+        "allow_query": "denied",
+    }
