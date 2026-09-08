@@ -215,13 +215,7 @@ class GameApp(App):
             self.exit()
             return
 
-        if raw.split()[0] == "notes":
-            # `notes` shells out to a real external editor -- suspend the
-            # TUI so that editor gets the real terminal, not our app.
-            with self.suspend():
-                output = self.runner.execute(raw)
-        else:
-            output = self.runner.execute(raw)
+        output = self.runner.execute(raw)
         if output:
             self.log_terminal(escape(output))
 

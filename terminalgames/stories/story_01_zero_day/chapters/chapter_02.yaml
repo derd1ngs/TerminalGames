@@ -41,10 +41,6 @@ scenes:
       admin" still has the passphrase for. That has to be T -- the same T
       who signed that note on gateway. `mail send t cold_storage` and see
       if they still check this address.
-
-      (If you want to keep your own theories straight without cluttering
-      the journal, `notes` opens a private scratchpad only you'll ever
-      see.)
     terminal:
       win_flag: emailed_t
       next: "chapter_02:waiting"

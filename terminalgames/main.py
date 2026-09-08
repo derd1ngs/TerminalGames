@@ -65,7 +65,7 @@ def list_save_slots(story_id: str) -> list[str]:
 def migrate_legacy_save(story_id: str) -> None:
     """Saves used to live flat at saves/<story_id>.json, one per story. The
     first time a story with such a file is loaded under the slot-based
-    layout, move it (and its notes file) into the '<DEFAULT_SLOT>' slot."""
+    layout, move it into the '<DEFAULT_SLOT>' slot."""
     legacy_path = SAVES_DIR / f"{story_id}.json"
     if not legacy_path.exists():
         return
@@ -74,9 +74,6 @@ def migrate_legacy_save(story_id: str) -> None:
         return
     default_path.parent.mkdir(parents=True, exist_ok=True)
     legacy_path.rename(default_path)
-    legacy_notes = GameState.notes_path_for(legacy_path)
-    if legacy_notes.exists():
-        legacy_notes.rename(GameState.notes_path_for(default_path))
 
 
 def select_story(stories: list[Path]) -> Path:

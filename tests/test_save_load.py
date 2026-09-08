@@ -49,12 +49,6 @@ def test_roundtrip_via_file(tmp_path: Path):
     assert restored.to_dict() == state.to_dict()
 
 
-def test_notes_path_for():
-    slot_path = Path("/tmp/saves/zero_day.json")
-    notes = GameState.notes_path_for(slot_path)
-    assert notes == Path("/tmp/saves/zero_day_notes.txt")
-
-
 def test_email_delivery_after_advancing_scenes():
     state = GameState(story_id="s", chapter_id="c", scene_id="a")
     state.queue_email(

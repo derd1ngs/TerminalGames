@@ -73,14 +73,12 @@ def test_migrate_legacy_save_moves_flat_file_into_default_slot(tmp_path, monkeyp
     story = Story.load(ZERO_DAY_DIR)
     legacy_path = tmp_path / f"{story.id}.json"
     GameState(story_id=story.id, chapter_id="chapter_01", scene_id="gateway_shell").save(legacy_path)
-    GameState.notes_path_for(legacy_path).write_text("old notes")
 
     main_module.migrate_legacy_save(story.id)
 
     default_path = main_module.save_slot_path(story.id, main_module.DEFAULT_SLOT)
     assert not legacy_path.exists()
     assert default_path.exists()
-    assert GameState.notes_path_for(default_path).read_text() == "old notes"
 
 
 def test_migrate_legacy_save_is_a_noop_when_default_slot_already_exists(tmp_path, monkeypatch):
