@@ -61,7 +61,29 @@ def test_email_delivery_after_advancing_scenes():
         EmailMessage(id="m1", npc_id="ghost", subject="s", body="b", deliver_after_scene_count=2)
     )
     assert state.inbox() == []
-    state.advance_scene()
+    assert state.advance_scene() == []
     assert state.inbox() == []
-    state.advance_scene()
+    assert len(state.advance_scene()) == 1
     assert len(state.inbox()) == 1
+
+
+def test_advance_scene_only_returns_messages_newly_delivered_this_call():
+    """Not every message that's already delivered -- just the ones that
+    crossed the threshold on this specific call, so a caller (e.g. the TUI
+    materializing a real inbox file) doesn't re-notify for old mail."""
+    state = GameState(story_id="s", chapter_id="c", scene_id="a")
+    state.queue_email(
+        EmailMessage(id="early", npc_id="ghost", subject="s1", body="b1", deliver_after_scene_count=1)
+    )
+    state.queue_email(
+        EmailMessage(id="late", npc_id="ghost", subject="s2", body="b2", deliver_after_scene_count=2)
+    )
+
+    first = state.advance_scene()
+    assert [m.id for m in first] == ["early"]
+
+    second = state.advance_scene()
+    assert [m.id for m in second] == ["late"]
+
+    third = state.advance_scene()
+    assert third == []

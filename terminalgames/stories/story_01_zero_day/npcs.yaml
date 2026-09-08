@@ -56,6 +56,8 @@ npcs:
     topics:
       - id: cold_storage
         prompt: "ask T about the cold-storage backup"
+        outbox_match:
+          subject_contains: "cold storage"
         requires:
           journal_has: lead_t_contact
         sets:

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from terminalgames.engine.dialogue import (
@@ -6,9 +8,12 @@ from terminalgames.engine.dialogue import (
     Topic,
     ask_topic,
     load_npcs,
+    match_outbox_topic,
+    materialize_delivered_mail,
+    parse_mail_text,
     send_topic_by_email,
 )
-from terminalgames.engine.state import GameState
+from terminalgames.engine.state import EmailMessage, GameState
 
 
 def make_state() -> GameState:
@@ -144,3 +149,105 @@ def test_load_npcs_from_dict():
     npcs = load_npcs(data)
     assert "ghost" in npcs
     assert npcs["ghost"].topics["hi"].response == "hello"
+
+
+def test_topic_from_dict_parses_outbox_match():
+    topic = Topic.from_dict(
+        {
+            "id": "cold_storage",
+            "prompt": "ask about it",
+            "response": "...",
+            "outbox_match": {"subject_contains": "cold storage"},
+        }
+    )
+    assert topic.outbox_match == {"subject_contains": "cold storage"}
+    assert Topic.from_dict({"id": "x", "prompt": "p", "response": "r"}).outbox_match is None
+
+
+def test_parse_mail_text_extracts_headers_and_body():
+    to, subject, body = parse_mail_text("To: t\nSubject: cold storage backup?\n\nAny idea what it was?\n")
+    assert (to, subject, body) == ("t", "cold storage backup?", "Any idea what it was?")
+
+
+def test_parse_mail_text_tolerates_missing_headers():
+    to, subject, body = parse_mail_text("just some text with no headers at all")
+    assert to == ""
+    assert subject == ""
+    assert body == ""
+
+
+def test_match_outbox_topic_is_case_insensitive_keyword_not_exact_id():
+    npc = NPC(
+        id="t",
+        name="T",
+        channel="email",
+        topics={
+            "cold_storage": Topic(
+                id="cold_storage",
+                prompt="ask about cold storage",
+                response="RAVEN",
+                outbox_match={"subject_contains": "cold storage"},
+            )
+        },
+    )
+    state = make_state()
+    topic = match_outbox_topic(npc, "Re: Cold Storage backup passphrase?", state)
+    assert topic is not None
+    assert topic.id == "cold_storage"
+    assert match_outbox_topic(npc, "something unrelated", state) is None
+
+
+def test_match_outbox_topic_respects_requires_gating():
+    npc = NPC(
+        id="t",
+        name="T",
+        channel="email",
+        topics={
+            "cold_storage": Topic(
+                id="cold_storage",
+                prompt="ask about cold storage",
+                response="RAVEN",
+                requires={"flag": "lead_found"},
+                outbox_match={"subject_contains": "cold storage"},
+            )
+        },
+    )
+    state = make_state()
+    assert match_outbox_topic(npc, "cold storage backup?", state) is None
+    state.set_flag("lead_found", True)
+    assert match_outbox_topic(npc, "cold storage backup?", state) is not None
+
+
+def test_match_outbox_topic_ignores_topics_without_outbox_match():
+    npc = NPC(
+        id="t",
+        name="T",
+        channel="email",
+        topics={"small_talk": Topic(id="small_talk", prompt="how are you", response="fine")},
+    )
+    state = make_state()
+    assert match_outbox_topic(npc, "how are you doing these days", state) is None
+
+
+def test_materialize_delivered_mail_writes_real_files(tmp_path: Path):
+    inbox_dir = tmp_path / "inbox"
+    messages = [
+        EmailMessage(
+            id="t:cold_storage:1",
+            npc_id="t",
+            subject="ask about cold storage",
+            body="Passphrase was RAVEN.",
+            deliver_after_scene_count=0,
+            delivered=True,
+        )
+    ]
+    materialize_delivered_mail(messages, inbox_dir)
+
+    written = inbox_dir / "t_cold_storage_1.txt"
+    assert written.read_text() == "From: t\nSubject: ask about cold storage\n\nPassphrase was RAVEN."
+
+
+def test_materialize_delivered_mail_is_a_noop_for_an_empty_list(tmp_path: Path):
+    inbox_dir = tmp_path / "inbox"
+    materialize_delivered_mail([], inbox_dir)
+    assert not inbox_dir.exists()

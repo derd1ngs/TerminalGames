@@ -13,7 +13,7 @@ import yaml
 from terminalgames.engine.dialogue import load_npcs
 from terminalgames.engine.journal import JournalEntry
 from terminalgames.engine.shell import Network
-from terminalgames.engine.state import GameState
+from terminalgames.engine.state import EmailMessage, GameState
 from terminalgames.engine.story import Story
 from terminalgames.tui import GameApp
 
@@ -234,6 +234,35 @@ async def test_crossing_chapter_boundary_autosaves(tmp_path):
     assert slot_path.exists()
     restored = GameState.load(slot_path)
     assert (restored.chapter_id, restored.scene_id) == ("two", "landing")
+
+
+@pytest.mark.asyncio
+async def test_crossing_a_scene_delivers_mail_as_a_real_file_and_notifies(tmp_path):
+    story = build_multichapter_story(tmp_path)
+    state = GameState(story_id=story.id, chapter_id="one", scene_id="start")
+    state.email_queue.append(
+        EmailMessage(
+            id="handler:status:1",
+            npc_id="handler",
+            subject="status?",
+            body="All clear.",
+            deliver_after_scene_count=1,
+        )
+    )
+    slot_path = tmp_path / "save.json"
+    app = GameApp(story=story, network=Network(), npcs={}, state=state, slot_path=slot_path)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        inbox_dir = GameState.sandbox_dir_for(slot_path) / "mail" / "inbox"
+        assert not inbox_dir.exists()
+
+        await pilot.press("enter")  # advance_scene() fires, message becomes due
+        await pilot.pause()
+
+        written = inbox_dir / "handler_status_1.txt"
+        assert written.exists()
+        assert written.read_text() == "From: handler\nSubject: status?\n\nAll clear."
+        assert "New mail from handler: status?" in _pane_text(app, "#story-pane")
 
 
 @pytest.mark.asyncio

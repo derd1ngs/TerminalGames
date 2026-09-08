@@ -211,7 +211,7 @@ Shell commands available to the player: `help`, `whoami`, `scan <host>`,
 `connect <host>`, `disconnect`/`exit`, `ls [path]`, `cd <path>`,
 `cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,
 `systemctl status|restart <service>`, `decrypt <file> <key>`,
-`journal`/`notebook`, `chat <npc> [topic]`, `mail [list|read <id>|send <npc> <topic>]`,
+`journal`/`notebook`, `chat <npc> [topic]`, `mail [list|read <id>|send <npc> <topic>|sync]`,
 `notes` (opens `$VISUAL`/`$EDITOR`/`nano`/`vi` on a free-form scratchpad file
 -- never read by the engine, purely for the player).
 
@@ -255,6 +255,33 @@ slow-to-reply email contact -- all through the same data shape a real LLM-
 backed persona could implement later behind the same `ask_topic`/
 `send_topic_by_email` call shape, without touching the shell or any existing
 NPC's content.
+
+#### Mail as real files
+
+Email works two ways. `mail send <npc> <topic>` is the guided path -- exact
+topic id, no filesystem involved, same as `chat`. `mail sync` is the real-file
+path: outside the game, in the slot's sandbox directory
+(`saves/<story_id>/<slot>_sandbox/mail/draft/`), write a plain text file
+with `To:`/`Subject:` headers and a body, e.g.
+
+```
+To: t
+Subject: cold storage backup passphrase?
+
+Saw in the access log you re-keyed it. Any chance you remember it?
+```
+
+then run `mail sync` in-game. It matches the `Subject:` line against any
+email topic that declares `outbox_match: {subject_contains: "..."}` (a
+loose, case-insensitive keyword match, not an exact topic id -- the player
+writes a real message in their own words) on the recipient NPC, subject to
+the same `requires`/`ask_limit` gating `chat`/`mail send` already enforce.
+A match moves the draft to `mail/sent/`; no match renames it in place with a
+`.bounced` suffix and a `[bounced] <reason>` line prepended, so it's always
+clear what happened rather than the file just vanishing. Delivered replies
+still arrive automatically on the same scene-count delay as always, and now
+also land as real files in `mail/inbox/` (`mail list`/`mail read` still work
+too, reading from the same underlying state).
 
 ## Project layout
 

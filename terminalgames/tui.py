@@ -21,7 +21,7 @@ from textual.widgets import Footer, Header, Input, OptionList, RichLog
 from textual.widgets.option_list import Option
 
 from .engine.shell import Network, TerminalRunner
-from .engine.state import GameState
+from .engine.state import EmailMessage, GameState
 from .engine.story import Choice, Scene, Story, apply_effects, check_requires
 
 
@@ -132,6 +132,10 @@ class GameApp(App):
         state.save(self.slot_path)
         self.log_text(f"Autosaved -- entering chapter '{state.chapter_id}'.", style="dim italic")
 
+    def notify_new_mail(self, newly_delivered: list[EmailMessage]) -> None:
+        for msg in newly_delivered:
+            self.log_text(f"New mail from {msg.npc_id}: {msg.subject}", style="dim italic")
+
     def show_scene(self) -> None:
         state = self.runner.state
         scene = self.story.get_scene(state.chapter_id, state.scene_id)
@@ -185,7 +189,7 @@ class GameApp(App):
         apply_effects(choice.sets, choice.logs, state, f"{state.chapter_id}:{scene.id}")
         previous_chapter_id = state.chapter_id
         state.chapter_id, state.scene_id = self.story.resolve(choice.next, state.chapter_id)
-        state.advance_scene()
+        self.notify_new_mail(self.runner.advance_scene())
         self.maybe_autosave(previous_chapter_id)
         self.show_scene()
 
@@ -228,7 +232,7 @@ class GameApp(App):
             apply_effects({}, scene.terminal.logs, state, f"{state.chapter_id}:{scene.id}")
             previous_chapter_id = state.chapter_id
             state.chapter_id, state.scene_id = self.story.resolve(scene.terminal.next, state.chapter_id)
-            state.advance_scene()
+            self.notify_new_mail(self.runner.advance_scene())
             self.maybe_autosave(previous_chapter_id)
             self.show_scene()
 
