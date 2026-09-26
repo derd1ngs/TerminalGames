@@ -49,8 +49,8 @@ scenes:
     type: terminal
     text: |
       The relay is a museum: a home directory for mara and a log that has
-      been growing since 1998. Mara's `.plan` says the vault's lock is
-      something she told "the bot".
+      been growing since 1998. Mara's `.plan` -- a hidden file, so `ls -a`
+      to see it -- says the vault's lock is something she told "the bot".
 
       The log is far too long to read. Filter it instead: any command's
       output can be piped into `grep`, and pipes chain --

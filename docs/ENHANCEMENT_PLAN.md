@@ -275,10 +275,12 @@ outside the repo.
 
 ## Phase 8 -- content and engine
 
-1. A third story that uses tool grants, possibly with a new puzzle type
-   (e.g. a "trace meter" limiting commands before disconnect).
-2. More shell commands: `head`/`tail`, `find`, `ls -a` with hidden files,
-   `history`, `clear`, `man <cmd>`.
+1. A third story that uses tool grants and the trace meter (next). The
+   **trace meter** itself is done: a terminal block's `trace: {limit,
+   on_trace}` counts commands that touch a host, while local ones are free.
+2. More shell commands (done): `head`/`tail`, `find`, `ls -a` (plain `ls` now
+   hides dotfiles), `history`, `clear`, `man <cmd>`, with a man page for
+   every command.
 
 ## Phase 9 -- distribution
 

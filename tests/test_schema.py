@@ -87,6 +87,16 @@ def test_misspelled_requires_is_rejected_with_a_suggestion(story_dir):
         ),
         ('        - "`connect relay`."', "        - 42", "every hint must be a non-empty string"),
         (
+            "      win_flag: on_relay",
+            "      win_flag: on_relay\n      trace: {limit: 0, on_trace: intro}",
+            "limit must be a whole number of at least 1",
+        ),
+        (
+            "      win_flag: on_relay",
+            "      win_flag: on_relay\n      trace: {limit: 3, ontrace: intro}",
+            "unknown key 'ontrace'",
+        ),
+        (
             '      hints:\n        - "Juno',
             '      hint:\n        - "Juno',
             "unknown key 'hint' (did you mean 'hints'?)",

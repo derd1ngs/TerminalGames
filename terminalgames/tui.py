@@ -317,6 +317,8 @@ class GameApp(App):
         self.show_result(self.session.compose_mail(to, subject, body))
 
     def show_result(self, result: CommandResult) -> None:
+        if result.clear:
+            self.query_one("#terminal-pane", RichLog).clear()
         if result.output:
             self.log_terminal(escape(result.output))
         cmd_input = self.query_one("#command-input", CommandInput)

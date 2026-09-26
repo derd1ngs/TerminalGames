@@ -48,6 +48,16 @@ class Choice:
 
 
 @dataclass
+class Trace:
+    """A terminal scene's trace meter: every command that touches a host
+    raises it, and at `limit` the connection drops and the story moves to
+    `on_trace` (a "you got traced" scene -- a retry, a setback, an ending)."""
+
+    limit: int
+    on_trace: str
+
+
+@dataclass
 class TerminalBlock:
     """A terminal-type scene. `win_flag` is the flag the main loop watches for
     to know the puzzle is solved -- it's set directly by whichever shell
@@ -67,12 +77,22 @@ class TerminalBlock:
     logs: list[dict[str, Any]] = field(default_factory=list)
     ordered_commands: list[str] = field(default_factory=list)
     hints: list[str] = field(default_factory=list)
+    trace: Optional[Trace] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TerminalBlock":
         schema.check_keys(
-            data, {"win_flag", "next", "host", "logs", "ordered_commands", "hints"}, "terminal block"
+            data, {"win_flag", "next", "host", "logs", "ordered_commands", "hints", "trace"}, "terminal block"
         )
+        trace = None
+        if "trace" in data:
+            schema.check_keys(
+                data["trace"], {"limit", "on_trace"}, "terminal block trace", {"limit", "on_trace"}
+            )
+            limit = data["trace"]["limit"]
+            if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+                raise StoryLoadError("terminal block trace: limit must be a whole number of at least 1")
+            trace = Trace(limit=limit, on_trace=str(data["trace"]["on_trace"]))
         for hint in schema.check_list(data.get("hints", []), "terminal block hints"):
             if not isinstance(hint, str) or not hint.strip():
                 raise StoryLoadError("terminal block hints: every hint must be a non-empty string")
@@ -86,6 +106,7 @@ class TerminalBlock:
                 logs=list(data.get("logs", [])),
                 ordered_commands=[" ".join(str(c).split()) for c in data.get("ordered_commands", [])],
                 hints=[" ".join(h.split()) for h in data.get("hints", [])],
+                trace=trace,
             )
         except KeyError as exc:
             raise StoryLoadError(f"terminal block missing required key {exc}") from exc
@@ -216,6 +237,8 @@ class Story:
                 targets = [c.next for c in scene.choices]
                 if scene.terminal:
                     targets.append(scene.terminal.next)
+                    if scene.terminal.trace:
+                        targets.append(scene.terminal.trace.on_trace)
                 for target in targets:
                     chapter_id, scene_id = self.resolve(target, chapter.id)
                     target_chapter = self.chapters.get(chapter_id)
