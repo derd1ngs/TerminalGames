@@ -8,3 +8,13 @@
 - CI (`.github/workflows/tests.yml`) runs pytest plus `ruff check .`,
   `ruff format --check .` and `mypy terminalgames` -- run all four before
   calling a change done.
+- `main` is branch-protected and requires PR branches to be up to date: when
+  a PR is "BEHIND" (e.g. after merging the lower PR of a stack), run
+  `gh api -X PUT repos/derd1ngs/TerminalGames/pulls/<N>/update-branch`, wait
+  for CI, then `gh pr merge <N> --merge`.
+- `gh pr edit` fails on this machine's gh 2.45 ("Projects (classic) is being
+  deprecated"); change a PR's base with
+  `gh api -X PATCH repos/derd1ngs/TerminalGames/pulls/<N> -f base=main`.
+- `terminalgames/engine/` must stay importable with only PyYAML (the planned
+  browser build runs it in Pyodide) -- enforced by
+  `tests/test_engine_is_ui_free.py`.

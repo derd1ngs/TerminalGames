@@ -1,8 +1,8 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phase 0 is done (branch `fix-shell-bugs`); every
-later phase is a proposal to review before implementation starts. Each phase
-is sized to be one PR and leaves the test suite and CI green.
+Status as of 2026-09-26. Phases 0 and 1 are done; every later phase is a
+proposal to review before implementation starts. Each phase is sized to be
+one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
 
@@ -15,7 +15,14 @@ is sized to be one PR and leaves the test suite and CI green.
 - `setup.sh` recreates a `.venv` that was created at another path.
 - `engine/session.py:GameSession` owns the game loop; `tui.py` only renders.
 
-## Phase 1 -- finish decoupling the engine from Textual (small, prerequisite for the browser)
+## Phase 1 -- finish decoupling the engine from Textual (done)
+
+Delivered as planned. `engine/loader.py` takes the saves root as a
+parameter, and `GameSession.open(story, story_dir, slot_path, fresh=...)`
+replaces the start/continue logic in `main()`. `main.new_or_continue` now
+only makes the interactive fresh-or-continue decision. The engine turned
+out to need only PyYAML (not even Rich), and
+`tests/test_engine_is_ui_free.py` guards that. The original plan follows.
 
 **Why:** `main.py` holds the story-loading and save-path helpers
 (`discover_stories`, `load_network`, `load_npc_roster`, `save_slot_path`,

@@ -37,10 +37,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from ..engine.loader import discover_stories, find_story, load_network, load_npc_roster
 from ..engine.shell import Network
 from ..engine.state import GameState
 from ..engine.story import Story, StoryLoadError, apply_effects, check_requires
-from ..main import discover_stories, find_story, load_network, load_npc_roster
 
 
 @dataclass

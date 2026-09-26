@@ -7,7 +7,7 @@ deliberately doesn't model (documented there rather than repeated here).
 
 import pytest
 
-from terminalgames.main import discover_stories
+from terminalgames.engine.loader import discover_stories
 from terminalgames.tools.check_story import check_story_dir
 
 STORIES = discover_stories()

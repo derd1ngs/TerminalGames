@@ -9,10 +9,12 @@ exactly the same rules.
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from .dialogue import NPC
+from .loader import load_network, load_npc_roster
 from .shell import Network, TerminalRunner
 from .state import GameState
 from .story import Choice, Scene, Story, apply_effects, check_requires
@@ -33,6 +35,24 @@ class GameSession:
         self.slot_path = slot_path
         self.runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
         self.scene: Scene = self.enter_scene()
+
+    @classmethod
+    def open(cls, story: Story, story_dir: Path, slot_path: Path, *, fresh: bool) -> "GameSession":
+        """Start (`fresh`) or continue a save slot: build or load the state,
+        load the story's network and NPCs, and materialize the slot's
+        sandbox -- wiped first when starting fresh, reused as-is (the
+        player's `set` edits and all) when continuing."""
+        if fresh:
+            chapter_id, scene_id = story.start_ref()
+            state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
+        else:
+            state = GameState.load(slot_path)
+        network = load_network(story_dir)
+        sandbox_root = GameState.sandbox_dir_for(slot_path)
+        if fresh:
+            shutil.rmtree(sandbox_root, ignore_errors=True)
+        network.materialize(sandbox_root)
+        return cls(story, network, load_npc_roster(story_dir), state, slot_path)
 
     @property
     def state(self) -> GameState:
