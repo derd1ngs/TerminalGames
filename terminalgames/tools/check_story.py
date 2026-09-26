@@ -303,6 +303,15 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
 
         if scene.type == "terminal":
             assert scene.terminal is not None
+            if scene.terminal.trace:
+                # Running out of trace is always possible -- even where the
+                # scene can't be won (yet) -- so explore it first.
+                traced = _clone(state)
+                traced.chapter_id, traced.scene_id = story.resolve(
+                    scene.terminal.trace.on_trace, state.chapter_id
+                )
+                traced.advance_scene()
+                frontier.append(traced)
             win_flag = scene.terminal.win_flag
             info = settable.get(win_flag)
             if info is None and scene.terminal.ordered_commands:

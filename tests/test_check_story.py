@@ -6,7 +6,7 @@ import pytest
 
 from terminalgames.engine.dialogue import NPC, Topic
 from terminalgames.engine.shell import Host, Network
-from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock
+from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
 from terminalgames.tools.check_story import check_story, main, mermaid_graph
 
 
@@ -496,3 +496,24 @@ def test_trust_that_can_rise_and_fall_is_not_merged():
 
     assert "end" in report.visited_endings  # the reachable ending is still found
     assert any("trust that can both rise and fall" in p for p in report.problems)
+
+
+def test_trace_outcome_is_reachable_even_when_the_scene_cannot_be_won():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                type="terminal",
+                terminal=TerminalBlock(
+                    win_flag="never", next="c1:won", trace=Trace(limit=2, on_trace="c1:caught")
+                ),
+            ),
+            "won": Scene(id="won", type="ending"),
+            "caught": Scene(id="caught", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert "caught" in report.visited_endings
+    assert "won" in report.unreached_endings  # still reported: nothing sets 'never'

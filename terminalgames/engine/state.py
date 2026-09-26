@@ -61,6 +61,7 @@ class GameState:
     # restarted -- kept here rather than on `Service` so it survives save/continue.
     running_services: set[str] = field(default_factory=set)
     hints_shown: dict[str, int] = field(default_factory=dict)  # "chapter:scene" -> hints revealed
+    trace_counts: dict[str, int] = field(default_factory=dict)  # "chapter:scene" -> trace meter
     saved_at: str = ""
 
     def set_flag(self, key: str, value: Any = True) -> None:
@@ -128,6 +129,7 @@ class GameState:
             "cwd": self.cwd,
             "running_services": sorted(self.running_services),
             "hints_shown": self.hints_shown,
+            "trace_counts": self.trace_counts,
             "saved_at": self.saved_at,
         }
 
@@ -149,6 +151,7 @@ class GameState:
             cwd=data.get("cwd", "/"),
             running_services=set(data.get("running_services", [])),
             hints_shown=dict(data.get("hints_shown", {})),
+            trace_counts=dict(data.get("trace_counts", {})),
             saved_at=data.get("saved_at", ""),
         )
 

@@ -219,3 +219,10 @@ def test_endings_count_at_an_ending_and_gallery_hides_undiscovered_titles():
         {"title": None, "found": False},
         {"title": None, "found": False},
     ]
+
+
+def test_clear_is_in_the_view():
+    bridge.start("zero_day", "web", True)
+    play([("choose", 0), ("choose", 0)])
+    assert json.loads(bridge.command("clear"))["clear"] is True
+    assert json.loads(bridge.command("whoami"))["clear"] is False

@@ -284,6 +284,17 @@ between breaks the run):
         - systemctl restart replica
 ```
 
+A terminal block can also carry a **trace meter**, `trace: {limit: 8,
+on_trace: caught}`. Every command that touches a host (`scan`, `connect`,
+`ssh`, `ls`, `cd`, `cat`, `head`, `tail`, `grep`, `find`, `set`, `systemctl`,
+`decrypt`) raises it, and the terminal shows `[trace 3/8]`. Local commands
+(`help`, `man`, `hint`, `status`, `journal`, `history`, `clear`, `chat`,
+`mail`) are free, so asking for help never costs anything. Reaching the limit
+without solving the scene drops the connection and moves the story to
+`on_trace`, which could be a retry, a setback or an ending. The count is
+saved, so reloading doesn't reset it; entering the scene anew does.
+`check_story` explores the traced outcome too.
+
 If `host` is
 omitted, the player stays on whatever host they were last connected to --
 connection state persists across scenes and across save/continue.
@@ -335,10 +346,12 @@ prints the garbled result and writes nothing.
 
 Filesystem node types: `dir`, `text`, `config`, `cipher`.
 
-Shell commands available to the player: `help [command]`, `hint`, `whoami`, `status`,
-`scan <host>`, `connect <host>`, `ssh <user>@<host>` (prompts for the
-password on the next line), `disconnect`/`exit`, `ls [path]`, `cd <path>`,
-`cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,
+Shell commands available to the player: `help [command]`, `man <command>`,
+`hint`, `whoami`, `status`, `history`, `clear`, `scan <host>`, `connect
+<host>`, `ssh <user>@<host>` (prompts for the password on the next line),
+`disconnect`/`exit`, `ls [-a] [path]` (dotfiles only with `-a`), `cd <path>`,
+`cat <file>`, `head`/`tail [-n N] <file>`, `find [path] [-name pattern]`,
+`grep <pattern> <file>`, `set <file> <key> <value>`,
 `systemctl status|restart <service>`, `decrypt <file> <key>`,
 `journal`/`notebook [lead|note|suspect|trace]`, `chat <npc> [topic]`,
 `mail [list|read <id>|send <npc> <topic>|sync]`. Any command's output can be

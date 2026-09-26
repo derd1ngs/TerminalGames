@@ -269,6 +269,7 @@ function scrollLogsToEnd() {
 
 function render(view) {
   scrollLogsToEnd();
+  if (view.clear) $("terminal-log").replaceChildren();
   if (view.output) append("terminal-log", view.output, view.output === "Saved." ? "saved" : "");
   for (const notice of view.notices) append("story-log", notice, "notice");
   $("prompt").textContent = view.prompt;

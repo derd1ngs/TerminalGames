@@ -10,7 +10,7 @@ from terminalgames.engine.puzzles import parse_config_text
 from terminalgames.engine.session import GameSession, StaleSaveError
 from terminalgames.engine.shell import Host, Network
 from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock
+from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
 
 STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
 
@@ -166,3 +166,79 @@ def test_compose_mail_writes_a_real_draft_and_runs_mail_sync(tmp_path):
     assert sent.output == "Sent: draft_2.txt -> T"
     assert sent.advanced and session.scene.id == "waiting"
     assert (session.runner.sandbox_root / "mail" / "sent" / "draft_2.txt").exists()
+
+
+def _traced_session(tmp_path: Path, limit: int = 3) -> GameSession:
+    story = Story(
+        id="s",
+        title="Trace",
+        start="c1:intrusion",
+        chapters={
+            "c1": Chapter(
+                id="c1",
+                scenes={
+                    "intrusion": Scene(
+                        id="intrusion",
+                        type="terminal",
+                        terminal=TerminalBlock(
+                            win_flag="in",
+                            next="c1:won",
+                            host="box",
+                            trace=Trace(limit=limit, on_trace="c1:caught"),
+                        ),
+                    ),
+                    "won": Scene(id="won", type="ending"),
+                    "caught": Scene(
+                        id="caught", choices=[Choice.from_dict({"text": "Try again", "next": "c1:intrusion"})]
+                    ),
+                },
+            )
+        },
+    )
+    network = Network(hosts={"box": Host(id="box")})
+    return GameSession(
+        story,
+        network,
+        {},
+        GameState(story_id="s", chapter_id="c1", scene_id="intrusion"),
+        tmp_path / "s.json",
+    )
+
+
+def test_trace_counts_host_commands_only_and_cuts_the_connection_at_the_limit(tmp_path):
+    session = _traced_session(tmp_path)
+    assert session.run_command("help").output.startswith("Available commands")  # local: free
+    assert session.run_command("scan box").output.endswith("[trace 1/3]")
+    assert "Trace:       1/3" in session.run_command("status").output
+    session.run_command("ls")
+    result = session.run_command("ls")
+    assert result.advanced
+    assert result.output.endswith("[trace 3/3]\nConnection lost.")
+    assert result.notices[0] == "TRACE COMPLETE -- the connection was cut."
+    assert session.scene.id == "caught"
+    assert session.runner.current_host is None
+
+
+def test_trace_survives_save_and_continue_but_resets_on_a_fresh_entry(tmp_path):
+    session = _traced_session(tmp_path)
+    session.run_command("ls")
+    session.run_command("ls")
+    session.save()
+    restored = GameSession(
+        session.story,
+        Network(hosts={"box": Host(id="box")}),
+        {},
+        GameState.load(session.slot_path),
+        session.slot_path,
+    )
+    assert restored.run_command("ls").advanced  # 3/3: saving didn't reset the meter
+
+    restored.choose(restored.available_choices()[0])  # "Try again" -> a fresh entry
+    assert restored.scene.id == "intrusion"
+    assert restored.run_command("ls").output.endswith("[trace 1/3]")
+
+
+def test_clear_is_passed_to_the_frontend(tmp_path):
+    session = _traced_session(tmp_path)
+    assert session.run_command("clear").clear
+    assert not session.run_command("help").clear

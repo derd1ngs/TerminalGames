@@ -428,3 +428,19 @@ async def test_mail_compose_requires_a_subject_and_escape_discards(tmp_path):
         assert not isinstance(app.screen, ComposeMailScreen)
         assert "(message discarded)" in _pane_text(app, "#terminal-pane")
         assert app.runner.state.scene_id == "contact_t"
+
+
+@pytest.mark.asyncio
+async def test_clear_empties_the_terminal_pane(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await _enter_recon(pilot)
+        cmd_input = app.query_one("#command-input")
+        cmd_input.value = "whoami"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert "user@localhost" in _pane_text(app, "#terminal-pane")
+        cmd_input.value = "clear"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert _pane_text(app, "#terminal-pane") == ""

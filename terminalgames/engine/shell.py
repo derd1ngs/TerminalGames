@@ -10,6 +10,7 @@ changes (the "escalating depth" plan).
 
 from __future__ import annotations
 
+import fnmatch
 import shlex
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -246,6 +247,44 @@ class Network:
 COMMANDS: dict[str, Callable[[list[str], "TerminalRunner"], str]] = {}
 USAGE: dict[str, str] = {}
 
+# Commands that touch a remote host -- the ones a scene's trace meter counts.
+# Everything else (help, hint, status, journal, man, history, chat, mail, ...)
+# is local, so asking for help never raises the trace.
+TRACED_COMMANDS = {
+    "scan", "connect", "ssh", "ls", "cd", "cat", "grep", "head", "tail", "find",
+    "set", "systemctl", "decrypt",
+}  # fmt: skip
+
+# `man <command>`: what each command is for, beyond its usage line.
+MANUAL: dict[str, str] = {
+    "help": "Lists every command, or shows one command's usage.",
+    "hint": "Reveals the next hint for the current scene, one at a time; after the last, lists them all.",
+    "man": "Shows a command's manual page (this).",
+    "whoami": "Shows who this shell thinks you are, and on which host.",
+    "status": "Sums up where you are: scene, connection, latest lead, journal, tools, trace.",
+    "history": "Lists the commands you've typed this session, numbered.",
+    "clear": "Clears the terminal pane.",
+    "scan": "Checks whether a host is up, and lists its banner and open services.",
+    "connect": "Opens a shell on a host that doesn't need a login.",
+    "ssh": "Logs in to a host that needs one; the password goes on the next line.",
+    "disconnect": "Closes the connection to the current host.",
+    "exit": "Closes the connection to the current host.",
+    "ls": "Lists a directory. Names starting with a dot are hidden unless you add -a.",
+    "cd": "Changes the current directory.",
+    "cat": "Prints a file. Encrypted files show their ciphertext.",
+    "head": "Prints the first lines of a file (10 unless you give -n N).",
+    "tail": "Prints the last lines of a file (10 unless you give -n N).",
+    "grep": "Prints the lines of a file containing a pattern. Any command's output can be piped into grep.",
+    "find": "Lists everything under a path, hidden files included; -name filters by a glob like '*.log'.",
+    "set": "Changes one key in a config file.",
+    "systemctl": "Shows a service's status, or restarts it -- a restart applies its config.",
+    "decrypt": "Decrypts a file with a key; a correct key writes the plaintext to a .txt file next to it.",
+    "journal": "Lists what you've learned; filter by lead, note, suspect or trace.",
+    "notebook": "Lists what you've learned; filter by lead, note, suspect or trace.",
+    "chat": "Talks to a contact; with no topic, lists what you can ask about.",
+    "mail": "Reads and sends email. `mail compose` opens a form.",
+}
+
 
 def command(*names: str, usage: str = "") -> Callable:
     def decorator(fn: Callable) -> Callable:
@@ -275,6 +314,10 @@ class TerminalRunner:
         # an interrupted login just starts over.
         self.awaiting_password: Optional[tuple[str, str]] = None
         self.hints: list[str] = []  # the current scene's, set by GameSession
+        self.trace_limit: Optional[int] = None  # the current scene's trace meter, set by GameSession
+        self.history: list[str] = []  # command lines typed this session (never password lines)
+        self.last_traced = False  # did the last command line touch a host? (trace meter)
+        self.clear_requested = False  # `clear` -- the frontend empties its terminal pane
 
     @property
     def current_host(self) -> Optional[str]:
@@ -331,12 +374,15 @@ class TerminalRunner:
         if self.awaiting_password:
             return _finish_ssh(self, raw.strip())
         raw = raw.strip()
+        self.last_traced = False
         if not raw:
             return ""
+        self.history.append(raw)
         try:
             stages = split_pipeline(raw)
         except ValueError as exc:
             return f"parse error: {exc}"
+        self.last_traced = bool(stages[0]) and stages[0][0] in TRACED_COMMANDS
         output = self._run(stages[0])
         for stage in stages[1:]:
             if stage[:1] != ["grep"] or len(stage) != 2:
@@ -381,7 +427,17 @@ def split_pipeline(raw: str) -> list[list[str]]:
 # Pure engine logic (no UI), so any frontend can offer the same completions.
 
 # command -> the argument positions that take a path on the current host
-PATH_ARGS: dict[str, set[int]] = {"ls": {1}, "cd": {1}, "cat": {1}, "grep": {2}, "set": {1}, "decrypt": {1}}
+PATH_ARGS: dict[str, set[int]] = {
+    "ls": {1, 2},  # after an optional -a
+    "cd": {1},
+    "cat": {1},
+    "grep": {2},
+    "set": {1},
+    "decrypt": {1},
+    "head": {1, 3},  # after an optional -n N
+    "tail": {1, 3},
+    "find": {1},
+}
 
 
 def complete(runner: TerminalRunner, line: str) -> list[str]:
@@ -399,7 +455,7 @@ def _argument_candidates(runner: TerminalRunner, words: list[str], prefix: str) 
     cmd, position = words[0], len(words) - 1
     if position in PATH_ARGS.get(cmd, set()):
         return _path_candidates(runner, prefix)
-    if cmd == "help" and position == 1:
+    if cmd in ("help", "man") and position == 1:
         return list(COMMANDS)
     if cmd in ("journal", "notebook") and position == 1:
         return list(VALID_CATEGORIES)
@@ -544,8 +600,10 @@ def cmd_disconnect(args: list[str], runner: TerminalRunner) -> str:
     return f"Disconnected from {host_id}."
 
 
-@command("ls", usage="ls [path]")
+@command("ls", usage="ls [-a] [path]")
 def cmd_ls(args: list[str], runner: TerminalRunner) -> str:
+    show_hidden = "-a" in args
+    args = [a for a in args if a != "-a"]
     host = _require_host(runner)
     host_dir = _host_dir(runner, host)
     path = normalize_path(runner.cwd, args[0] if args else None)
@@ -555,6 +613,8 @@ def cmd_ls(args: list[str], runner: TerminalRunner) -> str:
     if not real_path.is_dir():
         return path
     entries = sorted(real_path.iterdir(), key=lambda p: p.name)
+    if not show_hidden:
+        entries = [p for p in entries if not p.name.startswith(".")]
     if not entries:
         return "(empty)"
     return "  ".join(p.name + "/" if p.is_dir() else p.name for p in entries)
@@ -576,18 +636,65 @@ def cmd_cd(args: list[str], runner: TerminalRunner) -> str:
 def cmd_cat(args: list[str], runner: TerminalRunner) -> str:
     if not args:
         raise CommandError("usage: cat <file>")
+    return _read_file(runner, args[0], "cat")
+
+
+def _read_file(runner: TerminalRunner, file_arg: str, name: str) -> str:
+    """A file's text as `cat` shows it (ciphertext marked [ENCRYPTED])."""
+    host = _require_host(runner)
+    path = normalize_path(runner.cwd, file_arg)
+    real_path = resolve_real_path(_host_dir(runner, host), path)
+    if not real_path.exists():
+        raise CommandError(f"{name}: no such file: {path}")
+    if real_path.is_dir():
+        raise CommandError(f"{name}: {path} is a directory")
+    content = real_path.read_text()
+    return f"[ENCRYPTED] {content}" if path in host.ciphers else content
+
+
+def _head_or_tail(args: list[str], runner: TerminalRunner, name: str) -> str:
+    count = 10
+    if args[:1] == ["-n"]:
+        if len(args) < 2 or not args[1].isdigit():
+            raise CommandError(f"usage: {name} [-n N] <file>")
+        count, args = int(args[1]), args[2:]
+    if len(args) != 1:
+        raise CommandError(f"usage: {name} [-n N] <file>")
+    lines = _read_file(runner, args[0], name).splitlines()
+    return "\n".join(lines[:count] if name == "head" else lines[-count:] if count else [])
+
+
+@command("head", usage="head [-n N] <file>")
+def cmd_head(args: list[str], runner: TerminalRunner) -> str:
+    return _head_or_tail(args, runner, "head")
+
+
+@command("tail", usage="tail [-n N] <file>")
+def cmd_tail(args: list[str], runner: TerminalRunner) -> str:
+    return _head_or_tail(args, runner, "tail")
+
+
+@command("find", usage="find [path] [-name pattern]")
+def cmd_find(args: list[str], runner: TerminalRunner) -> str:
+    pattern = None
+    if "-name" in args:
+        i = args.index("-name")
+        if i + 1 >= len(args):
+            raise CommandError("usage: find [path] [-name pattern]")
+        pattern, args = args[i + 1], args[:i] + args[i + 2 :]
+    if len(args) > 1:
+        raise CommandError("usage: find [path] [-name pattern]")
     host = _require_host(runner)
     host_dir = _host_dir(runner, host)
-    path = normalize_path(runner.cwd, args[0])
-    real_path = resolve_real_path(host_dir, path)
-    if not real_path.exists():
-        return f"cat: no such file: {path}"
-    if real_path.is_dir():
-        return f"cat: {path} is a directory"
-    content = real_path.read_text()
-    if path in host.ciphers:
-        return f"[ENCRYPTED] {content}"
-    return content
+    start = normalize_path(runner.cwd, args[0] if args else None)
+    real_start = resolve_real_path(host_dir, start)
+    if not real_start.exists():
+        return f"find: no such path: {start}"
+    found = [real_start, *sorted(real_start.rglob("*"))] if real_start.is_dir() else [real_start]
+    paths = ["/" + p.relative_to(host_dir).as_posix() if p != host_dir else "/" for p in found]
+    if pattern is not None:
+        paths = [p for p, real in zip(paths, found) if fnmatch.fnmatch(real.name, pattern)]
+    return "\n".join(paths) if paths else f"find: nothing matches '{pattern}'"
 
 
 @command("grep", usage='grep <pattern> <file>  (quote a pattern with spaces: grep "failed login" <file>)')
@@ -707,6 +814,27 @@ def cmd_hint(args: list[str], runner: TerminalRunner) -> str:
     )
 
 
+@command("man", usage="man <command>")
+def cmd_man(args: list[str], runner: TerminalRunner) -> str:
+    if not args:
+        return "What manual page do you want? (try 'man ls', or 'help' for the list)"
+    name = args[0]
+    if name not in COMMANDS:
+        return f"No manual entry for {name}"
+    return f"{name} -- {MANUAL.get(name, '')}\n\nusage: {USAGE[name]}"
+
+
+@command("history", usage="history")
+def cmd_history(args: list[str], runner: TerminalRunner) -> str:
+    return "\n".join(f"{i:4}  {line}" for i, line in enumerate(runner.history, start=1))
+
+
+@command("clear", usage="clear")
+def cmd_clear(args: list[str], runner: TerminalRunner) -> str:
+    runner.clear_requested = True
+    return ""
+
+
 @command("status", usage="status")
 def cmd_status(args: list[str], runner: TerminalRunner) -> str:
     state = runner.state
@@ -725,6 +853,9 @@ def cmd_status(args: list[str], runner: TerminalRunner) -> str:
     ]
     if state.tools:
         lines.append(f"Tools:       {', '.join(sorted(state.tools))}")
+    if runner.trace_limit:
+        count = state.trace_counts.get(runner.discovered_at(), 0)
+        lines.append(f"Trace:       {count}/{runner.trace_limit}")
     return "\n".join(lines)
 
 

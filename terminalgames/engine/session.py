@@ -19,7 +19,7 @@ from .loader import load_network, load_npc_roster
 from .puzzles import check_command_order
 from .shell import Network, TerminalRunner
 from .state import GameState
-from .story import Choice, Scene, Story, StoryLoadError, apply_effects, check_requires
+from .story import Choice, Scene, Story, StoryLoadError, Trace, apply_effects, check_requires
 
 
 class StaleSaveError(StoryLoadError):
@@ -30,8 +30,9 @@ class StaleSaveError(StoryLoadError):
 @dataclass
 class CommandResult:
     output: str
-    advanced: bool = False  # the command solved the scene and moved on
+    advanced: bool = False  # the command solved the scene (or tripped its trace) and moved on
     notices: list[str] = field(default_factory=list)  # new mail, autosave
+    clear: bool = False  # `clear`: the frontend should empty its terminal pane
 
 
 class GameSession:
@@ -81,6 +82,9 @@ class GameSession:
         self.scene = scene
         self.scene_commands = []
         self.runner.hints = scene.terminal.hints if scene.terminal else []
+        self.runner.trace_limit = (
+            scene.terminal.trace.limit if scene.terminal and scene.terminal.trace else None
+        )
         if scene.type == "ending":
             record_ending(self.slot_path.parent, scene.id)
         if scene.type == "terminal":
@@ -106,13 +110,16 @@ class GameSession:
         assert terminal is not None
         is_password = self.runner.awaiting_password is not None
         output = self.runner.execute(raw)
+        clear, self.runner.clear_requested = self.runner.clear_requested, False
         if terminal.ordered_commands and not is_password:
             self.scene_commands.append(" ".join(raw.split()))
             expected = terminal.ordered_commands
             if check_command_order(self.scene_commands[-len(expected) :], expected):
                 self.state.set_flag(terminal.win_flag, True)
         if not self.state.has_flag(terminal.win_flag):
-            return CommandResult(output)
+            if terminal.trace and self.runner.last_traced:
+                return self._raise_trace(output, terminal.trace)
+            return CommandResult(output, clear=clear)
         apply_effects({}, terminal.logs, self.state, self._here())
         return CommandResult(output, advanced=True, notices=self._advance(terminal.next))
 
@@ -139,6 +146,20 @@ class GameSession:
         entries = gallery(self.story, self.slot_path.parent)
         return sum(found for _, found in entries), len(entries)
 
+    def _raise_trace(self, output: str, trace: Trace) -> CommandResult:
+        key = self._here()
+        count = self.state.trace_counts.get(key, 0) + 1
+        self.state.trace_counts[key] = count
+        output = f"{output}\n[trace {count}/{trace.limit}]" if output else f"[trace {count}/{trace.limit}]"
+        if count < trace.limit:
+            return CommandResult(output)
+        # Traced: the connection drops and the story moves on.
+        self.runner.current_host = None
+        self.state.current_user = None
+        self.runner.cwd = "/"
+        notices = ["TRACE COMPLETE -- the connection was cut.", *self._advance(trace.on_trace)]
+        return CommandResult(f"{output}\nConnection lost.", advanced=True, notices=notices)
+
     def save(self) -> None:
         self.state.save(self.slot_path)
 
@@ -149,6 +170,7 @@ class GameSession:
         state = self.state
         previous_chapter_id = state.chapter_id
         state.chapter_id, state.scene_id = self.story.resolve(ref, state.chapter_id)
+        state.trace_counts.pop(f"{state.chapter_id}:{state.scene_id}", None)  # a fresh entry starts at 0
         notices = [f"New mail from {msg.npc_id}: {msg.subject}" for msg in self.runner.advance_scene()]
         # Crossing into a new chapter autosaves -- long stories can span many
         # chapters, and this is the natural "checkpoint" granularity.

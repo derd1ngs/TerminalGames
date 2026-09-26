@@ -125,6 +125,10 @@ async function deadDrop(browser) {
   check((await page.textContent("#terminal-log")).includes("Hint 1/2: Juno gave you the host: relay."), "hint shows the first hint");
   await run(page, "connect relay");
   await waitForPrompt(page, "relay$");
+  await run(page, "ls -a /home/mara");
+  check((await page.textContent("#terminal-log")).includes(".plan"), "ls -a shows the hidden .plan");
+  await run(page, "clear");
+  check((await page.textContent("#terminal-log")) === "", "clear empties the terminal");
   await run(page, "cat /var/log/relay.log | grep mara | grep vault");
   const log = await page.textContent("#terminal-log");
   check(log.includes("new one: lighthouse-42") && !log.includes("coffee run"), "piped grep narrows the log");

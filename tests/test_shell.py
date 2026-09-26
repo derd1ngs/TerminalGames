@@ -280,7 +280,7 @@ def test_help_shows_usage_for_one_command(tmp_path):
 def test_complete_command_names(tmp_path):
     runner = build_runner(tmp_path)
     assert complete(runner, "con") == ["connect"]
-    assert complete(runner, "c") == ["cat", "cd", "chat", "connect"]
+    assert complete(runner, "c") == ["cat", "cd", "chat", "clear", "connect"]
 
 
 def test_complete_hosts_and_services(tmp_path):
@@ -550,3 +550,82 @@ def test_mail_compose_explains_the_form_or_the_draft_route(tmp_path):
     runner.npcs = {"t": NPC(id="t", name="T", channel="email", topics={})}
     assert "opens a form" in runner.execute("mail compose")
     assert complete(runner, "mail co") == ["compose"]
+
+
+def test_ls_hides_dotfiles_unless_dash_a(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    (runner.sandbox_root / "hosts" / "gateway" / "etc" / ".secret").write_text("psst")
+    assert ".secret" not in runner.execute("ls etc")
+    assert ".secret" in runner.execute("ls -a etc")
+    assert ".secret" in runner.execute("ls etc -a")
+
+
+def test_head_and_tail(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    log = runner.sandbox_root / "hosts" / "gateway" / "var" / "log" / "access.log"
+    log.write_text("\n".join(f"line{i}" for i in range(1, 21)))
+    assert runner.execute("head /var/log/access.log").splitlines() == [f"line{i}" for i in range(1, 11)]
+    assert runner.execute("tail -n 2 /var/log/access.log") == "line19\nline20"
+    assert runner.execute("head -n 0 /var/log/access.log") == ""
+    assert runner.execute("head -n x /var/log/access.log").startswith("usage: head")
+    assert runner.execute("tail /nope") == "tail: no such file: /nope"
+    assert runner.execute("head /var/log") == "head: /var/log is a directory"
+
+
+def test_find_lists_everything_or_filters_by_name(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    assert runner.execute("find /var").splitlines() == [
+        "/var",
+        "/var/log",
+        "/var/log/access.log",
+        "/var/secret.enc",
+    ]
+    assert runner.execute("find -name *.conf") == "/etc/netmon.conf"
+    assert runner.execute("find / -name nothing*") == "find: nothing matches 'nothing*'"
+    assert runner.execute("find /nope") == "find: no such path: /nope"
+
+
+def test_history_numbers_lines_but_never_passwords(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("whoami")
+    runner.execute("ssh ops@mainframe")
+    runner.execute("hunter2")
+    assert runner.execute("history") == "   1  whoami\n   2  ssh ops@mainframe\n   3  history"
+
+
+def test_clear_requests_the_frontend_to_clear(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("clear") == ""
+    assert runner.clear_requested
+
+
+def test_man_pages(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("man ls").startswith("ls -- Lists a directory.")
+    assert "usage: ls [-a] [path]" in runner.execute("man ls")
+    assert runner.execute("man frobnicate") == "No manual entry for frobnicate"
+    assert runner.execute("man").startswith("What manual page")
+    assert complete(runner, "man sy") == ["systemctl"]
+
+
+def test_only_commands_that_touch_a_host_are_traced(tmp_path):
+    runner = build_runner(tmp_path)
+    traced = {}
+    for raw in [
+        "help",
+        "hint",
+        "status",
+        "journal",
+        "man ls",
+        "history",
+        "whoami",
+        "scan gateway",
+        "ls",
+        "cat x | grep y",
+    ]:
+        runner.execute(raw)
+        traced[raw] = runner.last_traced
+    assert [raw for raw, t in traced.items() if t] == ["scan gateway", "ls", "cat x | grep y"]

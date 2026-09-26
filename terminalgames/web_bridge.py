@@ -180,7 +180,7 @@ def command(raw: str) -> str:
         session.save()
         return _view(output="Saved.")
     result = session.run_command(raw)
-    return _view(entered=result.advanced, output=result.output, notices=result.notices)
+    return _view(entered=result.advanced, output=result.output, notices=result.notices, clear=result.clear)
 
 
 def complete(line: str) -> str:
@@ -222,7 +222,13 @@ def _require_session() -> GameSession:
     return _session
 
 
-def _view(*, entered: bool = False, output: Optional[str] = None, notices: Optional[list[str]] = None) -> str:
+def _view(
+    *,
+    entered: bool = False,
+    output: Optional[str] = None,
+    notices: Optional[list[str]] = None,
+    clear: bool = False,
+) -> str:
     """What the page needs to render after any action. `entered` means the
     player just arrived in `scene` (so its text should be shown)."""
     session = _require_session()
@@ -236,6 +242,7 @@ def _view(*, entered: bool = False, output: Optional[str] = None, notices: Optio
         "secret": session.runner.awaiting_password is not None,  # next line is a password
         "output": output,
         "notices": notices or [],
+        "clear": clear,  # `clear`: empty the terminal pane before showing output
     }
     if scene.type == "ending":
         found, total = session.endings_found()
