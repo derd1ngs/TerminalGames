@@ -517,3 +517,20 @@ def test_trace_outcome_is_reachable_even_when_the_scene_cannot_be_won():
 
     assert "caught" in report.visited_endings
     assert "won" in report.unreached_endings  # still reported: nothing sets 'never'
+
+
+def test_mermaid_graph_draws_the_trace_exit():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                type="terminal",
+                terminal=TerminalBlock(
+                    win_flag="w", next="c1:won", trace=Trace(limit=4, on_trace="c1:caught")
+                ),
+            ),
+            "won": Scene(id="won", type="ending"),
+            "caught": Scene(id="caught", type="ending"),
+        }
+    )
+    assert '  n_c1__start -.->|"traced (limit 4)"| n_c1__caught' in mermaid_graph(story).splitlines()

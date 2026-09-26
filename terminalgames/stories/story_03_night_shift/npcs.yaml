@@ -1,0 +1,24 @@
+npcs:
+  - id: dex
+    name: "DEX"
+    persona: "Lantern Labs' other on-call engineer. Paranoid in the useful way."
+    channel: chat
+    topics:
+      - id: forge
+        prompt: "ask about forge"
+        response: >
+          forge is the build server. If something signed a release at 03:12,
+          the build log knows -- and the interesting part of a log is always
+          the end. Whoever did this hid their tools, too: plain ls won't
+          show dotfiles.
+        reliability: truthful
+
+      - id: mirror
+        prompt: "ask about the mirror"
+        requires:
+          flag: found_deploy_key
+        response: >
+          mirror is the public release server, and its intrusion detection
+          traces every command that touches the box. Plan before you type:
+          status shows your trace, and man, hint and chat don't count.
+        reliability: truthful

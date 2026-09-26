@@ -371,10 +371,10 @@ class TerminalRunner:
         return newly_delivered
 
     def execute(self, raw: str) -> str:
+        self.last_traced = False  # before the password branch: a password line is never traced
         if self.awaiting_password:
             return _finish_ssh(self, raw.strip())
         raw = raw.strip()
-        self.last_traced = False
         if not raw:
             return ""
         self.history.append(raw)

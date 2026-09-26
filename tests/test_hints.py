@@ -24,6 +24,7 @@ ROUTES = {
         "Check back later",
     ],
     "story_02_dead_drop": ['"Send me the address.', "Follow the runbook."],
+    "story_03_night_shift": ["Pull on your hoodie", "Take the key", "Go in now."],
 }
 
 

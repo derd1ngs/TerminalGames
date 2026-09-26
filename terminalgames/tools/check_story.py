@@ -395,7 +395,8 @@ def mermaid_graph(story: Story) -> str:
     ```mermaid blocks): narrative scenes are boxes, terminal scenes
     double-bordered boxes, endings rounded; choice edges carry the choice
     text (dashed when gated by `requires`), and a terminal scene's exit is a
-    thick edge labelled with its win_flag. One subgraph per chapter."""
+    thick edge labelled with its win_flag (plus a dashed "traced" edge if
+    it has a trace meter). One subgraph per chapter."""
     lines = ["flowchart TD"]
     for chapter in story.chapters.values():
         lines.append(f'  subgraph {_mermaid_id(chapter.id)}["{_mermaid_label(chapter.id)}"]')
@@ -415,6 +416,9 @@ def mermaid_graph(story: Story) -> str:
             if scene.terminal:
                 target = _mermaid_id(*story.resolve(scene.terminal.next, chapter.id))
                 lines.append(f'  {node} ==>|"{_mermaid_label(scene.terminal.win_flag)}"| {target}')
+                if scene.terminal.trace:
+                    traced = _mermaid_id(*story.resolve(scene.terminal.trace.on_trace, chapter.id))
+                    lines.append(f'  {node} -.->|"traced (limit {scene.terminal.trace.limit})"| {traced}')
     return "\n".join(lines)
 
 

@@ -62,7 +62,7 @@ async function zeroDay(browser) {
   console.log("Zero Day (desktop)");
   const page = await openPage(browser);
   await page.screenshot({ path: SHOTS + "menu.png" });
-  check((await page.locator("#story-list button").count()) === 2, "menu lists both stories");
+  check((await page.locator("#story-list button").count()) === 3, "menu lists all three stories");
   await page.getByRole("button", { name: "Zero Day" }).click();
   check((await page.inputValue("#new-slot-name")) === "default", "new slot name defaults to 'default'");
   check(!(await page.isVisible("#endings-gallery")), "no endings gallery before any ending is found");
@@ -173,6 +173,37 @@ async function deadDrop(browser) {
   await page.context().close();
 }
 
+async function nightShift(browser) {
+  console.log("Night Shift (desktop)");
+  const page = await openPage(browser);
+  await newGame(page, "Night Shift", "ns-e2e");
+  await page.keyboard.press("1"); // log in
+  await page.waitForSelector("#terminal-pane:not(.inactive)");
+  await run(page, "connect forge");
+  await waitForPrompt(page, "forge$");
+  await run(page, "find / -name *.enc");
+  check((await page.textContent("#terminal-log")).includes("/home/build/.cache/deploy_key.enc"), "find reveals the hidden key");
+  await run(page, "decrypt /home/build/.cache/deploy_key.enc 11");
+  await page.waitForSelector("#choices-pane:not([hidden])");
+  await page.keyboard.press("1"); // take the key
+  await page.getByRole("button", { name: /Go in now/ }).click();
+  await page.waitForSelector("#terminal-pane:not(.inactive)");
+  await run(page, "ssh deploy@mirror");
+  await waitForPrompt(page, "password:");
+  check((await page.textContent("#terminal-log")).includes("[trace 1/6]"), "the trace meter shows in the terminal");
+  await run(page, "tidewater-9");
+  await waitForPrompt(page, "mirror$");
+  check(!(await page.textContent("#terminal-log")).includes("[trace 2/6]"), "the password line isn't traced");
+  await run(page, "set /etc/publisher/publisher.conf serve_unsigned no");
+  await run(page, "systemctl restart publisher");
+  await page.waitForSelector("#choices-pane:not([hidden])");
+  await page.keyboard.press("1"); // report it
+  await page.waitForSelector("#screen-game.ended");
+  check((await page.textContent("#story-log")).includes("By the Book"), "Night Shift reaches an ending");
+  noErrors(page, "Night Shift");
+  await page.context().close();
+}
+
 async function saveFiles(browser) {
   console.log("Save export/import (two separate browsers)");
   const a = await openPage(browser);
@@ -279,7 +310,7 @@ async function phone(browser) {
 
 const browser = await firefox.launch();
 try {
-  for (const scenario of [zeroDay, deadDrop, saveFiles, offline, phone]) {
+  for (const scenario of [zeroDay, deadDrop, nightShift, saveFiles, offline, phone]) {
     try {
       await scenario(browser);
     } catch (err) {

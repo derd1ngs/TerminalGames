@@ -1,0 +1,158 @@
+id: chapter_01
+scenes:
+  - id: intro
+    type: narrative
+    text: |
+      03:20 AM. Your phone buzzes: an automated page from Lantern Labs.
+
+      "forge: release v4.2.1 signed and pushed to mirror at 03:12."
+
+      Nobody schedules releases at 3 AM. You're on call.
+    choices:
+      - text: "Pull on your hoodie and log in."
+        next: forge_shell
+        logs:
+          - id: trace_page
+            category: trace
+            text: "forge signed and pushed release v4.2.1 at 03:12. Nobody scheduled it."
+      - text: "It's 3 AM. Snooze the page."
+        next: ending_snooze
+
+  - id: ending_snooze
+    type: ending
+    text: |
+      You roll over. By morning v4.2.1 has been downloaded eleven thousand
+      times, and the incident review has your name in the timeline twice.
+
+      -- ENDING: Snooze Button --
+
+  - id: forge_shell
+    type: terminal
+    text: |
+      The build server is `forge`: `connect forge`. Whoever signed that
+      release had to leave something behind.
+
+      New to a command? `man <command>` explains it -- `man find`, `man
+      tail`. `help` lists them all.
+    terminal:
+      win_flag: found_deploy_key
+      next: key_found
+      hints:
+        - "`connect forge`, then read the end of the build log: `tail /var/log/build.log`."
+        - "The log mentions a key cache with a Caesar shift. Hidden files don't show in a plain ls, but `find / -name *.enc` finds it."
+        - "`decrypt /home/build/.cache/deploy_key.enc 11`, then `cat /home/build/.cache/deploy_key.txt`."
+      logs:
+        - id: lead_deploy_key
+          category: lead
+          text: "The intruder cached mirror's deploy key on forge, lightly obfuscated: deploy / tidewater-9."
+
+  - id: key_found
+    type: narrative
+    text: |
+      `cat /home/build/.cache/deploy_key.txt`: "deploy@mirror password:
+      tidewater-9". Someone used forge's own deploy key to push a release
+      straight to the public mirror -- and it's still being served.
+    choices:
+      - text: "Take the key and call Dex."
+        next: dex_call
+        sets:
+          tool.deploy_key: true
+
+  - id: dex_call
+    type: narrative
+    text: |
+      DEX: "mirror? Its intrusion detection traces every command that
+      touches the box, and past a handful it drops you and rotates the
+      credentials. Know exactly what you'll type before you log in."
+    choices:
+      - text: "Borrow Dex's packet sniffer first."
+        next: dex_call
+        requires:
+          not: {tool: sniffer}
+        sets:
+          tool.sniffer: true
+          trust.dex: 1
+        logs:
+          - id: note_sniffer
+            category: note
+            text: "Dex lent you a packet sniffer. It records every session on a box while you're on it."
+      - text: "Go in now."
+        next: mirror_shell
+
+  - id: mirror_shell
+    type: terminal
+    text: |
+      mirror's banner is blunt: ALL SESSIONS ARE MONITORED. Every command
+      that touches the box raises your trace, and the terminal shows it.
+      Local commands -- `status`, `hint`, `man`, `chat` -- are free.
+
+      Log in as deploy, then stop mirror from serving the unsigned release.
+    terminal:
+      win_flag: rogue_pulled
+      next: pulled
+      trace:
+        limit: 6
+        on_trace: burned
+      hints:
+        - "Log in with the deploy key: `ssh deploy@mirror`, then the password `tidewater-9`."
+        - "The publisher serves unsigned releases because of its config: `cat /etc/publisher/publisher.conf`."
+        - "`set /etc/publisher/publisher.conf serve_unsigned no`, then `systemctl restart publisher`."
+      logs:
+        - id: trace_rogue_pulled
+          category: trace
+          text: "mirror stopped serving unsigned releases; v4.2.1 is no longer downloadable."
+
+  - id: burned
+    type: narrative
+    text: |
+      Your session drops mid-command. mirror's intrusion detection has
+      your address -- and in a few minutes it will rotate the deploy key.
+    choices:
+      - text: "Go back in, faster, before the key rotates."
+        next: mirror_shell
+        requires:
+          not: {flag: burned_once}
+        sets:
+          burned_once: true
+      - text: "Walk away and write it up."
+        next: ending_burned
+
+  - id: ending_burned
+    type: ending
+    text: |
+      The key rotates and mirror locks you out. By the time the security
+      team wakes up, v4.2.1 has been served all night. Your write-up is
+      thorough. It is also too late.
+
+      -- ENDING: Traced --
+
+  - id: pulled
+    type: narrative
+    text: |
+      The publisher restarts, and v4.2.1 disappears from the mirror. The
+      bleeding has stopped. The question is who cut the wound.
+    choices:
+      - text: "Report everything to Lantern's security team."
+        next: ending_reported
+      - text: "Follow the attacker's session back with Dex's sniffer."
+        next: ending_unmasked
+        requires:
+          tool: sniffer
+
+  - id: ending_reported
+    type: ending
+    text: |
+      Security takes it from here: they revoke the key, rebuild forge and
+      publish an advisory by noon. Nobody finds out who did it, but nobody
+      downloads v4.2.1 again either.
+
+      -- ENDING: By the Book --
+
+  - id: ending_unmasked
+    type: ending
+    text: |
+      Dex's sniffer caught the attacker's last session on mirror -- and the
+      address it came from belongs to a contractor Lantern let go last
+      month. Security has a name before sunrise.
+
+      -- ENDING: Caught in the Act --
