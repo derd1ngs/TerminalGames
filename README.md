@@ -121,6 +121,22 @@ which zips only what the browser runs -- `engine/`, `stories/` and
 `terminalgames/web_bridge.py`, the JSON facade over `GameSession` that
 `app.js` calls.
 
+`web/e2e/e2e.mjs` plays both stories in headless Firefox against a built
+site and runs in CI (the `web-e2e` job). It checks:
+- menus, choices and the terminal: Tab, history, pipes, `ssh` password
+  masking and the procedure puzzle;
+- saves surviving a reload;
+- the phone layout;
+- that no console errors occur.
+
+On failure, CI uploads its screenshots as an artifact. To run it locally
+against the server above:
+
+```bash
+cd web/e2e && npm ci && npx playwright install firefox
+node e2e.mjs http://localhost:8000/
+```
+
 ## How a story is put together
 
 A **story** lives in `terminalgames/stories/<story_id>/` and has:
