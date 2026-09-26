@@ -12,6 +12,7 @@ let py = null;
 let bridge = null;
 let currentStory = null; // {ref, id, title}
 let mode = "menu"; // menu | narrative | terminal | ended
+let secret = false; // the next terminal line is a password (after `ssh`)
 const history = [];
 let historyIndex = 0;
 
@@ -175,6 +176,8 @@ function render(view) {
   if (view.output) append("terminal-log", view.output, view.output === "Saved." ? "saved" : "");
   for (const notice of view.notices) append("story-log", notice, "notice");
   $("prompt").textContent = view.prompt;
+  secret = view.secret;
+  $("command-input").type = secret ? "password" : "text";
   if (!view.entered) return;
 
   const scene = view.scene;
@@ -257,6 +260,12 @@ $("prompt-form").addEventListener("submit", (event) => {
   const raw = input.value.trim();
   input.value = "";
   if (!raw || mode !== "terminal") return;
+  if (secret) {
+    // A password line: masked, kept out of history, never a meta command.
+    append("terminal-log", `${$("prompt").textContent} ********`, "cmd-echo");
+    act(() => call("command", raw));
+    return;
+  }
   history.push(raw);
   historyIndex = history.length;
   append("terminal-log", `${$("prompt").textContent} ${raw}`, "cmd-echo");
@@ -269,6 +278,10 @@ $("prompt-form").addEventListener("submit", (event) => {
 
 $("command-input").addEventListener("keydown", (event) => {
   const input = event.target;
+  if (secret) {
+    if (event.key === "Tab") event.preventDefault(); // no completion (or focus jump) for passwords
+    return;
+  }
   if (event.key === "ArrowUp" || event.key === "ArrowDown") {
     if (!history.length) return;
     event.preventDefault();

@@ -26,6 +26,7 @@ from .dialogue import (
     parse_mail_text,
     send_topic_by_email,
 )
+from .journal import VALID_CATEGORIES
 from .puzzles import decode_cipher, grep_lines, parse_config_text, render_config_text, validate_config
 from .state import EmailMessage, GameState
 from .story import check_requires
@@ -147,6 +148,8 @@ class Host:
     banner: str = ""
     requires_to_connect: Optional[dict[str, Any]] = None
     on_connect_flag: Optional[str] = None
+    # user -> password; a host with logins is reached with `ssh user@host`, not `connect`
+    logins: dict[str, str] = field(default_factory=dict)
     services: dict[str, Service] = field(default_factory=dict)
     ciphers: dict[str, CipherMeta] = field(default_factory=dict)
     # Raw `filesystem:` YAML block, kept so `Network.materialize()` can write
@@ -180,6 +183,7 @@ class Network:
                 banner=hd.get("banner", ""),
                 requires_to_connect=hd.get("requires_to_connect"),
                 on_connect_flag=hd.get("on_connect_flag"),
+                logins={str(user): str(pw) for user, pw in (hd.get("logins") or {}).items()},
                 services=services,
                 ciphers=collect_cipher_meta(filesystem),
                 filesystem=filesystem,
@@ -228,6 +232,9 @@ class TerminalRunner:
         self.save_slot_path = save_slot_path
         self.current_chapter = ""
         self.current_scene = ""
+        # (host_id, user) while `ssh` waits for the password line; not saved --
+        # an interrupted login just starts over.
+        self.awaiting_password: Optional[tuple[str, str]] = None
 
     @property
     def current_host(self) -> Optional[str]:
@@ -238,6 +245,14 @@ class TerminalRunner:
     @current_host.setter
     def current_host(self, value: Optional[str]) -> None:
         self.state.current_host = value
+
+    @property
+    def prompt(self) -> str:
+        """What a frontend shows before the input line. While `ssh` waits for
+        a password it's "password:", and frontends should mask the echo."""
+        if self.awaiting_password:
+            return "password:"
+        return f"{self.current_host or 'local'}$"
 
     @property
     def cwd(self) -> str:
@@ -273,15 +288,26 @@ class TerminalRunner:
         return newly_delivered
 
     def execute(self, raw: str) -> str:
+        if self.awaiting_password:
+            return _finish_ssh(self, raw.strip())
         raw = raw.strip()
         if not raw:
             return ""
         try:
-            name, *args = shlex.split(raw)
+            stages = split_pipeline(raw)
         except ValueError as exc:
             return f"parse error: {exc}"
-        if not name:
+        output = self._run(stages[0])
+        for stage in stages[1:]:
+            if stage[:1] != ["grep"] or len(stage) != 2:
+                return "pipe: only 'grep <pattern>' can read from a pipe"
+            output = "\n".join(grep_lines(output, stage[1]))
+        return output
+
+    def _run(self, argv: list[str]) -> str:
+        if not argv or not argv[0]:
             return ""
+        name, *args = argv
         handler = COMMANDS.get(name)
         if handler is None:
             return f"command not found: {name}"
@@ -289,6 +315,25 @@ class TerminalRunner:
             return handler(args, self)
         except CommandError as exc:
             return str(exc)
+
+
+def split_pipeline(raw: str) -> list[list[str]]:
+    """Split a command line into pipeline stages (`cat log | grep x`), with
+    shell quoting. Raises ValueError on an unclosed quote or an empty stage.
+    (A quoted "|" can't be told apart from a pipe -- a known limitation.)"""
+    lexer = shlex.shlex(raw, posix=True, punctuation_chars="|")
+    lexer.whitespace_split = True
+    stages: list[list[str]] = [[]]
+    for token in lexer:
+        if token == "|":
+            stages.append([])
+        elif set(token) == {"|"}:
+            raise ValueError(f"unsupported operator '{token}'")
+        else:
+            stages[-1].append(token)
+    if len(stages) > 1 and not all(stages):
+        raise ValueError("empty pipeline stage")
+    return stages
 
 
 # --- tab completion ------------------------------------------------------------
@@ -304,7 +349,7 @@ def complete(runner: TerminalRunner, line: str) -> list[str]:
     command names for the first word, then hosts/paths/services/contacts/
     topics depending on the command. Each candidate is a full replacement
     for that last word; directories end in "/"."""
-    words = line.split(" ")
+    words = line.rsplit("|", 1)[-1].lstrip().split(" ")  # complete within the last pipe stage
     prefix = words[-1]
     pool = COMMANDS.keys() if len(words) == 1 else _argument_candidates(runner, words, prefix)
     return sorted(c for c in set(pool) if c.startswith(prefix))
@@ -316,6 +361,8 @@ def _argument_candidates(runner: TerminalRunner, words: list[str], prefix: str) 
         return _path_candidates(runner, prefix)
     if cmd == "help" and position == 1:
         return list(COMMANDS)
+    if cmd in ("journal", "notebook") and position == 1:
+        return list(VALID_CATEGORIES)
     if cmd in ("scan", "connect") and position == 1:
         return list(runner.network.hosts)
     if cmd == "systemctl":
@@ -376,7 +423,8 @@ def cmd_help(args: list[str], runner: TerminalRunner) -> str:
 
 @command("whoami", usage="whoami")
 def cmd_whoami(args: list[str], runner: TerminalRunner) -> str:
-    return f"user@{runner.host.id}" if runner.host else "user@localhost"
+    user = runner.state.current_user or "user"
+    return f"{user}@{runner.host.id}" if runner.host else "user@localhost"
 
 
 @command("scan", usage="scan <host>")
@@ -404,11 +452,45 @@ def cmd_connect(args: list[str], runner: TerminalRunner) -> str:
         return f"connect: unknown host '{host_id}'"
     if not check_requires(host.requires_to_connect, runner.state):
         return f"connect: access denied to '{host_id}'"
-    runner.current_host = host_id
+    if host.logins:
+        return f"connect: {host_id} requires a login -- use 'ssh <user>@{host_id}'"
+    _log_in(runner, host, user=None)
+    return f"Connected to {host_id} ({host.address})."
+
+
+def _log_in(runner: TerminalRunner, host: Host, user: Optional[str]) -> None:
+    runner.current_host = host.id
+    runner.state.current_user = user
     runner.cwd = "/"
     if host.on_connect_flag:
         runner.state.set_flag(host.on_connect_flag, True)
-    return f"Connected to {host_id} ({host.address})."
+
+
+@command("ssh", usage="ssh <user>@<host>  (then type the password)")
+def cmd_ssh(args: list[str], runner: TerminalRunner) -> str:
+    if len(args) != 1 or "@" not in args[0]:
+        raise CommandError("usage: ssh <user>@<host>")
+    user, _, host_id = args[0].partition("@")
+    host = runner.network.hosts.get(host_id)
+    if host is None:
+        return f"ssh: could not resolve hostname {host_id}"
+    if not check_requires(host.requires_to_connect, runner.state):
+        return f"ssh: connect to host {host_id}: connection refused"
+    if not host.logins:
+        return f"ssh: {host_id} doesn't take logins -- use 'connect {host_id}'"
+    runner.awaiting_password = (host_id, user)
+    return f"{user}@{host_id}'s password:"
+
+
+def _finish_ssh(runner: TerminalRunner, password: str) -> str:
+    assert runner.awaiting_password is not None
+    host_id, user = runner.awaiting_password
+    runner.awaiting_password = None
+    host = runner.network.hosts[host_id]
+    if user not in host.logins or host.logins[user] != password:
+        return "Permission denied."
+    _log_in(runner, host, user)
+    return f"Logged in to {host_id} ({host.address}) as {user}."
 
 
 @command("disconnect", "exit", usage="disconnect")
@@ -417,6 +499,7 @@ def cmd_disconnect(args: list[str], runner: TerminalRunner) -> str:
         return "not connected to any host"
     host_id = runner.current_host
     runner.current_host = None
+    runner.state.current_user = None
     runner.cwd = "/"
     return f"Disconnected from {host_id}."
 
@@ -553,12 +636,40 @@ def cmd_decrypt(args: list[str], runner: TerminalRunner) -> str:
     return f"Decryption produced garbage:\n{decoded}"
 
 
-@command("journal", "notebook", usage="journal")
+@command("journal", "notebook", usage=f"journal [{'|'.join(sorted(VALID_CATEGORIES))}]")
 def cmd_journal(args: list[str], runner: TerminalRunner) -> str:
-    entries = runner.state.journal.all()
-    if not entries:
-        return "Journal is empty."
+    journal = runner.state.journal
+    if args:
+        if args[0] not in VALID_CATEGORIES:
+            return f"journal: unknown category '{args[0]}' (one of: {', '.join(sorted(VALID_CATEGORIES))})"
+        entries = journal.by_category(args[0])
+        if not entries:
+            return f"No {args[0]} entries yet."
+    else:
+        entries = journal.all()
+        if not entries:
+            return "Journal is empty."
     return "\n".join(f"[{e.category}] {e.text} ({e.discovered_at})" for e in entries)
+
+
+@command("status", usage="status")
+def cmd_status(args: list[str], runner: TerminalRunner) -> str:
+    state = runner.state
+    if runner.host:
+        user = state.current_user or "user"
+        connection = f"{user}@{runner.host.id}:{runner.cwd}"
+    else:
+        connection = "not connected"
+    leads = state.journal.by_category("lead")
+    counts = ", ".join(f"{state.journal.count(c)} {c}" for c in sorted(VALID_CATEGORIES))
+    return "\n".join(
+        [
+            f"Location:    {runner.discovered_at()}",
+            f"Connection:  {connection}",
+            f"Latest lead: {leads[-1].text if leads else 'none yet'}",
+            f"Journal:     {counts}",
+        ]
+    )
 
 
 @command("chat", usage="chat <contact> [topic]")

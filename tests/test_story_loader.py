@@ -119,6 +119,19 @@ def test_check_requires_trust_and_journal():
     assert check_requires({"journal_has": "lead1"}, state) is False
 
 
+def test_check_requires_combinators():
+    state = GameState(story_id="s", chapter_id="c", scene_id="a")
+    state.set_flag("a", True)
+    assert check_requires({"all": [{"flag": "a"}, {"flag": "b"}]}, state) is False
+    assert check_requires({"any": [{"flag": "a"}, {"flag": "b"}]}, state) is True
+    assert check_requires({"any": [{"flag": "b"}, {"flag": "c"}]}, state) is False
+    assert check_requires({"not": {"flag": "b"}}, state) is True
+    assert check_requires({"not": {"flag": "a"}}, state) is False
+    # Nesting, and combinators combined with plain keys (implicit AND).
+    assert check_requires({"flag": "a", "not": {"any": [{"flag": "b"}, {"flag": "c"}]}}, state) is True
+    assert check_requires({"flag": "b", "any": [{"flag": "a"}]}, state) is False
+
+
 def test_apply_effects_sets_flags_and_trust():
     state = GameState(story_id="s", chapter_id="c", scene_id="a")
     apply_effects(

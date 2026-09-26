@@ -55,6 +55,7 @@ class GameState:
     email_queue: list[EmailMessage] = field(default_factory=list)
     scenes_visited: int = 0
     current_host: Optional[str] = None
+    current_user: Optional[str] = None  # set by `ssh user@host`; None means the default "user"
     cwd: str = "/"
     # "<host_id>/<service_id>" for every service the player has successfully
     # restarted -- kept here rather than on `Service` so it survives save/continue.
@@ -122,6 +123,7 @@ class GameState:
             "email_queue": [m.to_dict() for m in self.email_queue],
             "scenes_visited": self.scenes_visited,
             "current_host": self.current_host,
+            "current_user": self.current_user,
             "cwd": self.cwd,
             "running_services": sorted(self.running_services),
             "saved_at": self.saved_at,
@@ -141,6 +143,7 @@ class GameState:
             email_queue=[EmailMessage.from_dict(m) for m in data.get("email_queue", [])],
             scenes_visited=data.get("scenes_visited", 0),
             current_host=data.get("current_host"),
+            current_user=data.get("current_user"),
             cwd=data.get("cwd", "/"),
             running_services=set(data.get("running_services", [])),
             saved_at=data.get("saved_at", ""),

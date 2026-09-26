@@ -148,3 +148,15 @@ def test_scene_html_reflows_paragraphs_and_marks_code():
     assert bridge.scene_html(text) == (
         'You\'re in. Run <code>whoami</code> first.\n\n-- ENDING: <span class="m-bold">Done</span> --'
     )
+
+
+def test_ssh_password_line_is_flagged_secret_and_not_a_meta_command():
+    bridge.start("zero_day", "web", True)
+    play([("choose", 0), ("choose", 0)])
+    bridge._session.runner.network.hosts["gateway"].logins = {"ops": ":save"}
+    view = json.loads(bridge.command("ssh ops@gateway"))
+    assert view["prompt"] == "password:"
+    assert view["secret"] is True
+    view = json.loads(bridge.command(":save"))  # the password, not a save
+    assert view["secret"] is False
+    assert view["scene"]["id"] == "gateway_shell"

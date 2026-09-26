@@ -46,7 +46,7 @@ class CommandInput(Input):
         self.history_index = len(self.history)
 
     def action_history(self, step: int) -> None:
-        if not self.history:
+        if not self.history or self.password:
             return
         self.history_index = max(0, min(len(self.history), self.history_index + step))
         self.value = self.history[self.history_index] if self.history_index < len(self.history) else ""
@@ -177,7 +177,7 @@ class GameApp(App):
             self.mode = "terminal"
             decisions.display = False
             terminal_group.display = True
-            cmd_input.placeholder = f"{self.runner.current_host or 'local'}$"
+            cmd_input.placeholder = self.runner.prompt
             cmd_input.value = ""
             self.set_focus(cmd_input)
         else:
@@ -208,10 +208,13 @@ class GameApp(App):
         cmd_input.value = ""
         if not raw:
             return
+        if self.runner.awaiting_password:
+            # A password line: masked, kept out of history, never a meta command.
+            self.log_terminal(f"{self.runner.prompt} ********", style="dim")
+            self.run_command(raw)
+            return
         cmd_input.remember(raw)
-
-        prompt = f"{self.runner.current_host or 'local'}$"
-        self.log_terminal(f"{prompt} {escape(raw)}", style="dim")
+        self.log_terminal(f"{self.runner.prompt} {escape(raw)}", style="dim")
 
         if raw == ":save":
             self.session.save()
@@ -223,15 +226,23 @@ class GameApp(App):
             self.exit()
             return
 
+        self.run_command(raw)
+
+    def run_command(self, raw: str) -> None:
         result = self.session.run_command(raw)
         if result.output:
             self.log_terminal(escape(result.output))
+        cmd_input = self.query_one("#command-input", CommandInput)
+        cmd_input.placeholder = self.runner.prompt
+        cmd_input.password = self.runner.awaiting_password is not None
         if result.advanced:
             self.show_notices(result.notices)
             self.show_scene()
 
     def action_complete_command(self) -> None:
         cmd_input = self.query_one("#command-input", CommandInput)
+        if cmd_input.password:
+            return
         line = cmd_input.value
         candidates = complete(self.runner, line)
         if not candidates:

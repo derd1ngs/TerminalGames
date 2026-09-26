@@ -132,7 +132,7 @@ def command(raw: str) -> str:
     the TUI); leaving the game (`:quit`) is the page's job."""
     session = _require_session()
     raw = raw.strip()
-    if raw == ":save":
+    if raw == ":save" and not session.runner.awaiting_password:
         session.save()
         return _view(output="Saved.")
     result = session.run_command(raw)
@@ -200,7 +200,8 @@ def _view(*, entered: bool = False, output: Optional[str] = None, notices: Optio
         "entered": entered,
         "scene": {"id": scene.id, "type": scene.type, "html": scene_html(scene.text)},
         "choices": [c.text for c in session.available_choices()] if scene.type == "narrative" else [],
-        "prompt": f"{session.runner.current_host or 'local'}$",
+        "prompt": session.runner.prompt,
+        "secret": session.runner.awaiting_password is not None,  # next line is a password
         "output": output,
         "notices": notices or [],
     }

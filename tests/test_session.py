@@ -4,8 +4,9 @@ from pathlib import Path
 
 from terminalgames.engine.puzzles import parse_config_text
 from terminalgames.engine.session import GameSession
+from terminalgames.engine.shell import Host, Network
 from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Choice, Story
+from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock
 
 STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
 
@@ -88,3 +89,50 @@ def test_open_continue_reuses_the_sandbox_but_fresh_wipes_it(tmp_path):
         "bind_address": "127.0.0.1",
         "allow_query": "denied",
     }
+
+
+def _procedure_session(tmp_path: Path) -> GameSession:
+    story = Story(
+        id="s",
+        title="Procedure",
+        start="c1:console",
+        chapters={
+            "c1": Chapter(
+                id="c1",
+                scenes={
+                    "console": Scene(
+                        id="console",
+                        type="terminal",
+                        terminal=TerminalBlock(
+                            win_flag="recovered",
+                            next="c1:done",
+                            host="box",
+                            ordered_commands=["systemctl status db", "whoami", "status"],
+                        ),
+                    ),
+                    "done": Scene(id="done", type="ending"),
+                },
+            )
+        },
+    )
+    network = Network(hosts={"box": Host(id="box")})
+    state = GameState(story_id="s", chapter_id="c1", scene_id="console")
+    return GameSession(story, network, {}, state, tmp_path / "save.json")
+
+
+def test_ordered_commands_solve_the_scene_only_in_sequence(tmp_path):
+    session = _procedure_session(tmp_path)
+    assert not session.run_command("whoami").advanced
+    assert not session.run_command("status").advanced  # right tail, missing the first step
+    session.run_command("systemctl   status db")  # whitespace is normalized
+    session.run_command("whoami")
+    result = session.run_command("status")
+    assert result.advanced
+    assert session.scene.id == "done"
+
+
+def test_a_wrong_step_breaks_the_sequence(tmp_path):
+    session = _procedure_session(tmp_path)
+    for raw in ["systemctl status db", "ls", "whoami"]:
+        session.run_command(raw)
+    assert not session.run_command("status").advanced

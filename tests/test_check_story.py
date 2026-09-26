@@ -213,3 +213,54 @@ def test_hub_scene_loop_terminates():
     report = check_story(story, Network(), {})
 
     assert report.ok
+
+
+def test_ordered_commands_scene_counts_as_solvable():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                type="terminal",
+                terminal=TerminalBlock(win_flag="procedure_done", next="c1:end", ordered_commands=["a", "b"]),
+            ),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.ok
+
+
+def test_combinator_gates_are_explored_per_branch():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text="left", next="c1:hub", sets={"left": True}),
+                    Choice(text="right", next="c1:hub"),
+                ],
+            ),
+            "hub": Scene(
+                id="hub",
+                choices=[
+                    Choice(text="went left", next="c1:end_left", requires={"flag": "left"}),
+                    Choice(text="did not", next="c1:end_right", requires={"not": {"flag": "left"}}),
+                    Choice(
+                        text="impossible",
+                        next="c1:end_never",
+                        requires={"all": [{"flag": "left"}, {"not": {"flag": "left"}}]},
+                    ),
+                ],
+            ),
+            "end_left": Scene(id="end_left", type="ending"),
+            "end_right": Scene(id="end_right", type="ending"),
+            "end_never": Scene(id="end_never", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.visited_endings == {"end_left", "end_right"}
+    assert report.unreached_endings == {"end_never"}
