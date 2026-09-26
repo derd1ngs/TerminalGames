@@ -274,6 +274,7 @@ class TerminalRunner:
         # (host_id, user) while `ssh` waits for the password line; not saved --
         # an interrupted login just starts over.
         self.awaiting_password: Optional[tuple[str, str]] = None
+        self.hints: list[str] = []  # the current scene's, set by GameSession
 
     @property
     def current_host(self) -> Optional[str]:
@@ -689,6 +690,21 @@ def cmd_journal(args: list[str], runner: TerminalRunner) -> str:
         if not entries:
             return "Journal is empty."
     return "\n".join(f"[{e.category}] {e.text} ({e.discovered_at})" for e in entries)
+
+
+@command("hint", usage="hint  (reveals the next hint for this scene, one at a time)")
+def cmd_hint(args: list[str], runner: TerminalRunner) -> str:
+    hints = runner.hints
+    if not hints:
+        return "No hints for this one. 'status', 'journal lead' and 'chat' may help."
+    key = runner.discovered_at()
+    shown = runner.state.hints_shown.get(key, 0)
+    if shown < len(hints):
+        runner.state.hints_shown[key] = shown + 1
+        return f"Hint {shown + 1}/{len(hints)}: {hints[shown]}"
+    return "That's every hint for this scene:\n" + "\n".join(
+        f"  {i}. {h}" for i, h in enumerate(hints, start=1)
+    )
 
 
 @command("status", usage="status")

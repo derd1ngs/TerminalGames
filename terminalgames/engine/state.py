@@ -60,6 +60,7 @@ class GameState:
     # "<host_id>/<service_id>" for every service the player has successfully
     # restarted -- kept here rather than on `Service` so it survives save/continue.
     running_services: set[str] = field(default_factory=set)
+    hints_shown: dict[str, int] = field(default_factory=dict)  # "chapter:scene" -> hints revealed
     saved_at: str = ""
 
     def set_flag(self, key: str, value: Any = True) -> None:
@@ -126,6 +127,7 @@ class GameState:
             "current_user": self.current_user,
             "cwd": self.cwd,
             "running_services": sorted(self.running_services),
+            "hints_shown": self.hints_shown,
             "saved_at": self.saved_at,
         }
 
@@ -146,6 +148,7 @@ class GameState:
             current_user=data.get("current_user"),
             cwd=data.get("cwd", "/"),
             running_services=set(data.get("running_services", [])),
+            hints_shown=dict(data.get("hints_shown", {})),
             saved_at=data.get("saved_at", ""),
         )
 

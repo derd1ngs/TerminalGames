@@ -50,6 +50,10 @@ scenes:
       every command it understands. When you're ready, `scan gateway` to
       make sure it's actually listening, then `connect gateway`."
     terminal:
+      hints:
+        - "GHOST already told you the name of the box you need: gateway."
+        - "`scan gateway` shows whether it's up; the command that actually gets you in is `connect`."
+        - "Type `connect gateway`."
       win_flag: connected_gateway
       next: "chapter_01:gateway_shell"
       logs:
@@ -72,6 +76,10 @@ scenes:
       running log of it automatically, so you don't have to remember it
       all yourself.
     terminal:
+      hints:
+        - "The dead service is netmon. `systemctl status netmon` confirms it, and its config lives under /etc/netmon/."
+        - "`cat /etc/netmon/netmon.conf`: two values are wrong, and the README next to it says what netmon needs."
+        - "`set /etc/netmon/netmon.conf bind_address 0.0.0.0`, then `set /etc/netmon/netmon.conf allow_query allow`, then `systemctl restart netmon`."
       win_flag: netmon_fixed
       next: "chapter_01:discovery"
       logs:
@@ -118,6 +126,10 @@ scenes:
       look, `grep` if you're hunting for something specific, `decrypt` if
       you find something locked.
     terminal:
+      hints:
+        - "You need to be on the archive box: `disconnect`, then `connect archive`."
+        - "The report is encrypted, and /var/backups/log.txt mentions how. Try `grep shift /var/backups/log.txt`."
+        - "It's a shift of 7: `decrypt /var/backups/incident_report.enc 7`, then `cat` the .txt file it writes."
       win_flag: found_archive_report
       next: "chapter_01:archive_return"
       logs:

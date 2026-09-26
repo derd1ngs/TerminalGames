@@ -56,17 +56,26 @@ class TerminalBlock:
 
     `ordered_commands` makes the scene itself a procedure puzzle: the scene
     sets `win_flag` as soon as the player's most recent commands in it are
-    exactly this sequence (whitespace-normalized)."""
+    exactly this sequence (whitespace-normalized).
+
+    `hints` are revealed one at a time by the `hint` command, so order them
+    from a gentle nudge to nearly the answer."""
 
     win_flag: str
     next: str
     host: Optional[str] = None
     logs: list[dict[str, Any]] = field(default_factory=list)
     ordered_commands: list[str] = field(default_factory=list)
+    hints: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TerminalBlock":
-        schema.check_keys(data, {"win_flag", "next", "host", "logs", "ordered_commands"}, "terminal block")
+        schema.check_keys(
+            data, {"win_flag", "next", "host", "logs", "ordered_commands", "hints"}, "terminal block"
+        )
+        for hint in schema.check_list(data.get("hints", []), "terminal block hints"):
+            if not isinstance(hint, str) or not hint.strip():
+                raise StoryLoadError("terminal block hints: every hint must be a non-empty string")
         schema.check_logs(data.get("logs"), "terminal block")
         schema.check_list(data.get("ordered_commands", []), "terminal block ordered_commands")
         try:
@@ -76,6 +85,7 @@ class TerminalBlock:
                 host=data.get("host"),
                 logs=list(data.get("logs", [])),
                 ordered_commands=[" ".join(str(c).split()) for c in data.get("ordered_commands", [])],
+                hints=[" ".join(h.split()) for h in data.get("hints", [])],
             )
         except KeyError as exc:
             raise StoryLoadError(f"terminal block missing required key {exc}") from exc
