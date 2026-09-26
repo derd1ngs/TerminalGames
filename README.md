@@ -169,7 +169,15 @@ scenes:
 ```
 
 `requires` supports: `flag`, `flag_equals: {key, value}`, `tool`,
-`journal_has: <entry_id>`, `trust_at_least: {npc, value}`.
+`journal_has: <entry_id>`, `trust_at_least: {npc, value}`, and the
+combinators `all: [...]`, `any: [...]` and `not: {...}`, which nest. Every
+key in a block must hold, so a plain block is an implicit `all`:
+
+```yaml
+requires:
+  flag: found_archive_report
+  not: {any: [{flag: reported_t}, {flag: trusted_t}]}
+```
 
 Because choices are gated rather than strictly sequential, a **hub scene**
 that offers several `requires`-gated leads (looping back to itself or to a
@@ -193,7 +201,23 @@ was built to support.
 
 `win_flag` is set by whichever shell command solves the puzzle (a service's
 `on_fix_flag`, a cipher file's `on_success_flag`, a host's `on_connect_flag`
--- see network.yaml below), not by the terminal block itself. If `host` is
+-- see network.yaml below), not by the terminal block itself -- with one
+exception: a **procedure puzzle** lists the exact commands to run, in order,
+and the scene sets its own `win_flag` once the player's most recent commands
+in it match that sequence (whitespace-normalized; any other command in
+between breaks the run):
+
+```yaml
+    terminal:
+      win_flag: db_recovered
+      next: aftermath
+      ordered_commands:
+        - systemctl status replica
+        - set /etc/db/replica.conf mode primary
+        - systemctl restart replica
+```
+
+If `host` is
 omitted, the player stays on whatever host they were last connected to --
 connection state persists across scenes and across save/continue.
 
@@ -204,9 +228,11 @@ hosts:
   gateway:
     address: "10.44.0.1"
     banner: "shown by `scan`"
-    requires_to_connect:            # optional gate on `connect`
+    requires_to_connect:            # optional gate on `connect`/`ssh`
       flag: some_flag
-    on_connect_flag: connected_gateway   # optional: set when `connect` succeeds
+    on_connect_flag: connected_gateway   # optional: set when `connect`/`ssh` succeeds
+    logins:                        # optional: reach this host with `ssh user@host` + password
+      ops: "hunter2"               #   (and `connect` refuses it)
     services:
       netmon:
         config_path: /etc/netmon/netmon.conf   # must point at a `config` file below
@@ -242,18 +268,23 @@ prints the garbled result and writes nothing.
 
 Filesystem node types: `dir`, `text`, `config`, `cipher`.
 
-Shell commands available to the player: `help [command]`, `whoami`, `scan <host>`,
-`connect <host>`, `disconnect`/`exit`, `ls [path]`, `cd <path>`,
+Shell commands available to the player: `help [command]`, `whoami`, `status`,
+`scan <host>`, `connect <host>`, `ssh <user>@<host>` (prompts for the
+password on the next line), `disconnect`/`exit`, `ls [path]`, `cd <path>`,
 `cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,
 `systemctl status|restart <service>`, `decrypt <file> <key>`,
-`journal`/`notebook`, `chat <npc> [topic]`, `mail [list|read <id>|send <npc> <topic>|sync]`.
+`journal`/`notebook [lead|note|suspect|trace]`, `chat <npc> [topic]`,
+`mail [list|read <id>|send <npc> <topic>|sync]`. Any command's output can be
+piped into `grep` (`cat /var/log/syslog | grep ssh | grep failed`); `grep`
+is the only pipe target, and a quoted `"|"` still counts as a pipe.
 
 There's deliberately no `crack`-style instant password break. The
 config-edit-and-restart puzzle (`cat` a config, `set` the wrong key, `systemctl
 restart`) is the sysadmin-flavored core loop; `grep` a log and `decrypt` a
 cipher round out the puzzle types a story can use (see
 `terminalgames/engine/puzzles.py` for the underlying, independently reusable
-validators, including one for command-ordering puzzles no story uses yet).
+validators), along with `ssh` logins with a password found somewhere in the
+story, and `ordered_commands` procedure puzzles.
 
 ### npcs.yaml -- chat/email contacts
 

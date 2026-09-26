@@ -50,12 +50,17 @@ class TerminalBlock:
     """A terminal-type scene. `win_flag` is the flag the main loop watches for
     to know the puzzle is solved -- it's set directly by whichever shell
     command satisfies the puzzle (e.g. a service's `on_fix_flag` in
-    network.yaml, set by `systemctl restart` once its config validates)."""
+    network.yaml, set by `systemctl restart` once its config validates).
+
+    `ordered_commands` makes the scene itself a procedure puzzle: the scene
+    sets `win_flag` as soon as the player's most recent commands in it are
+    exactly this sequence (whitespace-normalized)."""
 
     win_flag: str
     next: str
     host: Optional[str] = None
     logs: list[dict[str, Any]] = field(default_factory=list)
+    ordered_commands: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TerminalBlock":
@@ -65,6 +70,7 @@ class TerminalBlock:
                 next=data["next"],
                 host=data.get("host"),
                 logs=list(data.get("logs", [])),
+                ordered_commands=[" ".join(str(c).split()) for c in data.get("ordered_commands", [])],
             )
         except KeyError as exc:
             raise StoryLoadError(f"terminal block missing required key {exc}") from exc
@@ -186,7 +192,9 @@ class Story:
 
 def check_requires(requires: Optional[dict[str, Any]], state: GameState) -> bool:
     """Evaluate a `requires` block. Supported keys: flag, flag_equals
-    ({key,value}), tool, journal_has (entry id), trust_at_least ({npc,value})."""
+    ({key,value}), tool, journal_has (entry id), trust_at_least ({npc,value}),
+    and the combinators all ([blocks]), any ([blocks]) and not (block), which
+    nest. Every key present must hold (so a plain block is an implicit `all`)."""
     if not requires:
         return True
     if "flag" in requires and not state.has_flag(requires["flag"]):
@@ -203,6 +211,12 @@ def check_requires(requires: Optional[dict[str, Any]], state: GameState) -> bool
         ta = requires["trust_at_least"]
         if state.get_trust(ta["npc"]) < ta["value"]:
             return False
+    if "all" in requires and not all(check_requires(r, state) for r in requires["all"]):
+        return False
+    if "any" in requires and not any(check_requires(r, state) for r in requires["any"]):
+        return False
+    if "not" in requires and check_requires(requires["not"], state):
+        return False
     return True
 
 

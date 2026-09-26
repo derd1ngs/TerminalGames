@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .dialogue import NPC
 from .loader import load_network, load_npc_roster
+from .puzzles import check_command_order
 from .shell import Network, TerminalRunner
 from .state import GameState
 from .story import Choice, Scene, Story, apply_effects, check_requires
@@ -34,6 +35,7 @@ class GameSession:
         self.story = story
         self.slot_path = slot_path
         self.runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
+        self.scene_commands: list[str] = []  # this scene's commands, for `ordered_commands` puzzles
         self.scene: Scene = self.enter_scene()
 
     @classmethod
@@ -65,6 +67,7 @@ class GameSession:
         state = self.state
         scene = self.story.get_scene(state.chapter_id, state.scene_id)
         self.scene = scene
+        self.scene_commands = []
         if scene.type == "terminal":
             assert scene.terminal is not None
             self.runner.current_chapter, self.runner.current_scene = state.chapter_id, scene.id
@@ -86,7 +89,13 @@ class GameSession:
         `win_flag`, log the scene's entries and move on."""
         terminal = self.scene.terminal
         assert terminal is not None
+        is_password = self.runner.awaiting_password is not None
         output = self.runner.execute(raw)
+        if terminal.ordered_commands and not is_password:
+            self.scene_commands.append(" ".join(raw.split()))
+            expected = terminal.ordered_commands
+            if check_command_order(self.scene_commands[-len(expected) :], expected):
+                self.state.set_flag(terminal.win_flag, True)
         if not self.state.has_flag(terminal.win_flag):
             return CommandResult(output)
         apply_effects({}, terminal.logs, self.state, self._here())

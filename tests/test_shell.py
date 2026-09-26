@@ -59,6 +59,12 @@ def build_network(tmp_path: Path) -> Network:
                 "requires_to_connect": {"flag": "netmon_fixed"},
                 "filesystem": {},
             },
+            "mainframe": {
+                "address": "10.0.0.20",
+                "logins": {"ops": "hunter2"},
+                "on_connect_flag": "on_mainframe",
+                "filesystem": {"motd": {"type": "text", "content": "welcome, operator"}},
+            },
         }
     }
     path = tmp_path / "network.yaml"
@@ -279,7 +285,7 @@ def test_complete_command_names(tmp_path):
 
 def test_complete_hosts_and_services(tmp_path):
     runner = build_runner(tmp_path)
-    assert complete(runner, "connect ") == ["gateway", "vault"]
+    assert complete(runner, "connect ") == ["gateway", "mainframe", "vault"]
     runner.execute("connect gateway")
     assert complete(runner, "systemctl re") == ["restart"]
     assert complete(runner, "systemctl restart ") == ["netmon"]
@@ -415,3 +421,116 @@ def test_mail_sync_does_not_reprocess_a_bounced_draft(tmp_path):
     runner.execute("mail sync")
 
     assert runner.execute("mail sync") == "mail sync: no drafts to send."
+
+
+def test_ssh_logs_in_with_the_right_password(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("ssh ops@mainframe") == "ops@mainframe's password:"
+    assert runner.prompt == "password:"
+    assert runner.execute("hunter2") == "Logged in to mainframe (10.0.0.20) as ops."
+    assert runner.prompt == "mainframe$"
+    assert runner.state.has_flag("on_mainframe")
+    assert runner.execute("whoami") == "ops@mainframe"
+    assert runner.execute("cat motd") == "welcome, operator"
+    runner.execute("disconnect")
+    assert runner.state.current_user is None
+
+
+def test_ssh_wrong_password_or_user_is_denied_and_prompt_resets(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("ssh ops@mainframe")
+    assert runner.execute("letmein") == "Permission denied."
+    assert runner.prompt == "local$"
+    runner.execute("ssh root@mainframe")
+    assert runner.execute("hunter2") == "Permission denied."
+    assert runner.current_host is None
+    assert not runner.state.has_flag("on_mainframe")
+
+
+def test_password_line_is_not_parsed_as_a_command(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("ssh ops@mainframe")
+    assert runner.execute('"unclosed | quote') == "Permission denied."
+
+
+def test_connect_refuses_a_login_host_and_ssh_refuses_a_plain_one(tmp_path):
+    runner = build_runner(tmp_path)
+    assert "use 'ssh <user>@mainframe'" in runner.execute("connect mainframe")
+    assert "use 'connect gateway'" in runner.execute("ssh ops@gateway")
+    assert runner.execute("ssh ops@nowhere") == "ssh: could not resolve hostname nowhere"
+    assert runner.execute("ssh vault").startswith("usage:")
+
+
+def test_ssh_respects_requires_to_connect(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.network.hosts["mainframe"].requires_to_connect = {"flag": "netmon_fixed"}
+    assert "connection refused" in runner.execute("ssh ops@mainframe")
+    assert runner.awaiting_password is None
+
+
+def test_ssh_user_survives_save_and_continue(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("ssh ops@mainframe")
+    runner.execute("hunter2")
+    runner.state.save(tmp_path / "slot.json")
+    new_runner = TerminalRunner(
+        state=GameState.load(tmp_path / "slot.json"),
+        network=build_network(tmp_path),
+        save_slot_path=tmp_path / "s.json",
+    )
+    assert new_runner.execute("whoami") == "ops@mainframe"
+
+
+def test_pipe_into_grep_filters_output(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    assert runner.execute("cat /var/log/access.log | grep needle") == "needle here"
+    assert runner.execute('cat /var/log/access.log|grep "line"') == "line1\nline3"
+    assert runner.execute("help | grep grep | grep nosuchword") == ""  # stages chain
+    assert "whoami" in runner.execute("help | grep whoami")
+
+
+def test_pipe_rejects_other_targets_and_bad_syntax(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("help | cat x") == "pipe: only 'grep <pattern>' can read from a pipe"
+    assert runner.execute("help | grep") == "pipe: only 'grep <pattern>' can read from a pipe"
+    assert runner.execute("help |") == "parse error: empty pipeline stage"
+    assert runner.execute("help || whoami") == "parse error: unsupported operator '||'"
+
+
+def test_journal_filters_by_category(tmp_path):
+    from terminalgames.engine.journal import JournalEntry
+
+    runner = build_runner(tmp_path)
+    assert runner.execute("journal lead") == "No lead entries yet."
+    runner.state.journal.add(JournalEntry(id="l1", category="lead", text="follow the money"))
+    runner.state.journal.add(JournalEntry(id="t1", category="trace", text="odd login"))
+    assert runner.execute("journal lead") == "[lead] follow the money ()"
+    assert "odd login" in runner.execute("journal")
+    assert runner.execute("journal gossip").startswith("journal: unknown category 'gossip'")
+    assert complete(runner, "journal s") == ["suspect"]
+
+
+def test_status_summarizes_position(tmp_path):
+    from terminalgames.engine.journal import JournalEntry
+
+    runner = build_runner(tmp_path)
+    assert runner.execute("status") == (
+        "Location:    c:a\n"
+        "Connection:  not connected\n"
+        "Latest lead: none yet\n"
+        "Journal:     0 lead, 0 note, 0 suspect, 0 trace"
+    )
+    runner.execute("connect gateway")
+    runner.execute("cd etc")
+    runner.state.journal.add(JournalEntry(id="l1", category="lead", text="first"))
+    runner.state.journal.add(JournalEntry(id="l2", category="lead", text="second"))
+    status = runner.execute("status")
+    assert "Connection:  user@gateway:/etc" in status
+    assert "Latest lead: second" in status
+    assert "2 lead" in status
+
+
+def test_complete_after_a_pipe_uses_the_last_stage(tmp_path):
+    runner = build_runner(tmp_path)
+    assert complete(runner, "help | gr") == ["grep"]

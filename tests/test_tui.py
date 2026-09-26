@@ -340,3 +340,28 @@ async def test_ending_scene_hides_both_panes(tmp_path):
         assert app.mode == "ended"
         assert decisions.display is False
         assert terminal_group.display is False
+
+
+@pytest.mark.asyncio
+async def test_ssh_password_is_masked_and_kept_out_of_history(tmp_path):
+    app = build_app(tmp_path)
+    app.runner.network.hosts["gateway"].logins = {"ops": "s3cret"}
+    async with app.run_test() as pilot:
+        await _enter_recon(pilot)
+        cmd_input = app.query_one("#command-input")
+        cmd_input.value = "ssh ops@gateway"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert cmd_input.password is True
+        assert cmd_input.placeholder == "password:"
+
+        cmd_input.value = "s3cret"
+        await pilot.press("enter")
+        await pilot.pause()
+        terminal = _pane_text(app, "#terminal-pane")
+        assert "s3cret" not in terminal
+        assert "password: ********" in terminal
+        assert "s3cret" not in cmd_input.history
+        assert cmd_input.password is False
+        assert app.runner.state.current_user == "ops"
+        assert app.runner.state.scene_id == "gateway_shell"  # connected_gateway solved recon

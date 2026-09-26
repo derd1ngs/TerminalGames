@@ -45,7 +45,7 @@ from ..engine.story import Story, StoryLoadError, apply_effects, check_requires
 
 @dataclass
 class SettableBy:
-    kind: str  # "connect" | "fix" | "decrypt" | "dialogue"
+    kind: str  # "connect" | "fix" | "decrypt" | "dialogue" | "ordered"
     description: str
     gate: Optional[dict[str, Any]] = None  # a `requires`-shaped dict, checked before assuming set
     topic: Any = None  # the Topic, for "dialogue" -- lets us apply its full sets/logs, not just the flag
@@ -57,9 +57,8 @@ def collect_settable_flags(network: Network, npcs: dict) -> dict[str, SettableBy
     settable: dict[str, SettableBy] = {}
     for host in network.hosts.values():
         if host.on_connect_flag:
-            settable[host.on_connect_flag] = SettableBy(
-                "connect", f"connect {host.id}", gate=host.requires_to_connect
-            )
+            how = f"ssh {'|'.join(host.logins)}@{host.id}" if host.logins else f"connect {host.id}"
+            settable[host.on_connect_flag] = SettableBy("connect", how, gate=host.requires_to_connect)
         for svc in host.services.values():
             if svc.on_fix_flag:
                 settable[svc.on_fix_flag] = SettableBy("fix", f"fix+restart {svc.id}@{host.id}")
@@ -143,6 +142,8 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
             assert scene.terminal is not None
             win_flag = scene.terminal.win_flag
             info = settable.get(win_flag)
+            if info is None and scene.terminal.ordered_commands:
+                info = SettableBy("ordered", f"ordered_commands in {state.chapter_id}:{scene.id}")
             if info is None:
                 problems.append(
                     f"scene '{state.chapter_id}:{scene.id}': win_flag '{win_flag}' is never "
