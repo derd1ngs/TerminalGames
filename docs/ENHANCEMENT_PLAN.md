@@ -1,7 +1,7 @@
 # Enhancement plan
 
 Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
-skipped. Phase 6 is done; Phases 7-9 are proposals. Each phase is
+skipped. Phases 6-8 are done; Phase 9 is a proposal. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -245,7 +245,7 @@ outside the repo.
    removed raises a raw `StoryLoadError` (a traceback in the TUI, "internal
    error" in the browser). Say so plainly and offer to restart the slot.
 
-## Phase 7 -- player experience
+## Phase 7 -- player experience (done)
 
 1. **Mobile input** (done): phone keyboards have no Tab or arrow keys, so ⇥ ↑ ↓
    buttons next to the input act like those keys on touch or narrow screens,
@@ -273,10 +273,12 @@ outside the repo.
    proves the worker, not the HTTP cache, serves the reload (checked against
    a control build that caches nothing).
 
-## Phase 8 -- content and engine
+## Phase 8 -- content and engine (done)
 
-1. A third story that uses tool grants and the trace meter (next). The
-   **trace meter** itself is done: a terminal block's `trace: {limit,
+1. **Night Shift** (`story_03_night_shift`), the third story, uses tool grants
+   (the deploy key gates a host; Dex's sniffer gates an ending) and the trace
+   meter (limit 6, one retry). Its tests found a real bug: an `ssh` password
+   line was counted by the trace meter. The **trace meter** itself: a terminal block's `trace: {limit,
    on_trace}` counts commands that touch a host, while local ones are free.
 2. More shell commands (done): `head`/`tail`, `find`, `ls -a` (plain `ls` now
    hides dotfiles), `history`, `clear`, `man <cmd>`, with a man page for

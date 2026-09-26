@@ -1,0 +1,158 @@
+hosts:
+  forge:
+    address: "10.60.0.5"
+    banner: "forge.lantern -- build server"
+    filesystem:
+      etc:
+        type: dir
+        entries:
+          forge:
+            type: dir
+            entries:
+              jobs.conf:
+                type: text
+                content: |
+                  # jobs forge is allowed to run
+                  nightly
+                  docs
+                  ci-lint
+                  release-candidate
+                  ui-tests
+                  api-tests
+      var:
+        type: dir
+        entries:
+          log:
+            type: dir
+            entries:
+              build.log:
+                type: text
+                content: |
+                    2026-09-25 00:00 job 'docs' finished: flaky, retried
+                    2026-09-25 00:03 job 'ui-tests' finished: ok
+                    2026-09-25 00:06 job 'ci-lint' finished: flaky, retried
+                    2026-09-25 00:09 job 'release-candidate' finished: ok
+                    2026-09-25 00:12 job 'ui-tests' finished: ok
+                    2026-09-25 00:15 job 'ui-tests' finished: ok
+                    2026-09-25 00:18 job 'release-candidate' finished: ok
+                    2026-09-25 00:21 job 'ui-tests' finished: ok
+                    2026-09-25 00:24 job 'docs' finished: ok
+                    2026-09-25 00:27 job 'release-candidate' finished: flaky, retried
+                    2026-09-25 00:30 job 'ui-tests' finished: ok
+                    2026-09-25 00:33 job 'release-candidate' finished: ok
+                    2026-09-25 00:36 job 'docs' finished: ok
+                    2026-09-25 00:39 job 'api-tests' finished: ok
+                    2026-09-25 00:42 job 'ui-tests' finished: ok
+                    2026-09-25 00:45 job 'api-tests' finished: ok
+                    2026-09-25 00:48 job 'api-tests' finished: ok
+                    2026-09-25 00:51 job 'docs' finished: flaky, retried
+                    2026-09-25 00:54 job 'nightly' finished: ok
+                    2026-09-25 00:57 job 'nightly' finished: ok
+                    2026-09-25 01:00 job 'release-candidate' finished: flaky, retried
+                    2026-09-25 01:03 job 'api-tests' finished: ok
+                    2026-09-25 01:06 job 'api-tests' finished: ok
+                    2026-09-25 01:09 job 'release-candidate' finished: ok
+                    2026-09-25 01:12 job 'ui-tests' finished: ok
+                    2026-09-25 01:15 job 'docs' finished: ok
+                    2026-09-25 01:18 job 'nightly' finished: ok
+                    2026-09-25 01:21 job 'docs' finished: ok
+                    2026-09-25 01:24 job 'docs' finished: ok
+                    2026-09-25 01:27 job 'api-tests' finished: ok
+                    2026-09-25 01:30 job 'api-tests' finished: ok
+                    2026-09-25 01:33 job 'release-candidate' finished: flaky, retried
+                    2026-09-25 01:36 job 'release-candidate' finished: flaky, retried
+                    2026-09-25 01:39 job 'ci-lint' finished: flaky, retried
+                    2026-09-25 01:42 job 'ui-tests' finished: ok
+                    2026-09-25 01:45 job 'ui-tests' finished: ok
+                    2026-09-25 01:48 job 'ci-lint' finished: ok
+                    2026-09-25 01:51 job 'nightly' finished: ok
+                    2026-09-25 01:54 job 'ui-tests' finished: ok
+                    2026-09-25 01:57 job 'api-tests' finished: ok
+                    2026-09-25 02:00 job 'api-tests' finished: ok
+                    2026-09-25 02:03 job 'ui-tests' finished: flaky, retried
+                    2026-09-25 02:06 job 'ui-tests' finished: ok
+                    2026-09-25 02:09 job 'api-tests' finished: ok
+                    2026-09-25 02:12 job 'docs' finished: ok
+                    2026-09-25 02:15 job 'ui-tests' finished: ok
+                    2026-09-25 02:18 job 'ci-lint' finished: ok
+                    2026-09-25 02:21 job 'nightly' finished: ok
+                    2026-09-25 02:24 job 'api-tests' finished: ok
+                    2026-09-25 02:27 job 'nightly' finished: ok
+                    2026-09-25 02:30 job 'nightly' finished: ok
+                    2026-09-25 02:33 job 'docs' finished: ok
+                    2026-09-25 02:36 job 'ci-lint' finished: ok
+                    2026-09-25 02:39 job 'release-candidate' finished: ok
+                    2026-09-25 02:42 job 'nightly' finished: flaky, retried
+                    2026-09-25 02:45 job 'ui-tests' finished: ok
+                    2026-09-25 02:48 job 'release-candidate' finished: ok
+                    2026-09-25 02:51 job 'ui-tests' finished: ok
+                    2026-09-25 02:54 job 'ui-tests' finished: ok
+                    2026-09-25 02:57 job 'ui-tests' finished: ok
+                    2026-09-25 03:00 job 'nightly' finished: ok
+                    2026-09-25 03:03 job 'nightly' finished: ok
+                    2026-09-25 03:06 job 'nightly' finished: flaky, retried
+                    2026-09-25 03:09 job 'ui-tests' finished: ok
+                    2026-09-25 03:12 job 'docs' finished: ok
+                    2026-09-25 03:15 job 'ci-lint' finished: flaky, retried
+                    2026-09-25 03:18 job 'ci-lint' finished: ok
+                    2026-09-25 03:21 job 'api-tests' finished: ok
+                    2026-09-25 03:24 job 'ci-lint' finished: ok
+                    2026-09-25 03:27 job 'ci-lint' finished: ok
+                    2026-09-26 03:11 key cache refreshed for user 'build' (obfuscated, caesar 11)
+                    2026-09-26 03:12 release v4.2.1 signed by job 'nightly-hotfix'
+                    2026-09-26 03:12 WARNING: job 'nightly-hotfix' is not defined in /etc/forge/jobs.conf
+                    2026-09-26 03:13 release v4.2.1 pushed to mirror
+      home:
+        type: dir
+        entries:
+          build:
+            type: dir
+            entries:
+              README:
+                type: text
+                content: "build user home. nothing to see here."
+              .cache:
+                type: dir
+                entries:
+                  deploy_key.enc:
+                    type: cipher
+                    cipher: caesar
+                    ciphertext: "opawzj@xtcczc alddhzco: etophlepc-9"
+                    plaintext: "deploy@mirror password: tidewater-9"
+                    on_success_flag: found_deploy_key
+
+  mirror:
+    address: "10.60.9.1"
+    banner: "mirror.lantern -- public release mirror. ALL SESSIONS ARE MONITORED."
+    requires_to_connect:
+      tool: deploy_key
+    logins:
+      deploy: "tidewater-9"
+    services:
+      publisher:
+        config_path: /etc/publisher/publisher.conf
+        required_config:
+          serve_unsigned: "no"
+        on_fix_flag: rogue_pulled
+    filesystem:
+      etc:
+        type: dir
+        entries:
+          publisher:
+            type: dir
+            entries:
+              publisher.conf:
+                type: config
+                values: {serve_unsigned: "yes", channel: "stable"}
+      srv:
+        type: dir
+        entries:
+          releases:
+            type: dir
+            entries:
+              v4.2.0.tar.gz:
+                type: text
+                content: "(signed release)"
+              v4.2.1.tar.gz:
+                type: text
+                content: "(UNSIGNED release -- served because serve_unsigned=yes)"

@@ -1,0 +1,5 @@
+id: night_shift
+title: "Night Shift"
+start: "chapter_01:intro"
+chapters:
+  - chapter_01.yaml

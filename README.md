@@ -6,7 +6,7 @@ A hacker-themed text adventure engine with a fake terminal, in the spirit of
 *Hackers*, *WarGames*, and *23*. Play it in your terminal (a full-screen
 Textual app) or right in your browser at
 **https://derd1ngs.github.io/TerminalGames/**, with nothing to install. Ships
-with two complete stories:
+with three complete stories:
 
 - **Zero Day** -- a 3-chapter campaign that also doubles as an in-fiction
   tutorial: by the end you'll have used the core shell commands (`help`,
@@ -19,6 +19,11 @@ with two complete stories:
   grep ...`), an `ssh` login with a password you have to dig up, a runbook
   you must follow to the letter, `status`/`journal <category>`, and four
   endings gated on how far you trusted the friend who sent you.
+- **Night Shift** -- a one-chapter incident at 3 AM: dig a hidden,
+  obfuscated deploy key out of a build server (`tail`, `find`, `ls -a`,
+  `decrypt`), then fix the public mirror before its **trace meter** cuts you
+  off -- with one retry. Tools you pick up along the way (the key, a
+  colleague's packet sniffer) open hosts and endings.
 
 ## Running it
 
@@ -484,6 +489,7 @@ and Rich out of it. `terminalgames/tui.py` is the split-pane Textual
 frontend that renders it; `main.py` is just the pre-flight story/save picker
 that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
 structural story validator described above. `terminalgames/stories/` holds
-the two shipped stories as complete worked content examples:
-`story_01_zero_day/` for the core features and `story_02_dead_drop/` for
-`ssh` logins, pipes, `ordered_commands` and `requires` combinators.
+the three shipped stories as complete worked content examples:
+`story_01_zero_day/` for the core features, `story_02_dead_drop/` for `ssh`
+logins, pipes, `ordered_commands` and `requires` combinators, and
+`story_03_night_shift/` for tool grants and the trace meter.

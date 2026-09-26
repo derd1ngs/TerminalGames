@@ -242,3 +242,11 @@ def test_clear_is_passed_to_the_frontend(tmp_path):
     session = _traced_session(tmp_path)
     assert session.run_command("clear").clear
     assert not session.run_command("help").clear
+
+
+def test_an_ssh_password_line_is_not_traced(tmp_path):
+    session = _traced_session(tmp_path, limit=5)
+    session.runner.network.hosts["box"].logins = {"ops": "pw"}
+    assert session.run_command("ssh ops@box").output.endswith("[trace 1/5]")
+    assert "[trace" not in session.run_command("pw").output
+    assert session.run_command("ls").output.endswith("[trace 2/5]")
