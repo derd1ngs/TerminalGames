@@ -629,3 +629,9 @@ def test_only_commands_that_touch_a_host_are_traced(tmp_path):
         runner.execute(raw)
         traced[raw] = runner.last_traced
     assert [raw for raw, t in traced.items() if t] == ["scan gateway", "ls", "cat x | grep y"]
+
+
+def test_every_command_has_a_manual_page():
+    from terminalgames.engine.shell import COMMANDS, MANUAL
+
+    assert sorted(set(COMMANDS) - set(MANUAL)) == []

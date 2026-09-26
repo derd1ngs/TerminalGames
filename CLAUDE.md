@@ -51,3 +51,7 @@
   a broken service worker) or refuses the reload (`NS_ERROR_OFFLINE`). Cut
   the network with `context.route("**/*", r => r.abort())` instead: routing
   also disables the HTTP cache, so only the service worker can serve.
+- A new shell command (`@command` in `engine/shell.py`) needs a `MANUAL`
+  entry (a test enforces it) and, if it touches a host, a place in
+  `TRACED_COMMANDS` -- otherwise it slips past scenes' trace meters. Adding a
+  command can also change completion results that tests pin.
