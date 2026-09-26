@@ -237,6 +237,7 @@ function render(view) {
   $("prompt").textContent = view.prompt;
   secret = view.secret;
   $("command-input").type = secret ? "password" : "text";
+  updateKeyButtons();
   if (!view.entered) return;
 
   const scene = view.scene;
@@ -292,6 +293,12 @@ function setTerminalActive(active) {
   $("terminal-pane").classList.toggle("inactive", !active);
   $("command-input").disabled = !active;
   $("btn-mail").disabled = !active; // mail goes out via `mail sync`, a terminal command
+  updateKeyButtons();
+}
+
+function updateKeyButtons() {
+  const off = $("command-input").disabled || secret; // no completion or history for passwords
+  for (const button of $("key-buttons").children) button.disabled = off;
 }
 
 function choose(index, text) {
@@ -344,13 +351,32 @@ $("command-input").addEventListener("keydown", (event) => {
   if (event.key === "ArrowUp" || event.key === "ArrowDown") {
     if (!history.length) return;
     event.preventDefault();
-    historyIndex = Math.max(0, Math.min(history.length, historyIndex + (event.key === "ArrowUp" ? -1 : 1)));
-    input.value = history[historyIndex] ?? "";
+    stepHistory(input, event.key === "ArrowUp" ? -1 : 1);
   } else if (event.key === "Tab" && !event.shiftKey) {
     event.preventDefault();
     completeInput(input);
   }
 });
+
+function stepHistory(input, step) {
+  if (!history.length) return;
+  historyIndex = Math.max(0, Math.min(history.length, historyIndex + step));
+  input.value = history[historyIndex] ?? "";
+}
+
+// The on-screen key buttons act like the real keys. They must not take focus
+// from the input -- on a phone that would close the keyboard after every tap.
+for (const button of $("key-buttons").children) {
+  button.addEventListener("mousedown", (event) => event.preventDefault());
+  button.addEventListener("click", () => {
+    const input = $("command-input");
+    if (input.disabled || secret) return;
+    if (button.dataset.key === "Tab") completeInput(input);
+    else stepHistory(input, button.dataset.key === "ArrowUp" ? -1 : 1);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+}
 
 function completeInput(input) {
   const line = input.value;

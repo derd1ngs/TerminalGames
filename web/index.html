@@ -70,6 +70,12 @@
           <label class="prompt" id="prompt" for="command-input">local$</label>
           <input id="command-input" spellcheck="false" autocapitalize="off" autocorrect="off"
                  aria-describedby="terminal-hint">
+          <!-- Phone keyboards have no Tab or arrow keys; shown on touch/narrow screens only. -->
+          <div class="key-buttons" id="key-buttons">
+            <button type="button" tabindex="-1" data-key="Tab" aria-label="Complete (Tab)">&#8677;</button>
+            <button type="button" tabindex="-1" data-key="ArrowUp" aria-label="Previous command">&uarr;</button>
+            <button type="button" tabindex="-1" data-key="ArrowDown" aria-label="Next command">&darr;</button>
+          </div>
         </form>
         <p class="hint" id="terminal-hint">Tab completes &middot; &uarr;/&darr; history &middot; <code>help</code> lists commands</p>
       </div>

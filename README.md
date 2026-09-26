@@ -117,8 +117,10 @@ back, in any browser. The file is fully validated before anything is
 written: right story, known scene, no paths outside the sandbox.
 
 It plays like the TUI -- story, choices and terminal panes, Tab completion,
-Up/Down history, `Ctrl+S` -- with two browser-specific touches: number keys
-pick a choice, and a **Mail** button (in terminal scenes) replaces writing a
+Up/Down history, `Ctrl+S` -- with three browser-specific touches: number keys
+pick a choice; on phones and other touch or narrow screens, **⇥ ↑ ↓** buttons
+next to the input stand in for the Tab and arrow keys that on-screen
+keyboards lack; and a **Mail** button (in terminal scenes) replaces writing a
 draft file by hand for `mail sync`. It writes the draft into the slot's
 `mail/draft/` directory and runs `mail sync`, so matching and bouncing follow
 exactly the same rules.

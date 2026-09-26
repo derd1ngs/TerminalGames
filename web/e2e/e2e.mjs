@@ -74,6 +74,7 @@ async function zeroDay(browser) {
   await page.keyboard.press("1");
   await page.waitForSelector("#terminal-pane:not(.inactive)");
   check((await page.evaluate(() => document.activeElement.id)) === "command-input", "terminal input focused");
+  check(!(await page.isVisible("#key-buttons")), "on-screen key buttons hidden on desktop");
   check((await page.inputValue("#command-input")) === "", "choice digit did not leak into the input");
 
   await page.keyboard.type("conn");
@@ -128,6 +129,7 @@ async function deadDrop(browser) {
   await run(page, "ssh mara@vault");
   await waitForPrompt(page, "password:");
   check((await page.getAttribute("#command-input", "type")) === "password", "password input is masked");
+  check(await page.isDisabled("#key-buttons [data-key=Tab]"), "key buttons disabled at the password prompt");
   await run(page, "lighthouse-42");
   await page.waitForSelector("#choices-pane:not([hidden])");
   const terminal = await page.textContent("#terminal-log");
@@ -210,6 +212,16 @@ async function phone(browser) {
   await page.keyboard.press("1");
   await page.waitForSelector("#terminal-pane:not(.inactive)");
   await run(page, "help");
+  check(await page.isVisible("#key-buttons"), "on-screen key buttons shown at phone width");
+  await page.keyboard.type("conn");
+  await page.click("#key-buttons [data-key=Tab]");
+  check((await page.inputValue("#command-input")) === "connect ", "Tab button completes");
+  check((await page.evaluate(() => document.activeElement.id)) === "command-input", "input keeps focus after a tap");
+  await page.fill("#command-input", "");
+  await page.click("#key-buttons [data-key=ArrowUp]");
+  check((await page.inputValue("#command-input")) === "help", "Up button recalls history");
+  await page.click("#key-buttons [data-key=ArrowDown]");
+  check((await page.inputValue("#command-input")) === "", "Down button steps back to an empty line");
   await page.screenshot({ path: SHOTS + "phone-terminal.png" });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow, "no horizontal scroll at phone width");
