@@ -22,7 +22,7 @@ def found_endings(story_saves_dir: Path) -> dict[str, str]:
     path = story_saves_dir / ENDINGS_FILE
     if not path.exists():
         return {}
-    found = {}
+    found: dict[str, str] = {}
     for line in path.read_text().splitlines():
         ending_id, _, when = line.partition("\t")
         if ending_id:
