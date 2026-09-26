@@ -207,6 +207,9 @@ async function saveFiles(browser) {
 
   await b.getByRole("button", { name: /Continue moveme/ }).click();
   await waitForPrompt(b, "gateway$");
+  await run(b, "mail compose");
+  check(await b.isVisible("#compose-dialog"), "typing 'mail compose' opens the Mail dialog");
+  await b.click("#compose-cancel");
   await run(b, "cat /etc/netmon/netmon.conf");
   check((await b.textContent("#terminal-log")).includes("bind_address=0.0.0.0"), "imported save continues with the player's edits");
   noErrors(b, "Import");

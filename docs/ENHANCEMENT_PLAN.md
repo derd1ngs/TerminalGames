@@ -260,7 +260,11 @@ outside the repo.
    `found-endings.txt` next to the slots. It's shown at each ending, in the
    TUI's slot listing, and in the browser's slot menu (undiscovered endings
    stay "???").
-4. **Mail compose in the TUI**, matching the browser's Mail dialog.
+4. **Mail compose in the TUI** (done): `mail compose` opens a form (To,
+   Subject, message) in the TUI, and the browser's Mail dialog on the same
+   command. Both frontends send through `GameSession.compose_mail`, which
+   writes a real draft and runs `mail sync`. The form uses compact widgets
+   so it fits an 80x24 terminal.
 5. **Offline browser play**: a service worker caching Pyodide and the game.
 
 ## Phase 8 -- content and engine

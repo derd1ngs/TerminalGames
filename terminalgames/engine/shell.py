@@ -418,7 +418,7 @@ def _argument_candidates(runner: TerminalRunner, words: list[str], prefix: str) 
             return [t.id for t in npc.available_topics(runner.state)]
     if cmd == "mail":
         if position == 1:
-            return ["list", "read", "send", "sync"]
+            return ["list", "read", "send", "compose", "sync"]
         if position == 2 and words[1] == "read":
             return [m.id for m in runner.state.inbox()]
         if position == 2 and words[1] == "send":
@@ -793,7 +793,7 @@ def _mail_sync(runner: TerminalRunner) -> str:
     return "\n".join(results)
 
 
-@command("mail", usage="mail [list|read <id>|send <contact> <topic>|sync]")
+@command("mail", usage="mail [list|read <id>|send <contact> <topic>|compose|sync]")
 def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
     if not args or args[0] == "list":
         inbox = runner.state.inbox()
@@ -818,4 +818,12 @@ def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
         return f"Message sent to {npc.name}. Expect a reply later."
     if args[0] == "sync":
         return _mail_sync(runner)
-    return "usage: mail [list|read <id>|send <contact> <topic>|sync]"
+    if args[0] == "compose":
+        # The TUI and the browser intercept `mail compose` and open a form.
+        if not any(npc.channel == "email" for npc in runner.npcs.values()):
+            return "mail compose: nobody here takes email."
+        return (
+            "mail compose opens a form in the game window. Without one, write a draft with To: and "
+            "Subject: lines into the slot's mail/draft/ folder, then run 'mail sync'."
+        )
+    return "usage: mail [list|read <id>|send <contact> <topic>|compose|sync]"

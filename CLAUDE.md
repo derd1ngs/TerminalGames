@@ -36,3 +36,10 @@
   `[tool.setuptools.package-data]` in `pyproject.toml`, or a real install
   silently lacks it. CI's `package` job (wheel -> clean venv -> run outside
   the repo) catches this.
+- TUI tests: `App.run_test()` defaults to an 80x24 screen, so modals and
+  forms must fit it (a click outside raises `OutOfBounds`). A pane that a
+  scene change hid renders no lines, so assert on recorded
+  `log_terminal`/`log_text` calls rather than reading that pane.
+- To look at the TUI: `app.save_screenshot(filename=..., path=...)` inside
+  `run_test(size=(80, 24))` writes an SVG; Playwright's Firefox can open it
+  via `file://` and screenshot it to PNG.

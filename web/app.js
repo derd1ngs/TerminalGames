@@ -355,6 +355,10 @@ $("prompt-form").addEventListener("submit", (event) => {
     saveAndExit();
     return;
   }
+  if (raw.split(/\s+/).join(" ") === "mail compose" && !$("btn-mail").hidden) {
+    $("btn-mail").click(); // the same dialog as the Mail button
+    return;
+  }
   act(() => call("command", raw));
 });
 
