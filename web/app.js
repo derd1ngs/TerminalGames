@@ -199,6 +199,11 @@ function startGame(slot, fresh) {
   history.length = 0;
   historyIndex = 0;
   const view = call("start", currentStory.ref, slot, fresh);
+  if (view.stale) {
+    if (confirm(`${view.stale}\n\nRestart this slot from the beginning?`)) startGame(slot, true);
+    else showSlotMessage(view.stale, "error");
+    return;
+  }
   $("btn-mail").hidden = call("email_contacts").length === 0;
   showScreen("game");
   $("game-title").textContent = `${view.title} [${slot}]`;

@@ -15,12 +15,12 @@ from typing import Any, Optional
 
 import yaml
 
+from . import schema
 from .journal import JournalEntry
+from .schema import StoryLoadError
 from .state import GameState
 
-
-class StoryLoadError(Exception):
-    pass
+SCENE_TYPES = {"narrative", "terminal", "ending"}
 
 
 @dataclass
@@ -33,6 +33,8 @@ class Choice:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Choice":
+        schema.check_keys(data, {"text", "next", "requires", "sets", "logs"}, "choice")
+        schema.check_effects(data, "choice")
         try:
             return cls(
                 text=data["text"],
@@ -64,6 +66,9 @@ class TerminalBlock:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TerminalBlock":
+        schema.check_keys(data, {"win_flag", "next", "host", "logs", "ordered_commands"}, "terminal block")
+        schema.check_logs(data.get("logs"), "terminal block")
+        schema.check_list(data.get("ordered_commands", []), "terminal block ordered_commands")
         try:
             return cls(
                 win_flag=data["win_flag"],
@@ -86,16 +91,38 @@ class Scene:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Scene":
+        schema.check_keys(data, {"id", "text", "type", "choices", "terminal"}, "scene")
         try:
             scene_id = data["id"]
         except KeyError as exc:
             raise StoryLoadError(f"scene missing required key {exc}") from exc
+        where = f"scene '{scene_id}'"
+        scene_type = data.get("type", "narrative")
+        schema.check_value(scene_type, SCENE_TYPES, "scene type", where)
+        choices = []
+        for i, choice_data in enumerate(
+            schema.check_list(data.get("choices", []), f"{where} choices"), start=1
+        ):
+            try:
+                choices.append(Choice.from_dict(choice_data))
+            except StoryLoadError as exc:
+                raise StoryLoadError(f"{where}, choice {i}: {exc}") from exc
+        terminal = None
+        if "terminal" in data:
+            try:
+                terminal = TerminalBlock.from_dict(data["terminal"])
+            except StoryLoadError as exc:
+                raise StoryLoadError(f"{where}: {exc}") from exc
+        if scene_type == "terminal" and terminal is None:
+            raise StoryLoadError(f"{where}: a terminal scene needs a 'terminal' block")
+        if scene_type != "terminal" and terminal is not None:
+            raise StoryLoadError(f"{where}: only terminal scenes may have a 'terminal' block")
+        if scene_type == "ending" and choices:
+            raise StoryLoadError(f"{where}: an ending can't have choices")
+        if scene_type == "narrative" and not choices:
+            raise StoryLoadError(f"{where}: a narrative scene needs at least one choice (or type: ending)")
         return cls(
-            id=scene_id,
-            text=data.get("text", ""),
-            type=data.get("type", "narrative"),
-            choices=[Choice.from_dict(c) for c in data.get("choices", [])],
-            terminal=TerminalBlock.from_dict(data["terminal"]) if "terminal" in data else None,
+            id=scene_id, text=data.get("text", ""), type=scene_type, choices=choices, terminal=terminal
         )
 
 
@@ -107,9 +134,10 @@ class Chapter:
     @classmethod
     def from_file(cls, path: Path) -> "Chapter":
         data = yaml.safe_load(path.read_text()) or {}
+        schema.check_keys(data, {"id", "scenes"}, path.name)
         chapter_id = data.get("id") or path.stem
         scenes: dict[str, Scene] = {}
-        for scene_data in data.get("scenes", []):
+        for scene_data in schema.check_list(data.get("scenes", []), f"{path.name} scenes"):
             try:
                 scene = Scene.from_dict(scene_data)
             except StoryLoadError as exc:
@@ -150,6 +178,7 @@ class Story:
     @classmethod
     def load(cls, story_dir: Path) -> "Story":
         manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
+        schema.check_keys(manifest, {"id", "title", "start", "chapters"}, "manifest.yaml")
         try:
             manifest_id = manifest["id"]
             manifest_start = manifest["start"]

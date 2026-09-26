@@ -190,3 +190,18 @@ def test_import_reports_unusable_files():
     assert json.loads(bridge.import_slot("zero_day", other_story, False)) == {
         "error": "this save is for 'dead_drop', not 'zero_day'"
     }
+
+
+def test_start_on_a_stale_save_reports_it_instead_of_failing(saves_root):
+    bridge.start("zero_day", "old", True)
+    slot = saves_root / "zero_day" / "old.json"
+    data = json.loads(slot.read_text())
+    data["scene_id"] = "cut_scene"
+    slot.write_text(json.dumps(data))
+
+    result = json.loads(bridge.start("zero_day", "old", False))
+    assert result == {
+        "stale": "Can't continue slot 'old': this save is at 'chapter_01:cut_scene', "
+        "which the story no longer has."
+    }
+    assert "scene" in json.loads(bridge.start("zero_day", "old", True))  # restarting works

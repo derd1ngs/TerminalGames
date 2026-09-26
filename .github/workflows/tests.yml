@@ -52,6 +52,31 @@ jobs:
       - name: Mypy
         run: mypy terminalgames
 
+  package:
+    # A real (non-editable) install must ship the stories as package data --
+    # an editable install hides it if they're missing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the wheel
+        run: pip wheel --no-deps -w dist .
+
+      - name: Install it into a clean venv and run it outside the repo
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/venv/bin/terminalgames --list | tee stories.txt
+          grep -q story_01_zero_day stories.txt
+          grep -q story_02_dead_drop stories.txt
+          /tmp/venv/bin/python -m terminalgames.tools.check_story --all
+
   web-e2e:
     # Plays both stories in headless Firefox against a freshly built site
     # (web/e2e/e2e.mjs). Pyodide itself loads from the jsdelivr CDN.

@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -101,3 +102,64 @@ def test_new_or_continue_restart_choice_starts_fresh(tmp_path, monkeypatch):
     slot_path = _save_state_at("zero_day", DEFAULT_SLOT)
     monkeypatch.setattr(main_module.console, "input", lambda prompt="": "r")
     assert main_module.new_or_continue(slot_path) is True
+
+
+def test_saves_stay_in_the_repo_for_a_checkout(tmp_path):
+    (tmp_path / "pyproject.toml").write_text("")
+    assert main_module.default_saves_dir(tmp_path / "terminalgames") == tmp_path / "saves"
+
+
+def test_an_installed_copy_saves_to_the_user_data_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr(main_module, "user_data_path", lambda app: tmp_path / "data" / app)
+    site_packages = tmp_path / "site-packages"
+    assert (
+        main_module.default_saves_dir(site_packages / "terminalgames")
+        == tmp_path / "data" / "terminalgames" / "saves"
+    )
+
+
+def test_this_checkout_uses_the_repo_saves_dir():
+    assert main_module.SAVES_DIR == Path(__file__).resolve().parent.parent / "saves"
+
+
+def _stale_slot(tmp_path):
+    story_dir = main_module.find_story("zero_day", main_module.discover_stories())
+    story = main_module.Story.load(story_dir)
+    slot_path = save_slot_path(tmp_path, story.id, "old")
+    GameState(story_id=story.id, chapter_id="chapter_01", scene_id="cut_scene").save(slot_path)
+    return story, story_dir, slot_path
+
+
+def test_stale_save_with_continue_flag_exits_with_a_clear_message(tmp_path, capsys):
+    story, story_dir, slot_path = _stale_slot(tmp_path)
+    with pytest.raises(SystemExit):
+        main_module.open_session(story, story_dir, slot_path, fresh=False, cont=True)
+    assert "Can't continue slot 'old'" in capsys.readouterr().out
+
+
+def test_stale_save_offers_a_restart(tmp_path, monkeypatch):
+    story, story_dir, slot_path = _stale_slot(tmp_path)
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": "y")
+    session = main_module.open_session(story, story_dir, slot_path, fresh=False, cont=False)
+    assert (session.state.chapter_id, session.scene.id) == story.start_ref()
+
+
+def test_stale_save_restart_declined_exits(tmp_path, monkeypatch):
+    story, story_dir, slot_path = _stale_slot(tmp_path)
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": "")
+    with pytest.raises(SystemExit):
+        main_module.open_session(story, story_dir, slot_path, fresh=False, cont=False)
+
+
+def test_broken_story_file_exits_with_a_message_not_a_traceback(tmp_path, capsys):
+    story_dir = main_module.find_story("dead_drop", main_module.discover_stories())
+    broken = shutil.copytree(story_dir, tmp_path / "story")
+    (broken / "npcs.yaml").write_text(
+        (broken / "npcs.yaml").read_text().replace("channel: chat", "channel: sms")
+    )
+    story = main_module.Story.load(broken)
+    with pytest.raises(SystemExit):
+        main_module.open_session(
+            story, broken, save_slot_path(tmp_path, story.id, "x"), fresh=True, cont=False
+        )
+    assert "Failed to load story: npcs.yaml npc 'juno': invalid channel 'sms'" in capsys.readouterr().out

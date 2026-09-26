@@ -96,6 +96,8 @@ class _Usage:
     journal_read: dict[str, str] = field(default_factory=dict)
     tools_read: dict[str, str] = field(default_factory=dict)
     tools_granted: dict[str, str] = field(default_factory=dict)
+    trust_thresholds: dict[str, set[int]] = field(default_factory=dict)  # npc -> values checked
+    trust_changes: dict[str, set[int]] = field(default_factory=dict)  # npc -> signs of adjustments (+1/-1)
 
     def add_requires(self, requires: Optional[dict[str, Any]], where: str) -> None:
         if not requires:
@@ -108,6 +110,9 @@ class _Usage:
             self.journal_read.setdefault(requires["journal_has"], where)
         if "tool" in requires:
             self.tools_read.setdefault(requires["tool"], where)
+        if "trust_at_least" in requires:
+            ta = requires["trust_at_least"]
+            self.trust_thresholds.setdefault(ta["npc"], set()).add(ta["value"])
         for sub in [*requires.get("all", []), *requires.get("any", [])]:
             self.add_requires(sub, where)
         if "not" in requires:
@@ -117,20 +122,17 @@ class _Usage:
         for key in sets or {}:
             if key.startswith("tool."):
                 self.tools_granted.setdefault(key.split(".", 1)[1], where)
+            elif key.startswith("trust.") and sets[key]:
+                self.trust_changes.setdefault(key.split(".", 1)[1], set()).add(1 if sets[key] > 0 else -1)
             elif not key.startswith("trust."):
                 self.flags_set.setdefault(key, where)
         for entry in logs or []:
             self.journal_logged.setdefault(entry["id"], where)
 
 
-def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], list[str]]:
-    """Cross-file reference checks that don't need the reachability search.
-    Returns (problems, warnings): a flag some `requires` reads but nothing
-    ever sets, a `journal_has` id nothing ever logs, and a `tool` nothing
-    ever grants (`sets: {tool.<id>: true}`) are problems -- that gate can
-    never open. A flag set, or a tool granted, but never read is only a
-    warning: harmless, but usually a leftover or a typo. (A win_flag nothing
-    sets is reported by the search itself.)"""
+def _collect_usage(story: Story, network: Network, npcs: dict) -> tuple[_Usage, set[str]]:
+    """Every flag, journal id, tool and trust threshold the story's files
+    reference, and where; plus the set of terminal scenes' win_flags."""
     usage = _Usage()
     win_flags: set[str] = set()
     for chapter in story.chapters.values():
@@ -160,7 +162,18 @@ def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], l
             where = f"topic {npc.id}:{topic.id}"
             usage.add_requires(topic.requires, where)
             usage.add_effects(topic.sets, topic.logs, where)
+    return usage, win_flags
 
+
+def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], list[str]]:
+    """Cross-file reference checks that don't need the reachability search.
+    Returns (problems, warnings): a flag some `requires` reads but nothing
+    ever sets, a `journal_has` id nothing ever logs, and a `tool` nothing
+    ever grants (`sets: {tool.<id>: true}`) are problems -- that gate can
+    never open. A flag set, or a tool granted, but never read is only a
+    warning: harmless, but usually a leftover or a typo. (A win_flag nothing
+    sets is reported by the search itself.)"""
+    usage, win_flags = _collect_usage(story, network, npcs)
     problems = [
         f"flag '{flag}' is required at {where}, but nothing ever sets it"
         for flag, where in sorted(usage.flags_read.items())
@@ -189,12 +202,43 @@ def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], l
     return problems, warnings
 
 
-def _state_key(state: GameState) -> tuple:
+TrustBounds = dict[str, tuple[Optional[int], Optional[int]]]
+
+
+def _trust_bounds(usage: _Usage) -> TrustBounds:
+    """Per NPC whose trust some `trust_at_least` checks: the (low, high) range
+    outside of which trust values are interchangeable for the search. If
+    trust only ever rises, reaching the highest threshold is permanent, so
+    every value at or above it is equivalent (high); if it only ever falls,
+    every value below the lowest threshold stays failing (low). When it can
+    move both ways, neither side is safe to merge (None)."""
+    bounds: TrustBounds = {}
+    for npc, thresholds in usage.trust_thresholds.items():
+        changes = usage.trust_changes.get(npc, set())
+        low = min(thresholds) - 1 if 1 not in changes else None
+        high = max(thresholds) if -1 not in changes else None
+        bounds[npc] = (low, high)
+    return bounds
+
+
+def _state_key(state: GameState, trust_bounds: TrustBounds) -> tuple:
+    # Clamping trust keeps a loop that keeps raising it from turning into
+    # endless "new" states; trust no `trust_at_least` checks is dropped.
+    trust: list[tuple[str, int]] = []
+    for npc, value in sorted(state.trust.items()):
+        if npc not in trust_bounds:
+            continue
+        low, high = trust_bounds[npc]
+        if high is not None:
+            value = min(value, high)
+        if low is not None:
+            value = max(value, low)
+        trust.append((npc, value))
     return (
         state.chapter_id,
         state.scene_id,
         tuple(sorted(state.flags.items())),
-        tuple(sorted(state.trust.items())),
+        tuple(trust),
         tuple(sorted(state.tools)),
         tuple(sorted(e.id for e in state.journal.all())),
     )
@@ -231,6 +275,7 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
     visited_scenes: set[tuple[str, str]] = set()
     visited_endings: set[str] = set()
     problems, warnings = lint_story(story, network, npcs)
+    trust_bounds = _trust_bounds(_collect_usage(story, network, npcs)[0])
     seen_keys: set[tuple] = set()
 
     start_chapter, start_scene = story.start_ref()
@@ -238,10 +283,13 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
 
     while frontier:
         if len(seen_keys) > max_states:
-            problems.append(f"search cap ({max_states} states) reached -- results may be incomplete")
+            problems.append(
+                f"search cap ({max_states} states) reached -- results may be incomplete "
+                "(usually a loop that keeps changing a flag's value, or trust that can both rise and fall)"
+            )
             break
         state = frontier.popleft()
-        key = _state_key(state)
+        key = _state_key(state, trust_bounds)
         if key in seen_keys:
             continue
         seen_keys.add(key)

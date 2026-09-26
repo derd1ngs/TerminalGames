@@ -31,7 +31,7 @@ from .engine.loader import (
 from .engine.savefile import SaveFileError, validate_import
 from .engine.savefile import export_slot as export_slot_doc
 from .engine.savefile import import_slot as import_slot_doc
-from .engine.session import GameSession
+from .engine.session import GameSession, StaleSaveError
 from .engine.shell import complete as shell_complete
 from .engine.story import Story
 
@@ -137,12 +137,17 @@ def import_slot(story_ref: str, text: str, overwrite: bool) -> str:
 
 
 def start(story_ref: str, slot: str, fresh: bool) -> str:
-    """Open a save slot. A slot without a save always starts fresh."""
+    """Open a save slot. A slot without a save always starts fresh. If the
+    save points at a scene the story no longer has, returns {"stale": message}
+    instead of a view, so the page can offer a restart."""
     global _session
     story_dir = _story_dir(story_ref)
     story = Story.load(story_dir)
     slot_path = save_slot_path(_saves_root, story.id, slot)
-    _session = GameSession.open(story, story_dir, slot_path, fresh=fresh or not slot_path.exists())
+    try:
+        _session = GameSession.open(story, story_dir, slot_path, fresh=fresh or not slot_path.exists())
+    except StaleSaveError as exc:
+        return json.dumps({"stale": f"Can't continue slot '{slot}': {exc}."})
     if fresh:
         _session.save()  # a new game shows up in the slot list right away
     return _view(entered=True)

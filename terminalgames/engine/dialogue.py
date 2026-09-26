@@ -14,8 +14,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from . import schema
+from .schema import StoryLoadError
 from .state import EmailMessage, GameState
 from .story import apply_effects, check_requires
+
+TOPIC_KEYS = {"id", "prompt", "response", "requires", "sets", "logs", "reliability", "outbox_match"}
+NPC_KEYS = {"id", "name", "persona", "channel", "ask_limit", "email_delay_scenes", "topics"}
 
 
 @dataclass
@@ -34,7 +39,17 @@ class Topic:
     outbox_match: Optional[dict[str, Any]] = None
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Topic":
+    def from_dict(cls, data: dict[str, Any], where: str = "topic") -> "Topic":
+        where = f"{where} '{data.get('id')}'" if isinstance(data, dict) else where
+        schema.check_keys(data, TOPIC_KEYS, where, required={"id", "prompt", "response"})
+        schema.check_effects(data, where)
+        schema.check_value(
+            data.get("reliability", "truthful"), {"truthful", "misleading", "evasive"}, "reliability", where
+        )
+        if "outbox_match" in data:
+            schema.check_keys(
+                data["outbox_match"], {"subject_contains"}, f"{where} outbox_match", {"subject_contains"}
+            )
         return cls(
             id=data["id"],
             prompt=data["prompt"],
@@ -58,8 +73,16 @@ class NPC:
     topics: dict[str, Topic] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NPC":
-        topics = {t["id"]: Topic.from_dict(t) for t in data.get("topics", [])}
+    def from_dict(cls, data: dict[str, Any], where: str = "npc") -> "NPC":
+        where = f"{where} '{data.get('id')}'" if isinstance(data, dict) else where
+        schema.check_keys(data, NPC_KEYS, where, required={"id"})
+        schema.check_value(data.get("channel", "chat"), {"chat", "email"}, "channel", where)
+        topics = {}
+        for topic_data in schema.check_list(data.get("topics", []), f"{where} topics"):
+            topic = Topic.from_dict(topic_data, f"{where} topic")
+            if topic.id in topics:
+                raise StoryLoadError(f"{where}: duplicate topic id '{topic.id}'")
+            topics[topic.id] = topic
         return cls(
             id=data["id"],
             name=data.get("name", data["id"]),
@@ -75,7 +98,14 @@ class NPC:
 
 
 def load_npcs(data: dict[str, Any]) -> dict[str, NPC]:
-    return {n["id"]: NPC.from_dict(n) for n in data.get("npcs", [])}
+    schema.check_keys(data, {"npcs"}, "npcs.yaml")
+    npcs = {}
+    for npc_data in schema.check_list(data.get("npcs", []), "npcs.yaml npcs"):
+        npc = NPC.from_dict(npc_data, "npcs.yaml npc")
+        if npc.id in npcs:
+            raise StoryLoadError(f"npcs.yaml: duplicate npc id '{npc.id}'")
+        npcs[npc.id] = npc
+    return npcs
 
 
 class DialogueError(Exception):

@@ -11,6 +11,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from platformdirs import user_data_path
 from rich.console import Console
 
 from .engine.loader import (
@@ -23,11 +24,23 @@ from .engine.loader import (
     save_slot_path,
     slot_summary,
 )
-from .engine.session import GameSession
+from .engine.session import GameSession, StaleSaveError
 from .engine.story import Story, StoryLoadError
 from .tui import GameApp
 
-SAVES_DIR = Path(__file__).resolve().parent.parent / "saves"
+
+def default_saves_dir(package_dir: Path) -> Path:
+    """A repo checkout (pyproject.toml next to the package) keeps its saves
+    in the repo's gitignored `saves/`, as it always has; an installed copy
+    uses the per-user data directory (e.g. ~/.local/share/terminalgames/saves)
+    rather than writing into site-packages."""
+    repo_root = package_dir.parent
+    if (repo_root / "pyproject.toml").exists():
+        return repo_root / "saves"
+    return user_data_path("terminalgames") / "saves"
+
+
+SAVES_DIR = default_saves_dir(Path(__file__).resolve().parent)
 
 console = Console()
 
@@ -168,7 +181,26 @@ def main() -> None:
     slot = args.slot or (DEFAULT_SLOT if args.story else select_slot(story.id))
     slot_path = save_slot_path(SAVES_DIR, story.id, slot)
     fresh = new_or_continue(slot_path, new=args.new, cont=args.cont)
-    GameApp(GameSession.open(story, story_dir, slot_path, fresh=fresh)).run()
+    GameApp(open_session(story, story_dir, slot_path, fresh=fresh, cont=args.cont)).run()
+
+
+def open_session(story: Story, story_dir: Path, slot_path: Path, *, fresh: bool, cont: bool) -> GameSession:
+    """GameSession.open, with story-file errors and stale saves explained
+    instead of ending in a traceback. A stale save offers a restart, unless
+    --continue was given (which promises not to touch the slot)."""
+    try:
+        return GameSession.open(story, story_dir, slot_path, fresh=fresh)
+    except StaleSaveError as exc:
+        console.print(f"[bold red]Can't continue slot '{slot_path.stem}': {exc}.[/bold red]")
+        if cont:
+            sys.exit(1)
+        choice = console.input("Restart this slot from the beginning? (y/N) ").strip().lower()
+        if not choice.startswith("y"):
+            sys.exit(1)
+        return open_session(story, story_dir, slot_path, fresh=True, cont=False)
+    except StoryLoadError as exc:
+        console.print(f"[bold red]Failed to load story: {exc}[/bold red]")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

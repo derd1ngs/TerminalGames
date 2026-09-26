@@ -18,7 +18,12 @@ from .loader import load_network, load_npc_roster
 from .puzzles import check_command_order
 from .shell import Network, TerminalRunner
 from .state import GameState
-from .story import Choice, Scene, Story, apply_effects, check_requires
+from .story import Choice, Scene, Story, StoryLoadError, apply_effects, check_requires
+
+
+class StaleSaveError(StoryLoadError):
+    """A continued save points at a scene the story no longer has -- usually
+    because the story was edited after the save was made."""
 
 
 @dataclass
@@ -49,6 +54,12 @@ class GameSession:
             state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
         else:
             state = GameState.load(slot_path)
+            try:
+                story.get_scene(state.chapter_id, state.scene_id)
+            except StoryLoadError as exc:
+                raise StaleSaveError(
+                    f"this save is at '{state.chapter_id}:{state.scene_id}', which the story no longer has"
+                ) from exc
         network = load_network(story_dir)
         sandbox_root = GameState.sandbox_dir_for(slot_path)
         if fresh:
