@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TerminalGames</title>
+  <meta name="description" content="A hacker-themed text adventure with a fake terminal. Runs entirely in your browser.">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">TerminalGames<span class="brand-title" id="game-title"></span></span>
+    <nav class="topbar-actions" id="game-actions" hidden>
+      <button type="button" id="btn-mail" title="Compose an email" hidden>Mail</button>
+      <button type="button" id="btn-save" title="Ctrl+S">Save</button>
+      <button type="button" id="btn-menu">Save &amp; exit</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="screen-boot" class="screen">
+      <pre class="boot-log" id="boot-log" aria-live="polite"></pre>
+    </section>
+
+    <section id="screen-menu" class="screen" hidden>
+      <div class="menu">
+        <div id="menu-stories">
+          <h1>Select a story</h1>
+          <ul class="menu-list" id="story-list"></ul>
+        </div>
+        <div id="menu-slots" hidden>
+          <h1 id="slots-heading"></h1>
+          <ul class="menu-list" id="slot-list"></ul>
+          <form id="new-slot-form" class="new-slot">
+            <label for="new-slot-name">New game in slot</label>
+            <div class="new-slot-row">
+              <input id="new-slot-name" name="slot" required pattern="[A-Za-z0-9_\-]+" maxlength="40"
+                     autocomplete="off" spellcheck="false">
+              <button type="submit">Start</button>
+            </div>
+          </form>
+          <button type="button" class="link" id="btn-back-stories">&larr; other stories</button>
+        </div>
+        <p class="menu-note">Saves live in this browser only.</p>
+      </div>
+    </section>
+
+    <section id="screen-game" class="screen game" hidden>
+      <div class="left">
+        <div class="pane story" aria-label="Story">
+          <h2 class="pane-title">Story</h2>
+          <div class="log" id="story-log" aria-live="polite"></div>
+        </div>
+        <div class="pane choices" id="choices-pane" aria-label="Choices">
+          <h2 class="pane-title">Choices</h2>
+          <ol class="choice-list" id="choice-list"></ol>
+        </div>
+      </div>
+      <div class="pane terminal" id="terminal-pane" aria-label="Terminal">
+        <h2 class="pane-title">Terminal</h2>
+        <div class="log" id="terminal-log" aria-live="polite"></div>
+        <form class="prompt-row" id="prompt-form" autocomplete="off">
+          <label class="prompt" id="prompt" for="command-input">local$</label>
+          <input id="command-input" spellcheck="false" autocapitalize="off" autocorrect="off"
+                 aria-describedby="terminal-hint">
+        </form>
+        <p class="hint" id="terminal-hint">Tab completes &middot; &uarr;/&darr; history &middot; <code>help</code> lists commands</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="compose-dialog">
+    <form method="dialog" id="compose-form">
+      <h2>New message</h2>
+      <label for="compose-to">To</label>
+      <select id="compose-to" required></select>
+      <label for="compose-subject">Subject</label>
+      <input id="compose-subject" required maxlength="120" autocomplete="off">
+      <label for="compose-body">Message</label>
+      <textarea id="compose-body" rows="6"></textarea>
+      <div class="dialog-actions">
+        <button type="button" id="compose-cancel" class="link">Cancel</button>
+        <button type="submit" value="send">Send</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

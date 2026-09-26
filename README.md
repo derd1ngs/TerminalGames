@@ -86,6 +86,35 @@ Run the test suite with `.venv/bin/pip install -e ".[test]" && .venv/bin/pytest`
 (the TUI tests drive the Textual app headlessly via `pytest-asyncio` +
 `App.run_test()`, no real terminal needed).
 
+## Playing in a browser
+
+The same game runs in a browser with nothing to install:
+**https://derd1ngs.github.io/TerminalGames/** (deployed from `main` by
+`.github/workflows/pages.yml`). The unchanged Python engine runs client-side
+in [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly); the
+first visit downloads about 10 MB, which the browser then caches. Saves are
+kept in the browser's IndexedDB, so they're per browser and don't mix with
+the terminal version's `saves/`.
+
+It plays like the TUI -- story, choices and terminal panes, Tab completion,
+Up/Down history, `Ctrl+S` -- with two browser-specific touches: number keys
+pick a choice, and a **Mail** button (in terminal scenes) replaces writing a
+draft file by hand for `mail sync`. It writes the draft into the slot's
+`mail/draft/` directory and runs `mail sync`, so matching and bouncing follow
+exactly the same rules.
+
+To run it locally:
+
+```bash
+python3 web/build.py                     # writes _site/
+python3 -m http.server -d _site 8000     # then open http://localhost:8000
+```
+
+`web/` holds the page (`index.html`, `app.js`, `style.css`) and `build.py`,
+which zips only what the browser runs -- `engine/`, `stories/` and
+`terminalgames/web_bridge.py`, the JSON facade over `GameSession` that
+`app.js` calls.
+
 ## How a story is put together
 
 A **story** lives in `terminalgames/stories/<story_id>/` and has:
