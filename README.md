@@ -61,6 +61,13 @@ last-saved time) and lets you pick one to continue or name a new one.
 (Saves from before slots existed, at the old flat `saves/<story_id>.json`
 path, are migrated into the `default` slot automatically.)
 
+Each story also keeps an **endings gallery** across all its slots: reaching
+an ending shows "Endings found: 2/4", and `--list` (or the slot picker) names
+the ones you've found without spoiling the rest. It's stored as
+`saves/<story_id>/found-endings.txt`; ending names come from the
+`-- ENDING: Name --` line at the end of an ending scene's text. The browser
+version shows the same gallery in its slot menu.
+
 `saves/` is the repo's own folder when you run from a checkout (as
 `setup.sh` does). An installed copy (`pip install .`, or later from PyPI)
 keeps its saves in your user data directory instead, e.g.

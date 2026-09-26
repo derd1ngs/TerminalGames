@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .dialogue import NPC
+from .endings import gallery, record_ending
 from .loader import load_network, load_npc_roster
 from .puzzles import check_command_order
 from .shell import Network, TerminalRunner
@@ -80,6 +81,8 @@ class GameSession:
         self.scene = scene
         self.scene_commands = []
         self.runner.hints = scene.terminal.hints if scene.terminal else []
+        if scene.type == "ending":
+            record_ending(self.slot_path.parent, scene.id)
         if scene.type == "terminal":
             assert scene.terminal is not None
             self.runner.current_chapter, self.runner.current_scene = state.chapter_id, scene.id
@@ -112,6 +115,11 @@ class GameSession:
             return CommandResult(output)
         apply_effects({}, terminal.logs, self.state, self._here())
         return CommandResult(output, advanced=True, notices=self._advance(terminal.next))
+
+    def endings_found(self) -> tuple[int, int]:
+        """(found, total) endings of this story, across all its save slots."""
+        entries = gallery(self.story, self.slot_path.parent)
+        return sum(found for _, found in entries), len(entries)
 
     def save(self) -> None:
         self.state.save(self.slot_path)

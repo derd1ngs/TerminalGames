@@ -84,6 +84,12 @@ input, select, textarea {
   padding: 0.35rem 0.5rem;
 }
 .menu-note { color: var(--muted); font-size: 0.85em; margin-top: 2rem; }
+.endings { margin: -0.4rem 0 1.2rem; }
+.endings h2 { font-size: 0.85rem; font-weight: 400; color: var(--muted); margin: 0 0 0.3rem; }
+.endings ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.endings li { font-size: 0.8rem; padding: 0.1rem 0.5rem; border-radius: 999px; border: 1px solid var(--line); }
+.endings li.found { color: var(--terminal); border-color: color-mix(in srgb, var(--terminal) 50%, var(--line)); }
+.endings li.hidden-ending { color: var(--muted); }
 .slot-tools { margin-bottom: 0.5rem; }
 .menu-message { min-height: 1.5em; margin: 0 0 0.5rem; color: var(--ok); }
 .menu-message.error { color: var(--bad); }

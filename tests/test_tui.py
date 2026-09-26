@@ -340,6 +340,7 @@ async def test_ending_scene_hides_both_panes(tmp_path):
         assert app.mode == "ended"
         assert decisions.display is False
         assert terminal_group.display is False
+        assert "Endings found: 1/6" in _pane_text(app, "#story-pane")
 
 
 @pytest.mark.asyncio

@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from terminalgames import main as main_module
+from terminalgames.engine.endings import record_ending
 from terminalgames.engine.loader import DEFAULT_SLOT, save_slot_path
 from terminalgames.engine.state import GameState
 
@@ -163,3 +164,13 @@ def test_broken_story_file_exits_with_a_message_not_a_traceback(tmp_path, capsys
             story, broken, save_slot_path(tmp_path, story.id, "x"), fresh=True, cont=False
         )
     assert "Failed to load story: npcs.yaml npc 'juno': invalid channel 'sms'" in capsys.readouterr().out
+
+
+def test_print_endings_lists_found_titles_and_hides_the_rest(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(main_module, "SAVES_DIR", tmp_path)
+    story = main_module.Story.load(main_module.find_story("dead_drop", main_module.discover_stories()))
+    main_module.print_endings(story)
+    assert capsys.readouterr().out == ""  # nothing found yet: no line at all
+    record_ending(tmp_path / "dead_drop", "ending_burned")
+    main_module.print_endings(story)
+    assert capsys.readouterr().out.strip() == "Endings found: 1/4 -- Scorched Earth, and 3 more"
