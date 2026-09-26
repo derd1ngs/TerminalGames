@@ -160,3 +160,33 @@ def test_ssh_password_line_is_flagged_secret_and_not_a_meta_command():
     view = json.loads(bridge.command(":save"))  # the password, not a save
     assert view["secret"] is False
     assert view["scene"]["id"] == "gateway_shell"
+
+
+def test_export_then_import_round_trip_with_overwrite_handshake(saves_root, tmp_path):
+    bridge.start("zero_day", "web", True)
+    play([("choose", 0), ("choose", 0), ("cmd", "connect gateway")])
+    bridge.save()
+    text = bridge.export_slot("zero_day", "web")
+    assert json.loads(text)["sandbox"]
+
+    # Same browser: the slot exists, so the page is asked first.
+    assert json.loads(bridge.import_slot("zero_day", text, False)) == {"exists": "web"}
+    assert json.loads(bridge.import_slot("zero_day", text, True)) == {"slot": "web"}
+
+    # Another browser (fresh saves root): imports straight away and continues in place.
+    bridge.init(str(tmp_path / "other-browser"))
+    assert json.loads(bridge.import_slot("zero_day", text, False)) == {"slot": "web"}
+    view = json.loads(bridge.start("zero_day", "web", False))
+    assert view["scene"]["id"] == "gateway_shell"
+    assert view["prompt"] == "gateway$"
+
+
+def test_import_reports_unusable_files():
+    assert json.loads(bridge.import_slot("zero_day", "not json {", False)) == {
+        "error": "not a TerminalGames save file"
+    }
+    bridge.start("dead_drop", "dd", True)
+    other_story = bridge.export_slot("dead_drop", "dd")
+    assert json.loads(bridge.import_slot("zero_day", other_story, False)) == {
+        "error": "this save is for 'dead_drop', not 'zero_day'"
+    }

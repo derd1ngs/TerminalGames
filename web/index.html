@@ -40,9 +40,15 @@
               <button type="submit">Start</button>
             </div>
           </form>
+          <div class="slot-tools">
+            <button type="button" id="btn-import">Import a save file&hellip;</button>
+            <input type="file" id="import-file" accept=".json,application/json" hidden>
+          </div>
+          <p class="menu-message" id="slot-message" role="status"></p>
           <button type="button" class="link" id="btn-back-stories">&larr; other stories</button>
         </div>
-        <p class="menu-note">Saves live in this browser only.</p>
+        <p class="menu-note">Saves live in this browser only. Export a slot to keep a copy or to continue on
+          another device.</p>
       </div>
     </section>
 
