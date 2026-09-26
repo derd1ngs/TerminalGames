@@ -284,10 +284,40 @@ outside the repo.
    hides dotfiles), `history`, `clear`, `man <cmd>`, with a man page for
    every command.
 
-## Phase 9 -- distribution
+## Phase 9 -- distribution (next; resume here)
 
 After Phase 6's packaging fix: a version bump, a changelog, and a release
-workflow publishing to PyPI, so `pipx install terminalgames` works.
+workflow publishing to PyPI, so `pipx install <name>` works.
+
+**Finding (2026-09-26):** the name `terminalgames` is unregistered on PyPI,
+but `terminal-games` exists (an unrelated mini-games collection, v0.3.0).
+PyPI rejects new names that are too similar to an existing project, ignoring
+`-`/`_`/`.`, so uploading as `terminalgames` would almost certainly be
+refused. `terminalgames-hacker` is free, for example.
+
+**Decisions needed from the owner before starting:**
+1. The PyPI distribution name (e.g. `terminalgames-hacker`). The import
+   package and the `terminalgames` command can stay the same; only
+   `[project] name` changes.
+2. The first version number (currently `0.1.0`; e.g. `1.0.0` for the first
+   public release).
+3. TestPyPI dry run first: yes or no.
+
+**Steps once decided:**
+1. `pyproject.toml`: name, version, readme, license, project URLs
+   (homepage = the Pages site), classifiers.
+2. `CHANGELOG.md` summarizing Phases 0-8.
+3. `.github/workflows/release.yml`: on a `v*` tag, build the sdist and wheel,
+   run the same install-and-run check as the `package` job, then publish with
+   `pypa/gh-action-pypi-publish` via **trusted publishing** (OIDC, no token
+   stored in the repo), in a `pypi` environment.
+4. **Owner action on pypi.org** (only the account owner can do this): add a
+   "pending trusted publisher" for repo `derd1ngs/TerminalGames`, workflow
+   `release.yml`, environment `pypi`, under the chosen name.
+5. Tag `vX.Y.Z` and push; check `pipx install <name>` from a clean machine.
+
+Note: pushing workflow files needs git push (the `gh` token lacks the
+`workflow` scope; see CLAUDE.md).
 
 ## Suggested order (Phases 6-9)
 
