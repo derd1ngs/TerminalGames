@@ -121,9 +121,15 @@ function showSlotMenu(story) {
     restart.addEventListener("click", () => {
       if (confirm(`Restart slot "${slot}" from the beginning? Its progress will be lost.`)) startGame(slot, true);
     });
-    row.append(cont, restart);
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.textContent = "Export";
+    exportButton.title = `Download slot "${slot}" as a save file`;
+    exportButton.addEventListener("click", () => downloadSlot(slot));
+    row.append(cont, restart, exportButton);
     list.append(li(row));
   }
+  showSlotMessage("");
   const names = new Set(slots.map((s) => s.slot));
   let suggestion = "default";
   for (let n = 2; names.has(suggestion); n++) suggestion = `run${n}`;
@@ -145,6 +151,45 @@ $("new-slot-form").addEventListener("submit", (event) => {
   startGame(slot, true);
 });
 $("btn-back-stories").addEventListener("click", showStoryMenu);
+
+// --- save files ------------------------------------------------------------------
+
+function showSlotMessage(text, cls = "") {
+  $("slot-message").textContent = text;
+  $("slot-message").className = `menu-message ${cls}`;
+}
+
+function downloadSlot(slot) {
+  const text = bridge.export_slot(currentStory.ref, slot);
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `terminalgames-${currentStory.id}-${slot}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("btn-import").addEventListener("click", () => $("import-file").click());
+$("import-file").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  event.target.value = ""; // so picking the same file again still fires `change`
+  if (!file) return;
+  const text = await file.text();
+  let result = call("import_slot", currentStory.ref, text, false);
+  if (result.exists) {
+    if (!confirm(`Slot "${result.exists}" already exists here. Replace it with the imported save?`)) return;
+    result = call("import_slot", currentStory.ref, text, true);
+  }
+  if (result.error) {
+    showSlotMessage(`Import failed: ${result.error}`, "error");
+    return;
+  }
+  await syncSaves();
+  showSlotMenu(currentStory);
+  showSlotMessage(`Imported slot "${result.slot}".`);
+});
 
 // --- game ------------------------------------------------------------------------
 

@@ -100,7 +100,11 @@ The same game runs in a browser with nothing to install:
 in [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly); the
 first visit downloads about 10 MB, which the browser then caches. Saves are
 kept in the browser's IndexedDB, so they're per browser and don't mix with
-the terminal version's `saves/`.
+the terminal version's `saves/`. Each slot has an **Export** button that
+downloads it as one JSON save file: the game state plus the slot's whole
+sandbox, `set` edits and mail included. **Import a save file…** brings it
+back, in any browser. The file is fully validated before anything is
+written: right story, known scene, no paths outside the sandbox.
 
 It plays like the TUI -- story, choices and terminal panes, Tab completion,
 Up/Down history, `Ctrl+S` -- with two browser-specific touches: number keys
@@ -125,7 +129,8 @@ which zips only what the browser runs -- `engine/`, `stories/` and
 site and runs in CI (the `web-e2e` job). It checks:
 - menus, choices and the terminal: Tab, history, pipes, `ssh` password
   masking and the procedure puzzle;
-- saves surviving a reload;
+- saves surviving a reload, and moving a save to a second browser with
+  export/import;
 - the phone layout;
 - that no console errors occur.
 
@@ -413,8 +418,9 @@ Mermaid live editor) to see it drawn:
 ## Project layout
 
 `terminalgames/engine/` holds the engine modules (`story.py`, `shell.py`,
-`dialogue.py`, `journal.py`, `state.py`, `puzzles.py`) -- pure game logic
-with no UI dependency -- plus `session.py`, whose `GameSession` is the game
+`dialogue.py`, `journal.py`, `state.py`, `puzzles.py`, `savefile.py` for
+the export/import format) -- pure game logic with no UI dependency -- plus
+`session.py`, whose `GameSession` is the game
 loop itself (choices, commands, scene transitions, mail delivery, autosave)
 that any frontend drives (`GameSession.open` starts or continues a save
 slot), and `loader.py`, which finds stories and save slots on disk. The

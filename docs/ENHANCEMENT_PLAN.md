@@ -80,8 +80,9 @@ Delivered, with these deviations from the plan below:
   zip's hash is stamped into `app.js` for cache-busting.
 - **Pyodide 314.0.7** (Python 3.14; Pyodide's new version scheme), loaded
   from jsdelivr.
-- **Save download/import is deferred** to a follow-up. The menu notes that
-  saves live in this browser only.
+- **Save download/import** came as a follow-up: each slot exports to one
+  JSON file (state plus sandbox; `engine/savefile.py`), which can be
+  imported in any browser.
 - **Testing:** the bridge is tested under CPython (`tests/test_web_bridge.py`,
   `tests/test_web_build.py`), and was smoke-tested in real Pyodide under
   Node plus an end-to-end run in headless Firefox (Playwright). That run was

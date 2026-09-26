@@ -84,6 +84,9 @@ input, select, textarea {
   padding: 0.35rem 0.5rem;
 }
 .menu-note { color: var(--muted); font-size: 0.85em; margin-top: 2rem; }
+.slot-tools { margin-bottom: 0.5rem; }
+.menu-message { min-height: 1.5em; margin: 0 0 0.5rem; color: var(--ok); }
+.menu-message.error { color: var(--bad); }
 
 /* --- game ------------------------------------------------------------------ */
 .game {
@@ -184,4 +187,7 @@ dialog input, dialog select, dialog textarea { width: 100%; }
   .game.narrative { grid-template-rows: minmax(0, 1fr) auto; }
   .game.narrative .terminal { display: none; }
   .game.terminal-mode .choices { display: none; }
+  .menu-list .slot-row { flex-wrap: wrap; }
+  .menu-list .slot-row button { flex: 1; }
+  .menu-list .slot-row button:first-child { flex-basis: 100%; }
 }

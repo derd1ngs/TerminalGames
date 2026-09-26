@@ -6,8 +6,9 @@
 //
 // Plays real scenes of both stories against a built site: boot (Pyodide
 // from the CDN), menus, choices, the terminal (Tab, history, pipes, ssh
-// password masking, a procedure puzzle), saves surviving a reload, the
-// phone layout, and no console errors. Screenshots land in ./shots/.
+// password masking, a procedure puzzle), saves surviving a reload, moving a
+// save to another browser via export/import, the phone layout, and no
+// console errors. Screenshots land in ./shots/.
 // Exits non-zero if any check fails.
 
 import { mkdirSync } from "node:fs";
@@ -156,6 +157,50 @@ async function deadDrop(browser) {
   await page.context().close();
 }
 
+async function saveFiles(browser) {
+  console.log("Save export/import (two separate browsers)");
+  const a = await openPage(browser);
+  await newGame(a, "Zero Day", "moveme");
+  await a.keyboard.press("1");
+  await a.keyboard.press("1");
+  await a.waitForSelector("#terminal-pane:not(.inactive)");
+  await run(a, "connect gateway");
+  await waitForPrompt(a, "gateway$");
+  await run(a, "set /etc/netmon/netmon.conf bind_address 0.0.0.0");
+  await a.click("#btn-menu"); // Save & exit
+  await a.waitForSelector("#menu-slots:not([hidden])");
+  const [download] = await Promise.all([a.waitForEvent("download"), a.getByRole("button", { name: "Export" }).click()]);
+  check(download.suggestedFilename() === "terminalgames-zero_day-moveme.json", "export downloads a named save file");
+  const saveFile = SHOTS + download.suggestedFilename();
+  await download.saveAs(saveFile);
+  noErrors(a, "Export");
+  await a.context().close();
+
+  const b = await openPage(browser); // fresh context: empty IndexedDB, like another device
+  await b.getByRole("button", { name: "Zero Day" }).click();
+  check((await b.locator("#slot-list li").count()) === 0, "second browser starts with no saves");
+  await b.setInputFiles("#import-file", saveFile);
+  await b.waitForFunction(() => document.getElementById("slot-message").textContent.includes("Imported"));
+  check((await b.textContent("#slot-message")) === 'Imported slot "moveme".', "import reports success");
+  check((await b.textContent("#slot-list")).includes("gateway_shell"), "imported slot is listed where it was saved");
+
+  b.once("dialog", (dialog) => dialog.accept()); // "already exists -- replace?"
+  await b.setInputFiles("#import-file", saveFile);
+  await b.waitForFunction(() => document.getElementById("slot-message").textContent.includes("Imported"));
+  check((await b.locator("#slot-list li").count()) === 1, "re-import after confirming replaces the slot");
+
+  await b.setInputFiles("#import-file", { name: "junk.json", mimeType: "application/json", buffer: Buffer.from("{nope") });
+  await b.waitForFunction(() => document.getElementById("slot-message").classList.contains("error"));
+  check((await b.textContent("#slot-message")) === "Import failed: not a TerminalGames save file", "junk file is rejected");
+
+  await b.getByRole("button", { name: /Continue moveme/ }).click();
+  await waitForPrompt(b, "gateway$");
+  await run(b, "cat /etc/netmon/netmon.conf");
+  check((await b.textContent("#terminal-log")).includes("bind_address=0.0.0.0"), "imported save continues with the player's edits");
+  noErrors(b, "Import");
+  await b.context().close();
+}
+
 async function phone(browser) {
   console.log("Phone layout (390px)");
   const page = await openPage(browser, { width: 390, height: 780 });
@@ -168,13 +213,21 @@ async function phone(browser) {
   await page.screenshot({ path: SHOTS + "phone-terminal.png" });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   check(!overflow, "no horizontal scroll at phone width");
+  await page.click("#btn-menu"); // the slot menu, with its three-button rows
+  await page.waitForSelector("#menu-slots:not([hidden])");
+  await page.screenshot({ path: SHOTS + "phone-slots.png" });
+  const menuOverflow = await page.evaluate(() => {
+    const menu = document.getElementById("screen-menu");
+    return menu.scrollWidth > menu.clientWidth;
+  });
+  check(!menuOverflow, "slot menu fits at phone width");
   noErrors(page, "Phone");
   await page.context().close();
 }
 
 const browser = await firefox.launch();
 try {
-  for (const scenario of [zeroDay, deadDrop, phone]) {
+  for (const scenario of [zeroDay, deadDrop, saveFiles, phone]) {
     try {
       await scenario(browser);
     } catch (err) {

@@ -28,6 +28,9 @@ from .engine.loader import (
     save_slot_path,
     slot_summary,
 )
+from .engine.savefile import SaveFileError, validate_import
+from .engine.savefile import export_slot as export_slot_doc
+from .engine.savefile import import_slot as import_slot_doc
 from .engine.session import GameSession
 from .engine.shell import complete as shell_complete
 from .engine.story import Story
@@ -104,6 +107,30 @@ def list_slots(story_ref: str) -> str:
     migrate_legacy_save(_saves_root, story.id)
     slots = list_save_slots(_saves_root, story.id)
     return json.dumps([{"slot": s, "summary": slot_summary(_saves_root, story.id, s)} for s in slots])
+
+
+def export_slot(story_ref: str, slot: str) -> str:
+    """The slot as a downloadable save file (pretty-printed JSON)."""
+    story = _load_story(story_ref)
+    return json.dumps(export_slot_doc(_saves_root, story.id, slot), indent=2)
+
+
+def import_slot(story_ref: str, text: str, overwrite: bool) -> str:
+    """Import a save file's text into its slot. Returns {"slot": name} on
+    success, {"error": message} if the file is unusable, or {"exists": name}
+    -- without importing -- if that slot already has a save and `overwrite`
+    is false, so the page can ask first."""
+    story = _load_story(story_ref)
+    try:
+        data = json.loads(text)
+        slot = validate_import(story, data)
+        if not overwrite and save_slot_path(_saves_root, story.id, slot).exists():
+            return json.dumps({"exists": slot})
+        return json.dumps({"slot": import_slot_doc(_saves_root, story, data)})
+    except ValueError:
+        return json.dumps({"error": "not a TerminalGames save file"})
+    except SaveFileError as exc:
+        return json.dumps({"error": str(exc)})
 
 
 # --- game ----------------------------------------------------------------------
