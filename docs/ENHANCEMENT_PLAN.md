@@ -1,7 +1,7 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phases 0, 1, 3 and 4 are done; Phase 2 was
-skipped. Phase 5 is a proposal to review before implementation starts. Each phase is sized to be one PR and leaves the test
+Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
+skipped. Each phase is sized to be one PR and leaves the test
 suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -196,7 +196,20 @@ Independent of each other; any order.
 7. **Second story** (short, 1 chapter): proves the engine generalizes and
    gives the browser build a story picker that's worth having.
 
-## Phase 5 -- tooling
+## Phase 5 -- tooling (done)
+
+Both items delivered in `tools/check_story.py`. The lint's problems fail
+the check (and CI via `test_story_reachability`), while unread flags are
+warnings only.
+- **Mermaid only:** `--graph` outputs Mermaid, not Graphviz, because GitHub
+  renders it natively; the output was verified with Mermaid 12.
+- **Tools lint:** building the lint showed that `requires: {tool: ...}`
+  can never pass, because no story content can grant a tool. The lint
+  therefore reports any tool requirement as a problem. Adding a way to
+  grant tools (e.g. a `tools:` effect) would be a small follow-up feature.
+- **Unread flags:** neither shipped story has one.
+
+The original plan follows.
 
 1. `check_story`: report flags that are set but never read, flags that are
    read but never set (outside `win_flag`), and `journal_has` ids no scene

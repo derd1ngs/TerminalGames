@@ -2,10 +2,12 @@
 stories built directly from the dataclasses (not via YAML) so each test
 isolates exactly one reachability scenario."""
 
+import pytest
+
 from terminalgames.engine.dialogue import NPC, Topic
 from terminalgames.engine.shell import Host, Network
 from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock
-from terminalgames.tools.check_story import check_story
+from terminalgames.tools.check_story import check_story, main, mermaid_graph
 
 
 def _story(scenes: dict[str, Scene], start: str = "c1:start") -> Story:
@@ -71,14 +73,15 @@ def test_unreachable_scene_behind_an_unsatisfiable_requires():
     assert "end" in report.visited_endings
     assert ("c1", "secret") in report.unreached_scenes
     assert "secret" in report.unreached_endings
-    assert not report.problems  # unreachable, but not a "never settable" bug
+    # The search doesn't call an unopened gate a bug; the lint names its cause.
+    assert report.problems == ["flag 'never_set' is required at c1:start, but nothing ever sets it"]
 
 
-def test_connect_gate_makes_scene_unreachable_without_being_a_problem():
+def test_connect_gate_makes_scene_unreachable_and_lint_names_the_gate():
     """A flag can be legitimately *declared* settable (on_connect_flag) and
-    still be practically unreachable if its own gate can never pass -- that's
-    a design/content issue to report as unreached, not a hard "never set"
-    problem, since the mechanism to set it does genuinely exist."""
+    still be practically unreachable if its own gate can never pass. The
+    search reports that as unreached content, not as a "win_flag never set"
+    problem (the mechanism does exist); the lint names the gate's flag."""
     story = _story(
         {
             "start": Scene(
@@ -97,7 +100,9 @@ def test_connect_gate_makes_scene_unreachable_without_being_a_problem():
 
     report = check_story(story, network, {})
 
-    assert not report.problems
+    # No "win_flag never set" from the search -- connecting does set it; the
+    # lint reports the real cause, the gate's flag.
+    assert report.problems == ["flag 'key' is required at host vault, but nothing ever sets it"]
     assert ("c1", "end") in report.unreached_scenes
 
 
@@ -154,7 +159,11 @@ def test_dialogue_settable_flag_respects_the_topics_own_requires():
 
     report = check_story(story, Network(), {"ghost": npc})
 
-    assert not report.problems  # the flag genuinely is declared settable via dialogue
+    # The win_flag is genuinely settable via dialogue (no search problem); the
+    # lint reports the real cause, the topic's own gate.
+    assert report.problems == [
+        "flag 'unlockable' is required at topic ghost:secret, but nothing ever sets it"
+    ]
     assert ("c1", "end") in report.unreached_scenes  # ...but its topic's own gate never opens
 
 
@@ -264,3 +273,132 @@ def test_combinator_gates_are_explored_per_branch():
 
     assert report.visited_endings == {"end_left", "end_right"}
     assert report.unreached_endings == {"end_never"}
+
+
+def _lint_story(choices: list[Choice]) -> Story:
+    return _story({"start": Scene(id="start", choices=choices), "end": Scene(id="end", type="ending")})
+
+
+def test_flag_required_but_never_set_is_a_problem_even_when_nested():
+    story = _lint_story(
+        [
+            Choice(
+                text="go",
+                next="c1:end",
+                requires={"any": [{"not": {"flag_equals": {"key": "mood", "value": 1}}}]},
+            )
+        ]
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.problems == ["flag 'mood' is required at c1:start, but nothing ever sets it"]
+
+
+def test_flag_required_by_a_topic_or_host_counts_too():
+    npc = NPC(
+        id="n",
+        name="N",
+        channel="chat",
+        topics={"t": Topic(id="t", prompt="p", response="r", requires={"flag": "a"})},
+    )
+    network = Network(hosts={"h": Host(id="h", requires_to_connect={"flag": "b"})})
+    story = _lint_story([Choice(text="go", next="c1:end")])
+
+    report = check_story(story, network, {"n": npc})
+
+    assert report.problems == [
+        "flag 'a' is required at topic n:t, but nothing ever sets it",
+        "flag 'b' is required at host h, but nothing ever sets it",
+    ]
+
+
+def test_journal_entry_required_but_never_logged_is_a_problem():
+    story = _lint_story(
+        [
+            Choice(text="log", next="c1:end", logs=[{"id": "seen", "text": "x"}]),
+            Choice(text="gated", next="c1:end", requires={"journal_has": "sen"}),  # typo
+        ]
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.problems == ["journal entry 'sen' is required at c1:start, but nothing ever logs it"]
+
+
+def test_any_tool_requirement_is_a_problem():
+    story = _lint_story([Choice(text="go", next="c1:end", requires={"tool": "wireshark"})])
+
+    report = check_story(story, Network(), {})
+
+    assert report.problems == [
+        "tool 'wireshark' is required at c1:start, but no story content can grant tools"
+    ]
+
+
+def test_flag_set_but_never_read_is_only_a_warning():
+    story = _lint_story([Choice(text="go", next="c1:end", sets={"orphan": True, "trust.x": 1})])
+    network = Network(hosts={"h": Host(id="h", on_connect_flag="on_h")})
+
+    report = check_story(story, network, {})
+
+    assert report.ok
+    assert report.warnings == [
+        "flag 'on_h' is set at host h, but nothing ever reads it",
+        "flag 'orphan' is set at c1:start, but nothing ever reads it",
+    ]
+
+
+def test_set_and_read_flags_produce_no_lint():
+    story = _story(
+        {
+            "start": Scene(id="start", choices=[Choice(text="a", next="c1:hub", sets={"k": True})]),
+            "hub": Scene(id="hub", choices=[Choice(text="b", next="c1:end", requires={"flag": "k"})]),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.ok and not report.warnings
+
+
+def test_mermaid_graph_shapes_edges_and_escaping():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text='Say "hi"', next="c1:shell"),
+                    Choice(text="gated", next="c1:end", requires={"flag": "k"}),
+                ],
+            ),
+            "shell": Scene(
+                id="shell", type="terminal", terminal=TerminalBlock(win_flag="done", next="c1:end")
+            ),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    graph = mermaid_graph(story).splitlines()
+
+    assert graph[0] == "flowchart TD"
+    assert '    n_c1__start["start"]' in graph
+    assert '    n_c1__shell[["shell"]]' in graph
+    assert '    n_c1__end(["end"])' in graph  # prefixed id: bare `end` is a Mermaid keyword
+    assert '  start((" ")) --> n_c1__start' in graph
+    assert '  n_c1__start -->|"Say #quot;hi#quot;"| n_c1__shell' in graph
+    assert '  n_c1__start -.->|"gated"| n_c1__end' in graph
+    assert '  n_c1__shell ==>|"done"| n_c1__end' in graph
+
+
+def test_graph_cli_prints_a_story_graph(capsys):
+    main(["dead_drop", "--graph"])
+    out = capsys.readouterr().out
+    assert out.startswith("flowchart TD")
+    assert "n_chapter_01__recover[[" in out
+
+
+def test_graph_cli_rejects_all(capsys):
+    with pytest.raises(SystemExit):
+        main(["--all", "--graph"])
