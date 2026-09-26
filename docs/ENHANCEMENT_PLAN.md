@@ -247,8 +247,11 @@ outside the repo.
 
 ## Phase 7 -- player experience
 
-1. **Mobile input**: phone keyboards have no Tab or arrow keys; add a small
-   completion/history button row above the browser's input line.
+1. **Mobile input** (done): phone keyboards have no Tab or arrow keys, so ⇥ ↑ ↓
+   buttons next to the input act like those keys on touch or narrow screens,
+   without taking focus (which would close the keyboard). Adding them
+   exposed that the phone grid column couldn't shrink below its content;
+   it's now `minmax(0, 1fr)`.
 2. **`hint`**: per-scene hints written by the story author, revealed one at a
    time.
 3. **Endings gallery**: which endings a player has found per story (e.g.
