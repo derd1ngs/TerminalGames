@@ -5,3 +5,4 @@ saves/*
 !saves/.gitkeep
 *.egg-info/
 .pytest_cache/
+_site/

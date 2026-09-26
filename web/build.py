@@ -1,0 +1,57 @@
+"""Build the static browser version into OUT_DIR (default: _site/).
+
+Copies the page assets from web/ and zips just the Python the page runs in
+Pyodide -- terminalgames/__init__.py, engine/, stories/ and web_bridge.py,
+never the Textual frontend. The zip's content hash is stamped into app.js
+so a new deploy is never served a stale cached zip.
+
+    python web/build.py [OUT_DIR]
+    python -m http.server -d _site 8000    # then open http://localhost:8000
+"""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import shutil
+import sys
+import zipfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+WEB_DIR = ROOT / "web"
+PACKAGE_DIR = ROOT / "terminalgames"
+ASSETS = ["index.html", "style.css"]
+PYTHON_PARTS = ["__init__.py", "engine", "stories", "web_bridge.py"]
+
+
+def python_zip() -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for part in PYTHON_PARTS:
+            src = PACKAGE_DIR / part
+            files = [src] if src.is_file() else sorted(p for p in src.rglob("*") if p.is_file())
+            for path in files:
+                if "__pycache__" in path.parts:
+                    continue
+                # Fixed timestamp: the same sources always give the same zip (and hash).
+                info = zipfile.ZipInfo(path.relative_to(ROOT).as_posix(), date_time=(2000, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, path.read_bytes())
+    return buffer.getvalue()
+
+
+def build(out_dir: Path) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name in ASSETS:
+        shutil.copyfile(WEB_DIR / name, out_dir / name)
+    data = python_zip()
+    (out_dir / "terminalgames.zip").write_bytes(data)
+    build_id = hashlib.sha256(data).hexdigest()[:12]
+    app_js = (WEB_DIR / "app.js").read_text().replace("__BUILD_ID__", build_id)
+    (out_dir / "app.js").write_text(app_js)
+    print(f"Built {out_dir} (build {build_id})")
+
+
+if __name__ == "__main__":
+    build(Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "_site")

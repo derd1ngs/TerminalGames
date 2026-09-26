@@ -1,7 +1,7 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phases 0 and 1 are done; every later phase is a
-proposal to review before implementation starts. Each phase is sized to be
+Status as of 2026-09-26. Phases 0, 1 and 3 are done and Phase 2 was skipped;
+every later phase is a proposal to review before implementation starts. Each phase is sized to be
 one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -46,7 +46,10 @@ can't install Textual.
 terminalgames.engine.session"` with Textual *uninstalled* in a scratch venv;
 full suite green.
 
-## Phase 2 -- quick browser preview via `textual serve` (about an hour)
+## Phase 2 -- quick browser preview via `textual serve` (skipped)
+
+Skipped in favour of going straight to Phase 3.
+
 
 **Goal:** play the existing TUI in a browser on the LAN, with no new frontend.
 
@@ -63,7 +66,28 @@ process sharing the same `saves/` directory, so two tabs on one slot will
 clobber each other. It needs a Python process running, and it is not
 suitable for public hosting (every visitor runs a process on the host).
 
-## Phase 3 -- static browser version on GitHub Pages (the real web build, a few days)
+## Phase 3 -- static browser version on GitHub Pages (done)
+
+Delivered, with these deviations from the plan below:
+
+- **No Rich:** no shipped story uses markup, and the engine doesn't need
+  Rich, so `web_bridge.markup_to_html` converts the basic tags (style words
+  become CSS classes). Scene paragraphs are reflowed for the pane, and
+  `backtick` spans render as code.
+- **A zip instead of a wheel:** `web/build.py` zips only `engine/`,
+  `stories/` and `web_bridge.py`, and Pyodide unpacks it. There's no
+  package-data configuration and no micropip dependency resolution. The
+  zip's hash is stamped into `app.js` for cache-busting.
+- **Pyodide 314.0.7** (Python 3.14; Pyodide's new version scheme), loaded
+  from jsdelivr.
+- **Save download/import is deferred** to a follow-up. The menu notes that
+  saves live in this browser only.
+- **Testing:** the bridge is tested under CPython (`tests/test_web_bridge.py`,
+  `tests/test_web_build.py`), and was smoke-tested in real Pyodide under
+  Node plus an end-to-end run in headless Firefox (Playwright). The browser
+  run isn't in CI yet.
+
+The original plan follows.
 
 **Goal:** `https://derd1ngs.github.io/TerminalGames/`: nothing to install,
 no server, saves kept in the browser. The **unchanged Python engine** runs

@@ -15,6 +15,12 @@
 - `gh pr edit` fails on this machine's gh 2.45 ("Projects (classic) is being
   deprecated"); change a PR's base with
   `gh api -X PATCH repos/derd1ngs/TerminalGames/pulls/<N> -f base=main`.
-- `terminalgames/engine/` must stay importable with only PyYAML (the planned
-  browser build runs it in Pyodide) -- enforced by
+- `terminalgames/engine/` and `web_bridge.py` must stay importable with only
+  PyYAML (the browser build runs them in Pyodide) -- enforced by
   `tests/test_engine_is_ui_free.py`.
+- Browser build: to check a change, run `python web/build.py` then
+  `python -m http.server -d _site 8765` and drive it with Playwright's Firefox
+  (`npx playwright install firefox`; there's no Chrome on this machine). When
+  running Pyodide under Node, pass `unpackArchive` a
+  `new Uint8Array(buf).buffer` -- a Node `Buffer` fails with "Unknown typed
+  array type".
