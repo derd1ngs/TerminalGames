@@ -310,8 +310,10 @@ running out isn't factored into reachability).
 
 `terminalgames/engine/` holds the engine modules (`story.py`, `shell.py`,
 `dialogue.py`, `journal.py`, `state.py`, `puzzles.py`) -- pure game logic
-with no UI dependency. `terminalgames/tui.py` is the split-pane Textual
-frontend that drives it; `main.py` is just the pre-flight story/save picker
+with no UI dependency -- plus `session.py`, whose `GameSession` is the game
+loop itself (choices, commands, scene transitions, mail delivery, autosave)
+that any frontend drives. `terminalgames/tui.py` is the split-pane Textual
+frontend that renders it; `main.py` is just the pre-flight story/save picker
 that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
 structural story validator described above. `terminalgames/stories/
 story_01_zero_day/` is a complete worked content example.

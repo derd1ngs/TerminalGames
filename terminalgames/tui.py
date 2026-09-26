@@ -4,10 +4,9 @@ above a small **choices** pane (the decision list, narrative scenes only),
 and a **terminal** pane filling the right column -- a command's echo/output
 log paired with the command input, terminal scenes only.
 
-This is purely presentation -- it drives the same engine (`story.py`,
-`shell.py`, `dialogue.py`, `state.py`) the old single-stream console UI did,
-which is exactly why swapping the frontend didn't require touching any of
-that code.
+This is purely presentation -- the game loop itself (choices, commands,
+scene transitions, mail delivery, autosave) lives in `engine/session.py`'s
+`GameSession`; this app only renders its current scene and forwards input.
 """
 
 from __future__ import annotations
@@ -22,9 +21,10 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Input, OptionList, RichLog
 from textual.widgets.option_list import Option
 
+from .engine.session import GameSession
 from .engine.shell import Network, TerminalRunner, complete
-from .engine.state import EmailMessage, GameState
-from .engine.story import Choice, Scene, Story, apply_effects, check_requires
+from .engine.state import GameState
+from .engine.story import Choice, Story
 
 
 class CommandInput(Input):
@@ -99,13 +99,15 @@ class GameApp(App):
 
     def __init__(self, story: Story, network: Network, npcs: dict, state: GameState, slot_path: Path):
         super().__init__()
-        self.story = story
+        self.session = GameSession(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path)
         self.slot_path = slot_path
-        self.runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
         self.title = story.title
         self.mode = "narrative"
-        self.current_scene: Scene | None = None
         self.available_choices: list[Choice] = []
+
+    @property
+    def runner(self) -> TerminalRunner:
+        return self.session.runner
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
@@ -153,23 +155,12 @@ class GameApp(App):
         """A command's echo or its output -- the terminal pane's transcript."""
         self._write_pane("#terminal-pane", text, style)
 
-    def maybe_autosave(self, previous_chapter_id: str) -> None:
-        """Crossing into a new chapter autosaves -- long stories can span many
-        chapters, and this is the natural "checkpoint" granularity."""
-        state = self.runner.state
-        if state.chapter_id == previous_chapter_id:
-            return
-        state.save(self.slot_path)
-        self.log_text(f"Autosaved -- entering chapter '{state.chapter_id}'.", style="dim italic")
-
-    def notify_new_mail(self, newly_delivered: list[EmailMessage]) -> None:
-        for msg in newly_delivered:
-            self.log_text(f"New mail from {msg.npc_id}: {msg.subject}", style="dim italic")
+    def show_notices(self, notices: list[str]) -> None:
+        for notice in notices:
+            self.log_text(notice, style="dim italic")
 
     def show_scene(self) -> None:
-        state = self.runner.state
-        scene = self.story.get_scene(state.chapter_id, state.scene_id)
-        self.current_scene = scene
+        scene = self.session.scene
         decisions = self.query_one("#decisions-pane", OptionList)
         terminal_group = self.query_one("#terminal-group", Vertical)
         cmd_input = self.query_one("#command-input", Input)
@@ -185,12 +176,7 @@ class GameApp(App):
         self.log_text(scene.text)
 
         if scene.type == "terminal":
-            assert scene.terminal is not None
             self.mode = "terminal"
-            self.runner.current_chapter, self.runner.current_scene = state.chapter_id, scene.id
-            if scene.terminal.host:
-                self.runner.current_host = scene.terminal.host
-                self.runner.cwd = "/"
             decisions.display = False
             terminal_group.display = True
             cmd_input.placeholder = f"{self.runner.current_host or 'local'}$"
@@ -198,7 +184,7 @@ class GameApp(App):
             self.set_focus(cmd_input)
         else:
             self.mode = "narrative"
-            self.available_choices = [c for c in scene.choices if check_requires(c.requires, state)]
+            self.available_choices = self.session.available_choices()
             decisions.clear_options()
             for i, choice in enumerate(self.available_choices):
                 decisions.add_option(Option(choice.text, id=str(i)))
@@ -212,15 +198,8 @@ class GameApp(App):
         if self.mode != "narrative" or event.option.id is None:
             return
         choice = self.available_choices[int(event.option.id)]
-        state = self.runner.state
-        scene = self.current_scene
-        assert scene is not None
         self.log_text(f"> {choice.text}", style="dim")
-        apply_effects(choice.sets, choice.logs, state, f"{state.chapter_id}:{scene.id}")
-        previous_chapter_id = state.chapter_id
-        state.chapter_id, state.scene_id = self.story.resolve(choice.next, state.chapter_id)
-        self.notify_new_mail(self.runner.advance_scene())
-        self.maybe_autosave(previous_chapter_id)
+        self.show_notices(self.session.choose(choice))
         self.show_scene()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -237,28 +216,20 @@ class GameApp(App):
         self.log_terminal(f"{prompt} {escape(raw)}", style="dim")
 
         if raw == ":save":
-            self.runner.state.save(self.slot_path)
+            self.session.save()
             self.log_terminal("Saved.", style="italic green")
             return
         if raw in (":quit", ":exit"):
-            self.runner.state.save(self.slot_path)
+            self.session.save()
             self.log_terminal("Saved. Goodbye.", style="italic green")
             self.exit()
             return
 
-        output = self.runner.execute(raw)
-        if output:
-            self.log_terminal(escape(output))
-
-        state = self.runner.state
-        scene = self.current_scene
-        assert scene is not None and scene.terminal is not None
-        if state.has_flag(scene.terminal.win_flag):
-            apply_effects({}, scene.terminal.logs, state, f"{state.chapter_id}:{scene.id}")
-            previous_chapter_id = state.chapter_id
-            state.chapter_id, state.scene_id = self.story.resolve(scene.terminal.next, state.chapter_id)
-            self.notify_new_mail(self.runner.advance_scene())
-            self.maybe_autosave(previous_chapter_id)
+        result = self.session.run_command(raw)
+        if result.output:
+            self.log_terminal(escape(result.output))
+        if result.advanced:
+            self.show_notices(result.notices)
             self.show_scene()
 
     def action_complete_command(self) -> None:
@@ -277,9 +248,9 @@ class GameApp(App):
         cmd_input.cursor_position = len(cmd_input.value)
 
     def action_save_game(self) -> None:
-        self.runner.state.save(self.slot_path)
+        self.session.save()
         self.log_text("Saved.", style="italic green")
 
     def action_quit_game(self) -> None:
-        self.runner.state.save(self.slot_path)
+        self.session.save()
         self.exit()

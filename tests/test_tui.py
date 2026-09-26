@@ -339,6 +339,7 @@ async def test_ending_scene_hides_both_panes(tmp_path):
     async with app.run_test() as pilot:
         await pilot.pause()
         app.runner.state.chapter_id, app.runner.state.scene_id = "chapter_01", "ending_ignored"
+        app.session.enter_scene()
         app.show_scene()
         decisions = app.query_one("#decisions-pane")
         terminal_group = app.query_one("#terminal-group")
