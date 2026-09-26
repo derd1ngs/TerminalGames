@@ -220,6 +220,62 @@ async def test_save_meta_command_persists_state(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_ctrl_s_saves_from_a_narrative_scene(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert app.mode == "narrative"
+        await pilot.press("ctrl+s")
+        await pilot.pause()
+    assert GameState.load(app.slot_path).scene_id == app.runner.state.scene_id
+
+
+async def _enter_recon(pilot) -> None:
+    await pilot.pause()
+    await pilot.press("enter")  # -> briefing
+    await pilot.pause()
+    await pilot.press("enter")  # -> recon (terminal)
+    await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_up_and_down_walk_command_history(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await _enter_recon(pilot)
+        cmd_input = app.query_one("#command-input")
+        for cmd in ["whoami", "help"]:
+            cmd_input.value = cmd
+            await pilot.press("enter")
+            await pilot.pause()
+        await pilot.press("up")
+        assert cmd_input.value == "help"
+        await pilot.press("up")
+        assert cmd_input.value == "whoami"
+        await pilot.press("down", "down")
+        assert cmd_input.value == ""
+
+
+@pytest.mark.asyncio
+async def test_tab_completes_instead_of_moving_focus(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await _enter_recon(pilot)
+        cmd_input = app.query_one("#command-input")
+        cmd_input.value = "conn"
+        cmd_input.cursor_position = 4
+        await pilot.press("tab")
+        await pilot.pause()
+        assert app.focused is cmd_input
+        assert cmd_input.value == "connect "
+        cmd_input.value = "c"
+        await pilot.press("tab")
+        await pilot.pause()
+        assert cmd_input.value == "c"  # ambiguous: candidates are listed instead
+        assert "connect" in _pane_text(app, "#terminal-pane")
+
+
+@pytest.mark.asyncio
 async def test_crossing_chapter_boundary_autosaves(tmp_path):
     story = build_multichapter_story(tmp_path)
     state = GameState(story_id=story.id, chapter_id="one", scene_id="start")

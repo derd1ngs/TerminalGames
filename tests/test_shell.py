@@ -4,7 +4,7 @@ import yaml
 
 from terminalgames.engine.dialogue import NPC, Topic
 from terminalgames.engine.puzzles import parse_config_text
-from terminalgames.engine.shell import Network, TerminalRunner
+from terminalgames.engine.shell import Network, TerminalRunner, complete
 from terminalgames.engine.state import GameState
 
 
@@ -224,6 +224,77 @@ def test_connection_state_survives_save_and_continue(tmp_path):
     assert new_runner.current_host == "gateway"
     assert new_runner.cwd == "/etc"
     assert new_runner.execute("cat README") == "fix netmon"
+
+
+def test_service_running_state_survives_save_and_continue(tmp_path):
+    """Regression: a fixed service used to report 'failed' again after
+    save/continue, because `running` lived on the (reloaded) Network."""
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    runner.execute("set /etc/netmon.conf bind_address 0.0.0.0")
+    runner.execute("set /etc/netmon.conf allow_query allow")
+    runner.execute("systemctl restart netmon")
+    slot_path = tmp_path / "slot.json"
+    runner.state.save(slot_path)
+
+    new_runner = TerminalRunner(
+        state=GameState.load(slot_path), network=build_network(tmp_path), save_slot_path=tmp_path / "s.json"
+    )
+    assert "active (running)" in new_runner.execute("systemctl status netmon")
+
+
+def test_failed_restart_marks_service_not_running(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    runner.execute("set /etc/netmon.conf bind_address 0.0.0.0")
+    runner.execute("set /etc/netmon.conf allow_query allow")
+    runner.execute("systemctl restart netmon")
+    runner.execute("set /etc/netmon.conf allow_query denied")
+    runner.execute("systemctl restart netmon")
+    assert "failed" in runner.execute("systemctl status netmon")
+
+
+def test_quoted_arguments_can_contain_spaces(tmp_path):
+    runner = build_runner(tmp_path)
+    runner.execute("connect gateway")
+    assert runner.execute('grep "needle here" /var/log/access.log') == "needle here"
+
+
+def test_unclosed_quote_reports_parse_error(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute('grep "needle /var/log/access.log').startswith("parse error:")
+
+
+def test_help_shows_usage_for_one_command(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("help decrypt") == "usage: decrypt <file> <key>"
+    assert "no such command" in runner.execute("help frobnicate")
+
+
+def test_complete_command_names(tmp_path):
+    runner = build_runner(tmp_path)
+    assert complete(runner, "con") == ["connect"]
+    assert complete(runner, "c") == ["cat", "cd", "chat", "connect"]
+
+
+def test_complete_hosts_and_services(tmp_path):
+    runner = build_runner(tmp_path)
+    assert complete(runner, "connect ") == ["gateway", "vault"]
+    runner.execute("connect gateway")
+    assert complete(runner, "systemctl re") == ["restart"]
+    assert complete(runner, "systemctl restart ") == ["netmon"]
+
+
+def test_complete_paths_relative_and_absolute(tmp_path):
+    runner = build_runner(tmp_path)
+    assert complete(runner, "cat ") == []  # not connected: no filesystem
+    runner.execute("connect gateway")
+    assert complete(runner, "cd ") == ["etc/", "var/"]
+    assert complete(runner, "cat /etc/ne") == ["/etc/netmon.conf"]
+    runner.execute("cd var")
+    assert complete(runner, "cat log/") == ["log/access.log"]
+    assert complete(runner, "grep needle s") == ["secret.enc"]
+    assert complete(runner, "cat nowhere/x") == []
 
 
 def test_chat_lists_and_asks_topics(tmp_path):
