@@ -11,7 +11,10 @@
 - `main` is branch-protected and requires PR branches to be up to date: when
   a PR is "BEHIND" (e.g. after merging the lower PR of a stack), run
   `gh api -X PUT repos/derd1ngs/TerminalGames/pulls/<N>/update-branch`, wait
-  for CI, then `gh pr merge <N> --merge`.
+  for CI, then `gh pr merge <N> --merge`. That API call is refused (403, no
+  `workflow` scope) when `main` changed a file under `.github/workflows/`:
+  then `git merge origin/main` locally and `git push` instead, or for a
+  Dependabot PR comment `@dependabot rebase`.
 - `gh pr edit` fails on this machine's gh 2.45 ("Projects (classic) is being
   deprecated"); change a PR's base with
   `gh api -X PATCH repos/derd1ngs/TerminalGames/pulls/<N> -f base=main`.
