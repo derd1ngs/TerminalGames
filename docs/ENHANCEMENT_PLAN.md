@@ -84,8 +84,8 @@ Delivered, with these deviations from the plan below:
   saves live in this browser only.
 - **Testing:** the bridge is tested under CPython (`tests/test_web_bridge.py`,
   `tests/test_web_build.py`), and was smoke-tested in real Pyodide under
-  Node plus an end-to-end run in headless Firefox (Playwright). The browser
-  run isn't in CI yet.
+  Node plus an end-to-end run in headless Firefox (Playwright). That run was
+  later committed as `web/e2e/e2e.mjs` and runs in CI as the `web-e2e` job.
 
 The original plan follows.
 

@@ -21,9 +21,10 @@
 - `terminalgames/engine/` and `web_bridge.py` must stay importable with only
   PyYAML (the browser build runs them in Pyodide) -- enforced by
   `tests/test_engine_is_ui_free.py`.
-- Browser build: to check a change, run `python web/build.py` then
-  `python -m http.server -d _site 8765` and drive it with Playwright's Firefox
-  (`npx playwright install firefox`; there's no Chrome on this machine). When
+- Browser build: to check a change, run `python web/build.py`, then
+  `python -m http.server -d _site 8765`, then `web/e2e/e2e.mjs` (see README;
+  CI's `web-e2e` job runs the same script). It uses Playwright's Firefox
+  because there's no Chrome on this machine. When
   running Pyodide under Node, pass `unpackArchive` a
   `new Uint8Array(buf).buffer` -- a Node `Buffer` fails with "Unknown typed
   array type".

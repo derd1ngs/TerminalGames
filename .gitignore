@@ -6,3 +6,5 @@ saves/*
 *.egg-info/
 .pytest_cache/
 _site/
+web/e2e/node_modules/
+web/e2e/shots/
