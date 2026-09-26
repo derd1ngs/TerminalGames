@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "terminalgames"
 version = "0.1.0"
-description = "A hacker-themed CLI text adventure engine with a fake terminal"
+description = "A hacker-themed text adventure engine with a fake terminal, playable in a terminal or a browser"
 requires-python = ">=3.10"
 dependencies = [
     "rich>=13.0",

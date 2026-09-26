@@ -224,10 +224,18 @@ def apply_effects(
     sets: dict[str, Any], logs: list[dict[str, Any]], state: GameState, discovered_at: str
 ) -> None:
     """Apply a choice/terminal-block's `sets`/`logs` to the GameState.
-    A `sets` key of the form "trust.<npc_id>" adjusts trust instead of a flag."""
+    A `sets` key of the form "trust.<npc_id>" adjusts trust instead of a flag,
+    and "tool.<tool_id>" grants that tool (or, with a false value, takes it
+    away) -- what `requires: {tool: ...}` checks."""
     for key, value in (sets or {}).items():
         if key.startswith("trust."):
             state.adjust_trust(key.split(".", 1)[1], value)
+        elif key.startswith("tool."):
+            tool_id = key.split(".", 1)[1]
+            if value:
+                state.add_tool(tool_id)
+            else:
+                state.tools.discard(tool_id)
         else:
             state.set_flag(key, value)
     for entry in logs or []:

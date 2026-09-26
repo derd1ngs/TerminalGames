@@ -205,9 +205,9 @@ warnings only.
 - **Mermaid only:** `--graph` outputs Mermaid, not Graphviz, because GitHub
   renders it natively; the output was verified with Mermaid 12.
 - **Tools lint:** building the lint showed that `requires: {tool: ...}`
-  can never pass, because no story content can grant a tool. The lint
-  therefore reports any tool requirement as a problem. Adding a way to
-  grant tools (e.g. a `tools:` effect) would be a small follow-up feature.
+  could never pass, because no story content could grant a tool. A
+  follow-up added `sets: {tool.<id>: true}` (the same convention as
+  `trust.<npc>`), and the lint now reports only tools that nothing grants.
 - **Unread flags:** neither shipped story has one.
 
 The original plan follows.

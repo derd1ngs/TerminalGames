@@ -24,9 +24,9 @@ which is the common case but wouldn't catch an ask_limit set so low it
 makes a *specific* topic unreachable in practice.
 
 Also lints cross-file references without searching (see `lint_story`):
-flags that are required but never set, journal ids that are required but
-never logged, `tool` requirements (which nothing can grant), and -- as
-warnings only -- flags that are set but never read. `--graph` prints the
+flags, journal ids and tools that are required but never set, logged or
+granted, and -- as warnings only -- flags and tools that are set or granted
+but never read. `--graph` prints the
 scene graph as a Mermaid flowchart instead of checking.
 
 Usage:
@@ -76,7 +76,7 @@ def collect_settable_flags(network: Network, npcs: dict) -> dict[str, SettableBy
     for npc in npcs.values():
         for topic in npc.topics.values():
             for key in topic.sets:
-                if not key.startswith("trust."):
+                if not key.startswith(("trust.", "tool.")):
                     settable[key] = SettableBy(
                         "dialogue", f"{npc.id}:{topic.id} (chat/mail)", gate=topic.requires, topic=topic
                     )
@@ -95,6 +95,7 @@ class _Usage:
     journal_logged: dict[str, str] = field(default_factory=dict)
     journal_read: dict[str, str] = field(default_factory=dict)
     tools_read: dict[str, str] = field(default_factory=dict)
+    tools_granted: dict[str, str] = field(default_factory=dict)
 
     def add_requires(self, requires: Optional[dict[str, Any]], where: str) -> None:
         if not requires:
@@ -114,7 +115,9 @@ class _Usage:
 
     def add_effects(self, sets: dict[str, Any], logs: list[dict[str, Any]], where: str) -> None:
         for key in sets or {}:
-            if not key.startswith("trust."):
+            if key.startswith("tool."):
+                self.tools_granted.setdefault(key.split(".", 1)[1], where)
+            elif not key.startswith("trust."):
                 self.flags_set.setdefault(key, where)
         for entry in logs or []:
             self.journal_logged.setdefault(entry["id"], where)
@@ -123,11 +126,11 @@ class _Usage:
 def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], list[str]]:
     """Cross-file reference checks that don't need the reachability search.
     Returns (problems, warnings): a flag some `requires` reads but nothing
-    ever sets, a `journal_has` id nothing ever logs, and any `tool`
-    requirement (no story content can grant tools) are problems -- that gate
-    can never open. A flag that is set but never read is only a warning:
-    harmless, but usually a leftover or a typo. (A win_flag nothing sets is
-    reported by the search itself.)"""
+    ever sets, a `journal_has` id nothing ever logs, and a `tool` nothing
+    ever grants (`sets: {tool.<id>: true}`) are problems -- that gate can
+    never open. A flag set, or a tool granted, but never read is only a
+    warning: harmless, but usually a leftover or a typo. (A win_flag nothing
+    sets is reported by the search itself.)"""
     usage = _Usage()
     win_flags: set[str] = set()
     for chapter in story.chapters.values():
@@ -169,13 +172,19 @@ def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], l
         if entry not in usage.journal_logged
     ]
     problems += [
-        f"tool '{tool}' is required at {where}, but no story content can grant tools"
+        f"tool '{tool}' is required at {where}, but nothing ever grants it"
         for tool, where in sorted(usage.tools_read.items())
+        if tool not in usage.tools_granted
     ]
     warnings = [
         f"flag '{flag}' is set at {where}, but nothing ever reads it"
         for flag, where in sorted(usage.flags_set.items())
         if flag not in usage.flags_read
+    ]
+    warnings += [
+        f"tool '{tool}' is granted at {where}, but nothing ever requires it"
+        for tool, where in sorted(usage.tools_granted.items())
+        if tool not in usage.tools_read
     ]
     return problems, warnings
 

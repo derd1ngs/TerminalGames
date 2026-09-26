@@ -662,14 +662,15 @@ def cmd_status(args: list[str], runner: TerminalRunner) -> str:
         connection = "not connected"
     leads = state.journal.by_category("lead")
     counts = ", ".join(f"{state.journal.count(c)} {c}" for c in sorted(VALID_CATEGORIES))
-    return "\n".join(
-        [
-            f"Location:    {runner.discovered_at()}",
-            f"Connection:  {connection}",
-            f"Latest lead: {leads[-1].text if leads else 'none yet'}",
-            f"Journal:     {counts}",
-        ]
-    )
+    lines = [
+        f"Location:    {runner.discovered_at()}",
+        f"Connection:  {connection}",
+        f"Latest lead: {leads[-1].text if leads else 'none yet'}",
+        f"Journal:     {counts}",
+    ]
+    if state.tools:
+        lines.append(f"Tools:       {', '.join(sorted(state.tools))}")
+    return "\n".join(lines)
 
 
 @command("chat", usage="chat <contact> [topic]")
