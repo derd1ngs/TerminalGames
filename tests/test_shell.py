@@ -542,3 +542,11 @@ def test_status_lists_tools_once_granted(tmp_path):
     runner.state.add_tool("wireshark")
     runner.state.add_tool("lockpick")
     assert runner.execute("status").endswith("Tools:       lockpick, wireshark")
+
+
+def test_mail_compose_explains_the_form_or_the_draft_route(tmp_path):
+    runner = build_runner(tmp_path)
+    assert runner.execute("mail compose") == "mail compose: nobody here takes email."
+    runner.npcs = {"t": NPC(id="t", name="T", channel="email", topics={})}
+    assert "opens a form" in runner.execute("mail compose")
+    assert complete(runner, "mail co") == ["compose"]

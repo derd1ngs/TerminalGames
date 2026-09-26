@@ -17,10 +17,11 @@ from rich.markup import escape
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Input, OptionList, RichLog
+from textual.screen import ModalScreen
+from textual.widgets import Button, Footer, Header, Input, Label, OptionList, RichLog, Select, TextArea
 from textual.widgets.option_list import Option
 
-from .engine.session import GameSession
+from .engine.session import CommandResult, GameSession
 from .engine.shell import TerminalRunner, complete
 from .engine.story import Choice
 
@@ -51,6 +52,73 @@ class CommandInput(Input):
         self.history_index = max(0, min(len(self.history), self.history_index + step))
         self.value = self.history[self.history_index] if self.history_index < len(self.history) else ""
         self.cursor_position = len(self.value)
+
+
+class ComposeMailScreen(ModalScreen[tuple[str, str, str] | None]):
+    """`mail compose`: write a message to an email contact. Returns
+    (to, subject, body), or None if cancelled."""
+
+    DEFAULT_CSS = """
+    ComposeMailScreen { align: center middle; }
+    #compose-box {
+        width: 72; max-width: 100%; height: auto; max-height: 100%;
+        overflow-y: auto; border: round $warning; background: $surface; padding: 0 2;
+    }
+    #compose-box Label { margin-top: 1; color: $text-muted; }
+    #compose-box Label.first { margin-top: 0; }
+    #compose-body { height: 6; }
+    #compose-error { color: $error; }
+    #compose-buttons { height: auto; margin-top: 1; align-horizontal: right; }
+    #compose-buttons Button { margin-left: 2; }
+    """
+    BINDINGS = [Binding("escape", "cancel", "Cancel")]
+
+    def __init__(self, contacts: list[tuple[str, str]]) -> None:
+        super().__init__()
+        self.contacts = contacts  # (id, display name)
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="compose-box"):
+            yield Label("To", classes="first")
+            yield Select(
+                [(name, npc_id) for npc_id, name in self.contacts],
+                allow_blank=False,
+                value=self.contacts[0][0],
+                compact=True,
+                id="compose-to",
+            )
+            # Compact widgets keep the form within an 80x24 terminal.
+            yield Label("Subject")
+            yield Input(compact=True, id="compose-subject")
+            yield Label("Message")
+            yield TextArea(compact=True, id="compose-body")
+            yield Label("", id="compose-error")
+            with Horizontal(id="compose-buttons"):
+                yield Button("Cancel", compact=True, id="compose-cancel")
+                yield Button("Send", variant="primary", compact=True, id="compose-send")
+
+    def on_mount(self) -> None:
+        self.query_one("#compose-box", Vertical).border_title = "NEW MESSAGE"
+        self.query_one("#compose-subject", Input).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "compose-cancel":
+            self.dismiss(None)
+            return
+        subject = self.query_one("#compose-subject", Input).value.strip()
+        if not subject:
+            self.query_one("#compose-error", Label).update("A subject is required.")
+            self.query_one("#compose-subject", Input).focus()
+            return
+        to = str(self.query_one("#compose-to", Select).value)
+        self.dismiss((to, subject, self.query_one("#compose-body", TextArea).text))
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        event.stop()  # Enter in the subject moves on to the message, it doesn't send
+        self.query_one("#compose-body", TextArea).focus()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
 
 
 class GameApp(App):
@@ -227,11 +295,28 @@ class GameApp(App):
             self.log_terminal("Saved. Goodbye.", style="italic green")
             self.exit()
             return
+        if " ".join(raw.split()) == "mail compose" and self.session.email_contacts():
+            self.open_compose()
+            return
 
         self.run_command(raw)
 
     def run_command(self, raw: str) -> None:
-        result = self.session.run_command(raw)
+        self.show_result(self.session.run_command(raw))
+
+    def open_compose(self) -> None:
+        contacts = [(npc.id, npc.name) for npc in self.session.email_contacts()]
+        self.push_screen(ComposeMailScreen(contacts), callback=self.send_mail)
+
+    def send_mail(self, message: tuple[str, str, str] | None) -> None:
+        if message is None:
+            self.log_terminal("(message discarded)", style="dim")
+            return
+        to, subject, body = message
+        self.log_terminal(f'(mail to {escape(to)}: "{escape(subject)}")', style="dim")
+        self.show_result(self.session.compose_mail(to, subject, body))
+
+    def show_result(self, result: CommandResult) -> None:
         if result.output:
             self.log_terminal(escape(result.output))
         cmd_input = self.query_one("#command-input", CommandInput)

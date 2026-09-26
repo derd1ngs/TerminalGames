@@ -127,8 +127,9 @@ It plays like the TUI -- story, choices and terminal panes, Tab completion,
 Up/Down history, `Ctrl+S` -- with three browser-specific touches: number keys
 pick a choice; on phones and other touch or narrow screens, **⇥ ↑ ↓** buttons
 next to the input stand in for the Tab and arrow keys that on-screen
-keyboards lack; and a **Mail** button (in terminal scenes) replaces writing a
-draft file by hand for `mail sync`. It writes the draft into the slot's
+keyboards lack; and a **Mail** button (in terminal scenes, or typing `mail
+compose`) opens a form instead of writing a draft file by hand for `mail
+sync`. It writes the draft into the slot's
 `mail/draft/` directory and runs `mail sync`, so matching and bouncing follow
 exactly the same rules.
 
@@ -386,8 +387,11 @@ NPC's content.
 
 #### Mail as real files
 
-Email works two ways. `mail send <npc> <topic>` is the guided path -- exact
-topic id, no filesystem involved, same as `chat`. `mail sync` is the real-file
+Email works three ways. `mail send <npc> <topic>` is the guided path -- exact
+topic id, no filesystem involved, same as `chat`. `mail compose` opens a form
+(To, Subject, message) in the TUI and the browser; it writes the draft for you
+and runs `mail sync`, so it follows the same matching and bounce rules as the
+real-file path below. `mail sync` is the real-file
 path: outside the game, in the slot's sandbox directory
 (`saves/<story_id>/<slot>_sandbox/mail/draft/`), write a plain text file
 with `To:`/`Subject:` headers and a body, e.g.

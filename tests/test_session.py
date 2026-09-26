@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from terminalgames.engine.journal import JournalEntry
 from terminalgames.engine.puzzles import parse_config_text
 from terminalgames.engine.session import GameSession, StaleSaveError
 from terminalgames.engine.shell import Host, Network
@@ -150,3 +151,18 @@ def test_continuing_a_save_on_a_removed_scene_raises_stale_save_error(tmp_path):
 
     with pytest.raises(StaleSaveError, match="'chapter_01:cut_in_a_rewrite', which the story no longer has"):
         GameSession.open(Story.load(STORY_DIR), STORY_DIR, session.slot_path, fresh=False)
+
+
+def test_compose_mail_writes_a_real_draft_and_runs_mail_sync(tmp_path):
+    session = build_session(tmp_path)
+    session.state.journal.add(JournalEntry(id="lead_t_contact", category="lead", text="T exists."))
+    session.state.chapter_id, session.state.scene_id = "chapter_02", "contact_t"
+    session.enter_scene()
+    assert [npc.id for npc in session.email_contacts()] == ["t"]
+
+    bounced = session.compose_mail("t", "hello", "hi")
+    assert bounced.output.startswith("Bounced: draft_1.txt")
+    sent = session.compose_mail("t", "About the cold storage backup", "hi")
+    assert sent.output == "Sent: draft_2.txt -> T"
+    assert sent.advanced and session.scene.id == "waiting"
+    assert (session.runner.sandbox_root / "mail" / "sent" / "draft_2.txt").exists()

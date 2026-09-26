@@ -116,6 +116,24 @@ class GameSession:
         apply_effects({}, terminal.logs, self.state, self._here())
         return CommandResult(output, advanced=True, notices=self._advance(terminal.next))
 
+    def email_contacts(self) -> list[NPC]:
+        return [npc for npc in self.runner.npcs.values() if npc.channel == "email"]
+
+    def compose_mail(self, to: str, subject: str, body: str) -> CommandResult:
+        """Send a message written in a frontend's compose form: write it as a
+        real draft into the slot's `mail/draft/` directory, then run `mail
+        sync` -- so it goes through exactly the same matching and bounce rules
+        as a draft file the player wrote by hand."""
+        sandbox_root = self.runner.sandbox_root
+        assert sandbox_root is not None
+        draft_dir = sandbox_root / "mail" / "draft"
+        draft_dir.mkdir(parents=True, exist_ok=True)
+        n = 1
+        while any((draft_dir / name).exists() for name in (f"draft_{n}.txt", f"draft_{n}.txt.bounced")):
+            n += 1
+        (draft_dir / f"draft_{n}.txt").write_text(f"To: {to}\nSubject: {subject}\n\n{body}\n")
+        return self.run_command("mail sync")
+
     def endings_found(self) -> tuple[int, int]:
         """(found, total) endings of this story, across all its save slots."""
         entries = gallery(self.story, self.slot_path.parent)

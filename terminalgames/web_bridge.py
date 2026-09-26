@@ -193,24 +193,12 @@ def save() -> str:
 
 
 def email_contacts() -> str:
-    npcs = _require_session().runner.npcs
-    return json.dumps([{"id": npc.id, "name": npc.name} for npc in npcs.values() if npc.channel == "email"])
+    return json.dumps([{"id": npc.id, "name": npc.name} for npc in _require_session().email_contacts()])
 
 
 def compose_mail(to: str, subject: str, body: str) -> str:
-    """The browser's stand-in for writing a draft file by hand: write it
-    into the slot's real `mail/draft/` directory, then run `mail sync`, so
-    it goes through exactly the same matching/bounce rules."""
-    session = _require_session()
-    sandbox_root = session.runner.sandbox_root
-    assert sandbox_root is not None
-    draft_dir = sandbox_root / "mail" / "draft"
-    draft_dir.mkdir(parents=True, exist_ok=True)
-    n = 1
-    while any((draft_dir / name).exists() for name in (f"draft_{n}.txt", f"draft_{n}.txt.bounced")):
-        n += 1
-    (draft_dir / f"draft_{n}.txt").write_text(f"To: {to}\nSubject: {subject}\n\n{body}\n")
-    result = session.run_command("mail sync")
+    """The page's Mail dialog (see GameSession.compose_mail)."""
+    result = _require_session().compose_mail(to, subject, body)
     return _view(entered=result.advanced, output=result.output, notices=result.notices)
 
 

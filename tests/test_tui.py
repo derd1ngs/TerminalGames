@@ -15,7 +15,7 @@ from terminalgames.engine.session import GameSession
 from terminalgames.engine.shell import Network
 from terminalgames.engine.state import EmailMessage, GameState
 from terminalgames.engine.story import Story
-from terminalgames.tui import GameApp
+from terminalgames.tui import ComposeMailScreen, GameApp
 
 STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
 
@@ -366,3 +366,65 @@ async def test_ssh_password_is_masked_and_kept_out_of_history(tmp_path):
         assert cmd_input.password is False
         assert app.runner.state.current_user == "ops"
         assert app.runner.state.scene_id == "gateway_shell"  # connected_gateway solved recon
+
+
+async def _at_contact_t(app, pilot) -> None:
+    """Jump to Zero Day's contact_t scene, with T's cold_storage topic unlocked."""
+    await pilot.pause()
+    state = app.runner.state
+    state.journal.add(JournalEntry(id="lead_t_contact", category="lead", text="T exists."))
+    state.chapter_id, state.scene_id = "chapter_02", "contact_t"
+    app.session.enter_scene()
+    app.show_scene()
+    await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_mail_compose_opens_a_form_that_sends_through_mail_sync(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await _at_contact_t(app, pilot)
+        app.query_one("#command-input").value = "mail compose"
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, ComposeMailScreen)
+
+        await pilot.press(*"Cold storage passphrase?")
+        await pilot.press("enter")  # moves on to the message instead of sending
+        await pilot.pause()
+        assert isinstance(app.screen, ComposeMailScreen)
+        assert app.screen.focused.id == "compose-body"
+        await pilot.press(*"Remember it?")
+        # Sending solves the scene, which hides the terminal pane -- so record
+        # what gets logged rather than reading the (now invisible) pane.
+        logged = []
+        app.log_terminal = lambda text, style=None: logged.append(text)
+        await pilot.click("#compose-send")
+        await pilot.pause()
+
+        assert not isinstance(app.screen, ComposeMailScreen)
+        assert logged == ['(mail to t: "Cold storage passphrase?")', "Sent: draft_1.txt -> T"]
+        assert app.runner.state.scene_id == "waiting"
+        sent = app.runner.sandbox_root / "mail" / "sent" / "draft_1.txt"
+        assert "Subject: Cold storage passphrase?" in sent.read_text()
+        assert "Remember it?" in sent.read_text()
+
+
+@pytest.mark.asyncio
+async def test_mail_compose_requires_a_subject_and_escape_discards(tmp_path):
+    app = build_app(tmp_path)
+    async with app.run_test() as pilot:
+        await _at_contact_t(app, pilot)
+        app.query_one("#command-input").value = "mail compose"
+        await pilot.press("enter")
+        await pilot.pause()
+        await pilot.click("#compose-send")
+        await pilot.pause()
+        assert isinstance(app.screen, ComposeMailScreen)  # still open
+        assert "A subject is required." in str(app.screen.query_one("#compose-error").render())
+
+        await pilot.press("escape")
+        await pilot.pause()
+        assert not isinstance(app.screen, ComposeMailScreen)
+        assert "(message discarded)" in _pane_text(app, "#terminal-pane")
+        assert app.runner.state.scene_id == "contact_t"
