@@ -3,13 +3,19 @@
 [![Tests](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml)
 
 A hacker-themed CLI text adventure engine with a fake terminal, in the spirit
-of *Hackers*, *WarGames*, and *23*. Ships with one complete story, **Zero
-Day** -- a 3-chapter campaign that also doubles as an in-fiction tutorial: by
-the end you'll have used every shell command the fake terminal understands
-(`help`, `whoami`, `scan`, `connect`/`disconnect`, `ls`/`cd`/`cat`/`grep`,
-`set` + `systemctl`, `decrypt` with both cipher types, `journal`, `chat`, and
-`mail`), plus trust-building, gated dialogue, and a branching set of five
-endings.
+of *Hackers*, *WarGames*, and *23*. Ships with two complete stories:
+
+- **Zero Day** -- a 3-chapter campaign that also doubles as an in-fiction
+  tutorial: by the end you'll have used the core shell commands (`help`,
+  `whoami`, `scan`, `connect`/`disconnect`, `ls`/`cd`/`cat`/`grep`, `set` +
+  `systemctl`, `decrypt` with both cipher types, `journal`, `chat`, and
+  `mail`), plus trust-building, gated dialogue, and a branching set of six
+  endings.
+- **Dead Drop** -- a short one-chapter follow-up built on the newer shell
+  features: filtering a years-long log with pipes (`cat ... | grep ... |
+  grep ...`), an `ssh` login with a password you have to dig up, a runbook
+  you must follow to the letter, `status`/`journal <category>`, and four
+  endings gated on how far you trusted the friend who sent you.
 
 ## Running it
 
@@ -378,5 +384,7 @@ engine needs only PyYAML -- `tests/test_engine_is_ui_free.py` keeps Textual
 and Rich out of it. `terminalgames/tui.py` is the split-pane Textual
 frontend that renders it; `main.py` is just the pre-flight story/save picker
 that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
-structural story validator described above. `terminalgames/stories/
-story_01_zero_day/` is a complete worked content example.
+structural story validator described above. `terminalgames/stories/` holds
+the two shipped stories as complete worked content examples:
+`story_01_zero_day/` for the core features and `story_02_dead_drop/` for
+`ssh` logins, pipes, `ordered_commands` and `requires` combinators.

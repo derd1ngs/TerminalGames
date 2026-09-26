@@ -1,8 +1,7 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phases 0, 1 and 3 and Phase 4 items 1-6 are done;
-Phase 2 was skipped. Everything else is a proposal to review before
-implementation starts. Each phase is sized to be one PR and leaves the test
+Status as of 2026-09-26. Phases 0, 1, 3 and 4 are done; Phase 2 was
+skipped. Phase 5 is a proposal to review before implementation starts. Each phase is sized to be one PR and leaves the test
 suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -171,9 +170,10 @@ save" / "import save" pair of buttons (slot JSON + sandbox as one zip).
 
 ## Phase 4 -- gameplay and engine
 
-Items 1-6 are done. `ssh` asks for the password on the next line, the way
+All items are done; item 7 is the one-chapter story *Dead Drop*
+(`story_02_dead_drop`). `ssh` asks for the password on the next line, the way
 real ssh does, rather than taking it as an argument; frontends mask that line.
-A host with `logins` refuses `connect`. Item 7 (second story) is next.
+A host with `logins` refuses `connect`.
 
 Independent of each other; any order.
 

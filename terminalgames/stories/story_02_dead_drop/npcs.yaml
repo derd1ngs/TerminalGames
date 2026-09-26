@@ -1,0 +1,34 @@
+npcs:
+  - id: juno
+    name: "JUNO"
+    persona: "Mara's oldest friend. Worried, practical, and better at people than at shells."
+    channel: chat
+    topics:
+      - id: mara
+        prompt: "ask about Mara"
+        response: >
+          She lived on that relay. Talked to its logbot like it was a diary --
+          if she ever said a password out loud, it's in /var/log/relay.log.
+          But that log goes back years. Don't read it, filter it:
+          cat it, pipe it through grep mara, then grep again for whatever
+          you're after.
+        reliability: truthful
+
+      - id: vault
+        prompt: "ask about the vault"
+        requires:
+          flag: on_relay
+        response: >
+          The vault is where she kept the drop itself. Old OpenSSH box,
+          password logins only. Her username is just mara.
+        reliability: truthful
+
+      - id: runbook
+        prompt: "ask about the replica"
+        requires:
+          flag: on_vault
+        response: >
+          Mara wrote runbooks for everything and she meant every word.
+          If there's one on that box, do it exactly as written, in order,
+          with the same paths. She'd say the order is the whole point.
+        reliability: truthful
