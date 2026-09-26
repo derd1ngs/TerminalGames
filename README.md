@@ -70,7 +70,13 @@ scenes).
 In-game, at any point during a terminal scene you can type:
 - `:save` -- save your progress
 - `:quit` / `:exit` -- save and quit
-- `Ctrl+Q` also saves and quits from anywhere
+- `Ctrl+S` saves and `Ctrl+Q` saves and quits from anywhere, narrative scenes included
+
+The terminal input behaves like a small shell: `Up`/`Down` walk your command
+history, `Tab` completes command names, hosts, paths, services, contacts and
+topics (listing the candidates when there's more than one), quotes group
+words into one argument (`grep "failed login" /var/log/syslog`), and
+`help <command>` prints that command's usage.
 
 The current slot is also autosaved every time you cross into a new chapter,
 so a crash or an accidental quit never costs you more than the current
@@ -93,7 +99,7 @@ story_dir/
   npcs.yaml           # (optional) chat/email contacts
 ```
 
-A story can be a single short chapter (like Zero Day) or many chapters
+A story can be a single short chapter, a few (like Zero Day's three), or many chapters
 spanning a long, non-linear investigation -- the engine doesn't distinguish
 between the two. Scenes reference each other as `chapter_id:scene_id`, so a
 lead planted in chapter 3 can pay off in chapter 12.
@@ -207,7 +213,7 @@ prints the garbled result and writes nothing.
 
 Filesystem node types: `dir`, `text`, `config`, `cipher`.
 
-Shell commands available to the player: `help`, `whoami`, `scan <host>`,
+Shell commands available to the player: `help [command]`, `whoami`, `scan <host>`,
 `connect <host>`, `disconnect`/`exit`, `ls [path]`, `cd <path>`,
 `cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,
 `systemctl status|restart <service>`, `decrypt <file> <key>`,

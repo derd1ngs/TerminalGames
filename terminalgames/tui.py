@@ -12,17 +12,47 @@ that code.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from rich.markup import escape
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, Input, OptionList, RichLog
 from textual.widgets.option_list import Option
 
-from .engine.shell import Network, TerminalRunner
+from .engine.shell import Network, TerminalRunner, complete
 from .engine.state import EmailMessage, GameState
 from .engine.story import Choice, Scene, Story, apply_effects, check_requires
+
+
+class CommandInput(Input):
+    """The terminal's input line, with shell-style Up/Down history. Tab is
+    bound here (so it wins over the screen's focus-next binding) but handled
+    by the app, which owns the runner that completion needs."""
+
+    BINDINGS = [
+        Binding("up", "history(-1)", "Previous command", show=False),
+        Binding("down", "history(1)", "Next command", show=False),
+        Binding("tab", "app.complete_command", "Complete", show=False),
+    ]
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.history: list[str] = []
+        self.history_index = 0
+
+    def remember(self, command: str) -> None:
+        self.history.append(command)
+        self.history_index = len(self.history)
+
+    def action_history(self, step: int) -> None:
+        if not self.history:
+            return
+        self.history_index = max(0, min(len(self.history), self.history_index + step))
+        self.value = self.history[self.history_index] if self.history_index < len(self.history) else ""
+        self.cursor_position = len(self.value)
 
 
 class GameApp(App):
@@ -65,7 +95,7 @@ class GameApp(App):
     }
     """
 
-    BINDINGS = [("ctrl+q", "quit_game", "Save & quit")]
+    BINDINGS = [("ctrl+s", "save_game", "Save"), ("ctrl+q", "quit_game", "Save & quit")]
 
     def __init__(self, story: Story, network: Network, npcs: dict, state: GameState, slot_path: Path):
         super().__init__()
@@ -98,7 +128,7 @@ class GameApp(App):
                     highlight=False,
                     auto_scroll=True,
                 )
-                yield Input(id="command-input")
+                yield CommandInput(id="command-input")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -196,11 +226,12 @@ class GameApp(App):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if self.mode != "terminal":
             return
-        cmd_input = self.query_one("#command-input", Input)
+        cmd_input = self.query_one("#command-input", CommandInput)
         raw = event.value.strip()
         cmd_input.value = ""
         if not raw:
             return
+        cmd_input.remember(raw)
 
         prompt = f"{self.runner.current_host or 'local'}$"
         self.log_terminal(f"{prompt} {escape(raw)}", style="dim")
@@ -229,6 +260,25 @@ class GameApp(App):
             self.notify_new_mail(self.runner.advance_scene())
             self.maybe_autosave(previous_chapter_id)
             self.show_scene()
+
+    def action_complete_command(self) -> None:
+        cmd_input = self.query_one("#command-input", CommandInput)
+        line = cmd_input.value
+        candidates = complete(self.runner, line)
+        if not candidates:
+            return
+        prefix = line.split(" ")[-1]
+        common = os.path.commonprefix(candidates)
+        if len(candidates) == 1 and not common.endswith("/"):
+            common += " "
+        elif common == prefix:
+            self.log_terminal(escape("  ".join(candidates)), style="dim")
+        cmd_input.value = line[: len(line) - len(prefix)] + common
+        cmd_input.cursor_position = len(cmd_input.value)
+
+    def action_save_game(self) -> None:
+        self.runner.state.save(self.slot_path)
+        self.log_text("Saved.", style="italic green")
 
     def action_quit_game(self) -> None:
         self.runner.state.save(self.slot_path)

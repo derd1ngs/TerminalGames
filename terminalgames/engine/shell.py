@@ -10,6 +10,7 @@ changes (the "escalating depth" plan).
 
 from __future__ import annotations
 
+import shlex
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Optional
@@ -137,7 +138,6 @@ class Service:
     config_path: str
     required_config: dict[str, str]
     on_fix_flag: Optional[str] = None
-    running: bool = False
 
 
 @dataclass
@@ -201,12 +201,14 @@ class Network:
 # --- command dispatch ---------------------------------------------------------
 
 COMMANDS: dict[str, Callable[[list[str], "TerminalRunner"], str]] = {}
+USAGE: dict[str, str] = {}
 
 
-def command(*names: str) -> Callable:
+def command(*names: str, usage: str = "") -> Callable:
     def decorator(fn: Callable) -> Callable:
         for name in names:
             COMMANDS[name] = fn
+            USAGE[name] = usage or name
         return fn
 
     return decorator
@@ -274,7 +276,12 @@ class TerminalRunner:
         raw = raw.strip()
         if not raw:
             return ""
-        name, *args = raw.split()
+        try:
+            name, *args = shlex.split(raw)
+        except ValueError as exc:
+            return f"parse error: {exc}"
+        if not name:
+            return ""
         handler = COMMANDS.get(name)
         if handler is None:
             return f"command not found: {name}"
@@ -282,6 +289,68 @@ class TerminalRunner:
             return handler(args, self)
         except CommandError as exc:
             return str(exc)
+
+
+# --- tab completion ------------------------------------------------------------
+#
+# Pure engine logic (no UI), so any frontend can offer the same completions.
+
+# command -> the argument positions that take a path on the current host
+PATH_ARGS: dict[str, set[int]] = {"ls": {1}, "cd": {1}, "cat": {1}, "grep": {2}, "set": {1}, "decrypt": {1}}
+
+
+def complete(runner: TerminalRunner, line: str) -> list[str]:
+    """Sorted candidates for the last (possibly empty) word of `line` --
+    command names for the first word, then hosts/paths/services/contacts/
+    topics depending on the command. Each candidate is a full replacement
+    for that last word; directories end in "/"."""
+    words = line.split(" ")
+    prefix = words[-1]
+    pool = COMMANDS.keys() if len(words) == 1 else _argument_candidates(runner, words, prefix)
+    return sorted(c for c in set(pool) if c.startswith(prefix))
+
+
+def _argument_candidates(runner: TerminalRunner, words: list[str], prefix: str) -> list[str]:
+    cmd, position = words[0], len(words) - 1
+    if position in PATH_ARGS.get(cmd, set()):
+        return _path_candidates(runner, prefix)
+    if cmd == "help" and position == 1:
+        return list(COMMANDS)
+    if cmd in ("scan", "connect") and position == 1:
+        return list(runner.network.hosts)
+    if cmd == "systemctl":
+        if position == 1:
+            return ["status", "restart"]
+        if position == 2 and runner.host:
+            return list(runner.host.services)
+    if cmd == "chat":
+        if position == 1:
+            return [npc_id for npc_id, npc in runner.npcs.items() if npc.channel == "chat"]
+        npc = runner.npcs.get(words[1])
+        if position == 2 and npc:
+            return [t.id for t in npc.available_topics(runner.state)]
+    if cmd == "mail":
+        if position == 1:
+            return ["list", "read", "send", "sync"]
+        if position == 2 and words[1] == "read":
+            return [m.id for m in runner.state.inbox()]
+        if position == 2 and words[1] == "send":
+            return [npc_id for npc_id, npc in runner.npcs.items() if npc.channel == "email"]
+        npc = runner.npcs.get(words[2]) if len(words) > 2 else None
+        if position == 3 and words[1] == "send" and npc:
+            return [t.id for t in npc.available_topics(runner.state)]
+    return []
+
+
+def _path_candidates(runner: TerminalRunner, prefix: str) -> list[str]:
+    if runner.host is None or runner.sandbox_root is None:
+        return []
+    dir_part = prefix[: prefix.rfind("/") + 1]  # "etc/ne" -> "etc/", "ne" -> ""
+    virtual_dir = normalize_path(runner.cwd, dir_part or None)
+    real_dir = resolve_real_path(_host_dir(runner, runner.host), virtual_dir)
+    if not real_dir.is_dir():
+        return []
+    return [dir_part + p.name + ("/" if p.is_dir() else "") for p in real_dir.iterdir()]
 
 
 def _require_host(runner: TerminalRunner) -> Host:
@@ -296,17 +365,21 @@ def _host_dir(runner: TerminalRunner, host: Host) -> Path:
     return runner.sandbox_root / "hosts" / host.id
 
 
-@command("help")
+@command("help", usage="help [command]")
 def cmd_help(args: list[str], runner: TerminalRunner) -> str:
-    return "Available commands: " + ", ".join(sorted(COMMANDS.keys()))
+    if args:
+        if args[0] not in USAGE:
+            return f"help: no such command '{args[0]}'"
+        return f"usage: {USAGE[args[0]]}"
+    return "Available commands: " + ", ".join(sorted(COMMANDS.keys())) + "\nType 'help <command>' for usage."
 
 
-@command("whoami")
+@command("whoami", usage="whoami")
 def cmd_whoami(args: list[str], runner: TerminalRunner) -> str:
     return f"user@{runner.host.id}" if runner.host else "user@localhost"
 
 
-@command("scan")
+@command("scan", usage="scan <host>")
 def cmd_scan(args: list[str], runner: TerminalRunner) -> str:
     if not args:
         raise CommandError("usage: scan <host>")
@@ -321,7 +394,7 @@ def cmd_scan(args: list[str], runner: TerminalRunner) -> str:
     return "\n".join(lines)
 
 
-@command("connect")
+@command("connect", usage="connect <host>")
 def cmd_connect(args: list[str], runner: TerminalRunner) -> str:
     if not args:
         raise CommandError("usage: connect <host>")
@@ -338,7 +411,7 @@ def cmd_connect(args: list[str], runner: TerminalRunner) -> str:
     return f"Connected to {host_id} ({host.address})."
 
 
-@command("disconnect", "exit")
+@command("disconnect", "exit", usage="disconnect")
 def cmd_disconnect(args: list[str], runner: TerminalRunner) -> str:
     if runner.current_host is None:
         return "not connected to any host"
@@ -348,7 +421,7 @@ def cmd_disconnect(args: list[str], runner: TerminalRunner) -> str:
     return f"Disconnected from {host_id}."
 
 
-@command("ls")
+@command("ls", usage="ls [path]")
 def cmd_ls(args: list[str], runner: TerminalRunner) -> str:
     host = _require_host(runner)
     host_dir = _host_dir(runner, host)
@@ -364,7 +437,7 @@ def cmd_ls(args: list[str], runner: TerminalRunner) -> str:
     return "  ".join(p.name + "/" if p.is_dir() else p.name for p in entries)
 
 
-@command("cd")
+@command("cd", usage="cd <path>")
 def cmd_cd(args: list[str], runner: TerminalRunner) -> str:
     host = _require_host(runner)
     host_dir = _host_dir(runner, host)
@@ -376,7 +449,7 @@ def cmd_cd(args: list[str], runner: TerminalRunner) -> str:
     return path
 
 
-@command("cat")
+@command("cat", usage="cat <file>")
 def cmd_cat(args: list[str], runner: TerminalRunner) -> str:
     if not args:
         raise CommandError("usage: cat <file>")
@@ -394,7 +467,7 @@ def cmd_cat(args: list[str], runner: TerminalRunner) -> str:
     return content
 
 
-@command("grep")
+@command("grep", usage='grep <pattern> <file>  (quote a pattern with spaces: grep "failed login" <file>)')
 def cmd_grep(args: list[str], runner: TerminalRunner) -> str:
     if len(args) < 2:
         raise CommandError("usage: grep <pattern> <file>")
@@ -409,7 +482,7 @@ def cmd_grep(args: list[str], runner: TerminalRunner) -> str:
     return "\n".join(matches) if matches else f"grep: no matches for '{pattern}'"
 
 
-@command("set")
+@command("set", usage="set <file> <key> <value>")
 def cmd_set(args: list[str], runner: TerminalRunner) -> str:
     if len(args) < 3:
         raise CommandError("usage: set <file> <key> <value>")
@@ -428,7 +501,7 @@ def cmd_set(args: list[str], runner: TerminalRunner) -> str:
     return f"{path}: {key} = {value}"
 
 
-@command("systemctl")
+@command("systemctl", usage="systemctl <status|restart> <service>")
 def cmd_systemctl(args: list[str], runner: TerminalRunner) -> str:
     if len(args) < 2:
         raise CommandError("usage: systemctl <status|restart> <service>")
@@ -437,8 +510,10 @@ def cmd_systemctl(args: list[str], runner: TerminalRunner) -> str:
     service = host.services.get(service_id)
     if service is None:
         return f"systemctl: unknown service '{service_id}'"
+    running_key = f"{host.id}/{service_id}"
     if action == "status":
-        return f"{service_id}.service - {'active (running)' if service.running else 'failed'}"
+        running = running_key in runner.state.running_services
+        return f"{service_id}.service - {'active (running)' if running else 'failed'}"
     if action == "restart":
         host_dir = _host_dir(runner, host)
         real_path = resolve_real_path(host_dir, service.config_path)
@@ -446,16 +521,17 @@ def cmd_systemctl(args: list[str], runner: TerminalRunner) -> str:
             return f"systemctl: config missing for '{service_id}'"
         values = parse_config_text(real_path.read_text())
         ok, reason = validate_config(values, service.required_config)
-        service.running = ok
         if ok:
+            runner.state.running_services.add(running_key)
             if service.on_fix_flag:
                 runner.state.set_flag(service.on_fix_flag, True)
             return f"Restarting {service_id}.service... done.\n{service_id}.service is now active (running)."
+        runner.state.running_services.discard(running_key)
         return f"Restarting {service_id}.service... failed.\n{reason}"
     return f"systemctl: unknown action '{action}'"
 
 
-@command("decrypt")
+@command("decrypt", usage="decrypt <file> <key>")
 def cmd_decrypt(args: list[str], runner: TerminalRunner) -> str:
     if len(args) < 2:
         raise CommandError("usage: decrypt <file> <key>")
@@ -477,7 +553,7 @@ def cmd_decrypt(args: list[str], runner: TerminalRunner) -> str:
     return f"Decryption produced garbage:\n{decoded}"
 
 
-@command("journal", "notebook")
+@command("journal", "notebook", usage="journal")
 def cmd_journal(args: list[str], runner: TerminalRunner) -> str:
     entries = runner.state.journal.all()
     if not entries:
@@ -485,7 +561,7 @@ def cmd_journal(args: list[str], runner: TerminalRunner) -> str:
     return "\n".join(f"[{e.category}] {e.text} ({e.discovered_at})" for e in entries)
 
 
-@command("chat")
+@command("chat", usage="chat <contact> [topic]")
 def cmd_chat(args: list[str], runner: TerminalRunner) -> str:
     if not args:
         raise CommandError("usage: chat <contact> [topic]")
@@ -550,7 +626,7 @@ def _mail_sync(runner: TerminalRunner) -> str:
     return "\n".join(results)
 
 
-@command("mail")
+@command("mail", usage="mail [list|read <id>|send <contact> <topic>|sync]")
 def cmd_mail(args: list[str], runner: TerminalRunner) -> str:
     if not args or args[0] == "list":
         inbox = runner.state.inbox()

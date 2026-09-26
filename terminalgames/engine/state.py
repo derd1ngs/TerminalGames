@@ -56,6 +56,9 @@ class GameState:
     scenes_visited: int = 0
     current_host: Optional[str] = None
     cwd: str = "/"
+    # "<host_id>/<service_id>" for every service the player has successfully
+    # restarted -- kept here rather than on `Service` so it survives save/continue.
+    running_services: set[str] = field(default_factory=set)
     saved_at: str = ""
 
     def set_flag(self, key: str, value: Any = True) -> None:
@@ -120,6 +123,7 @@ class GameState:
             "scenes_visited": self.scenes_visited,
             "current_host": self.current_host,
             "cwd": self.cwd,
+            "running_services": sorted(self.running_services),
             "saved_at": self.saved_at,
         }
 
@@ -138,6 +142,7 @@ class GameState:
             scenes_visited=data.get("scenes_visited", 0),
             current_host=data.get("current_host"),
             cwd=data.get("cwd", "/"),
+            running_services=set(data.get("running_services", [])),
             saved_at=data.get("saved_at", ""),
         )
 
