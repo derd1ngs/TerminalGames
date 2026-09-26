@@ -43,3 +43,8 @@
 - To look at the TUI: `app.save_screenshot(filename=..., path=...)` inside
   `run_test(size=(80, 24))` writes an SVG; Playwright's Firefox can open it
   via `file://` and screenshot it to PNG.
+- Offline e2e in Playwright's Firefox: `context.setOffline(true)` is
+  unusable -- Firefox either serves its HTTP cache (the test passes even with
+  a broken service worker) or refuses the reload (`NS_ERROR_OFFLINE`). Cut
+  the network with `context.route("**/*", r => r.abort())` instead: routing
+  also disables the HTTP cache, so only the service worker can serve.

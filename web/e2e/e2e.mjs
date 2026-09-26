@@ -7,8 +7,8 @@
 // Plays real scenes of both stories against a built site: boot (Pyodide
 // from the CDN), menus, choices, the terminal (Tab, history, pipes, ssh
 // password masking, a procedure puzzle), saves surviving a reload, moving a
-// save to another browser via export/import, the phone layout, and no
-// console errors. Screenshots land in ./shots/.
+// save to another browser via export/import, playing offline after one
+// online visit, the phone layout, and no console errors. Screenshots land in ./shots/.
 // Exits non-zero if any check fails.
 
 import { mkdirSync } from "node:fs";
@@ -216,6 +216,29 @@ async function saveFiles(browser) {
   await b.context().close();
 }
 
+async function offline(browser) {
+  console.log("Offline play (after one online visit)");
+  const page = await openPage(browser);
+  await page.waitForSelector("#offline-status:not([hidden])", { timeout: BOOT_TIMEOUT });
+  check(true, "menu reports it works offline after the first visit");
+  // Cut the network by aborting every request. (setOffline isn't usable:
+  // Firefox then serves its HTTP cache -- passing even without the worker --
+  // or refuses the reload outright.) Routing also disables the HTTP cache,
+  // so only what the service worker serves can load.
+  await page.context().route("**/*", (route) => route.abort());
+  await page.reload();
+  await page.waitForSelector("#screen-menu:not([hidden])", { timeout: BOOT_TIMEOUT });
+  check(true, "boots with the network off");
+  await newGame(page, "Dead Drop", "offline");
+  await page.keyboard.press("1");
+  await page.waitForSelector("#terminal-pane:not(.inactive)");
+  await run(page, "connect relay");
+  await waitForPrompt(page, "relay$");
+  check(true, "plays with the network off");
+  noErrors(page, "Offline");
+  await page.context().close();
+}
+
 async function phone(browser) {
   console.log("Phone layout (390px)");
   const page = await openPage(browser, { width: 390, height: 780 });
@@ -252,7 +275,7 @@ async function phone(browser) {
 
 const browser = await firefox.launch();
 try {
-  for (const scenario of [zeroDay, deadDrop, saveFiles, phone]) {
+  for (const scenario of [zeroDay, deadDrop, saveFiles, offline, phone]) {
     try {
       await scenario(browser);
     } catch (err) {

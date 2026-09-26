@@ -3,7 +3,8 @@
 Copies the page assets from web/ and zips just the Python the page runs in
 Pyodide -- terminalgames/__init__.py, engine/, stories/ and web_bridge.py,
 never the Textual frontend. The zip's content hash is stamped into app.js
-so a new deploy is never served a stale cached zip.
+and the service worker (sw.js), so a new deploy is never served a stale
+cached zip and replaces the offline cache.
 
     python web/build.py [OUT_DIR]
     python -m http.server -d _site 8000    # then open http://localhost:8000
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 PACKAGE_DIR = ROOT / "terminalgames"
 ASSETS = ["index.html", "style.css"]
+STAMPED = ["app.js", "sw.js"]  # get the build id in place of __BUILD_ID__
 PYTHON_PARTS = ["__init__.py", "engine", "stories", "web_bridge.py"]
 
 
@@ -41,15 +43,26 @@ def python_zip() -> bytes:
     return buffer.getvalue()
 
 
+def compute_build_id(data: bytes) -> str:
+    """A hash of everything the site ships -- the Python zip *and* every web
+    file. The service worker is only replaced when sw.js changes, and this id
+    is stamped into it, so a change to any shipped file must change the id
+    (or offline players would keep the old page forever)."""
+    digest = hashlib.sha256(data)
+    for name in ASSETS + STAMPED:
+        digest.update((WEB_DIR / name).read_bytes())
+    return digest.hexdigest()[:12]
+
+
 def build(out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for name in ASSETS:
         shutil.copyfile(WEB_DIR / name, out_dir / name)
     data = python_zip()
     (out_dir / "terminalgames.zip").write_bytes(data)
-    build_id = hashlib.sha256(data).hexdigest()[:12]
-    app_js = (WEB_DIR / "app.js").read_text().replace("__BUILD_ID__", build_id)
-    (out_dir / "app.js").write_text(app_js)
+    build_id = compute_build_id(data)
+    for name in STAMPED:
+        (out_dir / name).write_text((WEB_DIR / name).read_text().replace("__BUILD_ID__", build_id))
     print(f"Built {out_dir} (build {build_id})")
 
 
