@@ -31,3 +31,8 @@
   running Pyodide under Node, pass `unpackArchive` a
   `new Uint8Array(buf).buffer` -- a Node `Buffer` fails with "Unknown typed
   array type".
+- The editable install from `setup.sh` hides packaging mistakes: any new
+  non-`.py` file under `terminalgames/` (story YAML, data) must be listed in
+  `[tool.setuptools.package-data]` in `pyproject.toml`, or a real install
+  silently lacks it. CI's `package` job (wheel -> clean venv -> run outside
+  the repo) catches this.
