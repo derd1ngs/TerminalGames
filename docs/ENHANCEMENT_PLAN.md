@@ -1,8 +1,8 @@
 # Enhancement plan
 
 Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
-skipped. Each phase is sized to be one PR and leaves the test
-suite and CI green.
+skipped. Phase 6 is done; Phases 7-9 are proposals. Each phase is
+sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
 
@@ -169,7 +169,7 @@ choice. It's cheap: the files are tiny.
 caching); IndexedDB can be cleared by the browser, so offer a "download
 save" / "import save" pair of buttons (slot JSON + sandbox as one zip).
 
-## Phase 4 -- gameplay and engine
+## Phase 4 -- gameplay and engine (done)
 
 All items are done; item 7 is the one-chapter story *Dead Drop*
 (`story_02_dead_drop`). `ssh` asks for the password on the next line, the way
@@ -217,16 +217,65 @@ The original plan follows.
    or topic ever logs.
 2. `check_story --graph`: emit a Graphviz/Mermaid scene graph for authors.
 
-## Suggested order
+## Phase 6 -- robustness (done)
 
-Phase 1 -> Phase 2 (a quick win, same day) -> Phase 3 -> Phases 4/5 as
-wanted. Phases 4 and 5 don't depend on 2 or 3.
+From a second analysis of the finished project; each item was reproduced
+first. Delivered as planned, with one correction: clamping trust on *both*
+sides turned out to be unsound (trust 1 and 2 aren't interchangeable if it
+can still rise to 3). Trust is therefore clamped at the top only when
+nothing lowers it, and at the bottom only when nothing raises it. A new
+`package` CI job installs the built wheel into a clean venv and runs it
+outside the repo.
 
-## Decisions needed from you
+1. **Packaging**: a built wheel contains *no stories* (0 YAML files), so an
+   installed `terminalgames` finds nothing, and saves would land next to the
+   package directory, i.e. inside site-packages. Declare the stories as
+   package data and move saves to the per-user data directory
+   (`platformdirs`, already installed via Textual); keep a repo checkout
+   using `saves/` so existing local saves stay put.
+2. **Strict story loading**: unknown keys (`requries:`) are silently
+   ignored, and invalid values (journal category `tracee`, scene type) load
+   without complaint. Reject them at load time, suggesting the closest valid
+   key.
+3. **Finite checker search**: a loop that keeps raising trust makes every
+   pass a new state, so the search stops at its cap with no useful message.
+   Treat trust above the highest threshold any `trust_at_least` checks as
+   equivalent.
+4. **Stale saves**: continuing a save whose scene a later story edit
+   removed raises a raw `StoryLoadError` (a traceback in the TUI, "internal
+   error" in the browser). Say so plainly and offer to restart the slot.
 
-1. **Phase 2 at all?** Skip it if you only care about the public static
-   build.
-2. **Browser save portability:** is the "download/import save" button in
-   scope for Phase 3's first version, or a follow-up?
-3. **Pages URL:** the default `derd1ngs.github.io/TerminalGames`, or a
-   custom domain?
+## Phase 7 -- player experience
+
+1. **Mobile input**: phone keyboards have no Tab or arrow keys; add a small
+   completion/history button row above the browser's input line.
+2. **`hint`**: per-scene hints written by the story author, revealed one at a
+   time.
+3. **Endings gallery**: which endings a player has found per story (e.g.
+   "2/4" in the slot menu), kept separately from save slots.
+4. **Mail compose in the TUI**, matching the browser's Mail dialog.
+5. **Offline browser play**: a service worker caching Pyodide and the game.
+
+## Phase 8 -- content and engine
+
+1. A third story that uses tool grants, possibly with a new puzzle type
+   (e.g. a "trace meter" limiting commands before disconnect).
+2. More shell commands: `head`/`tail`, `find`, `ls -a` with hidden files,
+   `history`, `clear`, `man <cmd>`.
+
+## Phase 9 -- distribution
+
+After Phase 6's packaging fix: a version bump, a changelog, and a release
+workflow publishing to PyPI, so `pipx install terminalgames` works.
+
+## Suggested order (Phases 6-9)
+
+Phase 6 as one PR first (item 1 is a real bug; 2 and 3 catch authoring
+mistakes early), then Phase 7 item 1 (the site is public), then the rest as
+wanted.
+
+## Decisions (resolved)
+
+1. Phase 2 was skipped in favour of Phase 3.
+2. Save download/import shipped as a follow-up to Phase 3.
+3. The site uses the default URL, `derd1ngs.github.io/TerminalGames/`.

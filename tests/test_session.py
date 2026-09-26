@@ -1,9 +1,12 @@
 """GameSession: the UI-free game loop every frontend drives."""
 
+import json
 from pathlib import Path
 
+import pytest
+
 from terminalgames.engine.puzzles import parse_config_text
-from terminalgames.engine.session import GameSession
+from terminalgames.engine.session import GameSession, StaleSaveError
 from terminalgames.engine.shell import Host, Network
 from terminalgames.engine.state import GameState
 from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock
@@ -136,3 +139,14 @@ def test_a_wrong_step_breaks_the_sequence(tmp_path):
     for raw in ["systemctl status db", "ls", "whoami"]:
         session.run_command(raw)
     assert not session.run_command("status").advanced
+
+
+def test_continuing_a_save_on_a_removed_scene_raises_stale_save_error(tmp_path):
+    session = build_session(tmp_path)
+    session.save()
+    data = json.loads(session.slot_path.read_text())
+    data["scene_id"] = "cut_in_a_rewrite"
+    session.slot_path.write_text(json.dumps(data))
+
+    with pytest.raises(StaleSaveError, match="'chapter_01:cut_in_a_rewrite', which the story no longer has"):
+        GameSession.open(Story.load(STORY_DIR), STORY_DIR, session.slot_path, fresh=False)

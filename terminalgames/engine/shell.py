@@ -17,6 +17,7 @@ from typing import Any, Callable, Optional
 
 import yaml
 
+from . import schema
 from .dialogue import (
     NPC,
     DialogueError,
@@ -28,12 +29,9 @@ from .dialogue import (
 )
 from .journal import VALID_CATEGORIES
 from .puzzles import decode_cipher, grep_lines, parse_config_text, render_config_text, validate_config
+from .schema import StoryLoadError
 from .state import EmailMessage, GameState
 from .story import check_requires
-
-
-class StoryLoadError(Exception):
-    pass
 
 
 class CommandError(Exception):
@@ -62,26 +60,43 @@ class CipherMeta:
     on_success_flag: Optional[str] = None
 
 
-def collect_cipher_meta(fs_data: dict[str, Any], prefix: str = "") -> dict[str, CipherMeta]:
+FS_NODE_KEYS = {
+    "dir": {"type", "entries"},
+    "text": {"type", "content"},
+    "config": {"type", "values"},
+    "cipher": {"type", "cipher", "ciphertext", "plaintext", "on_success_flag"},
+}
+
+
+def collect_cipher_meta(
+    fs_data: dict[str, Any], prefix: str = "", where: str = "filesystem"
+) -> dict[str, CipherMeta]:
     """Recursively collect `{virtual_path: CipherMeta}` for every cipher-type
     node in a `filesystem:` YAML block, keyed in the same normalized form
-    `normalize_path` produces. Also validates node types up front, the same
-    way the old in-memory tree-builder did, so a malformed story fails at
-    load time rather than the first time a player reaches that host."""
+    `normalize_path` produces. Also validates every node strictly (type,
+    keys, cipher kind) up front, so a malformed story fails at load time
+    rather than the first time a player reaches that host."""
     ciphers: dict[str, CipherMeta] = {}
+    if not isinstance(fs_data, dict):  # any file name is a valid key
+        raise StoryLoadError(f"{where}: expected a mapping, got {type(fs_data).__name__}")
     for name, node in fs_data.items():
         path = f"{prefix}/{name}"
+        node_where = f"{where} '{path}'"
+        if not isinstance(node, dict):
+            raise StoryLoadError(f"{node_where}: expected a mapping, got {type(node).__name__}")
         node_type = node.get("type", "dir")
+        schema.check_value(node_type, FS_NODE_KEYS, "filesystem node type", node_where)
+        required = {"ciphertext", "plaintext"} if node_type == "cipher" else ()
+        schema.check_keys(node, FS_NODE_KEYS[node_type], node_where, required=required)
         if node_type == "dir":
-            ciphers.update(collect_cipher_meta(node.get("entries", {}), path))
+            ciphers.update(collect_cipher_meta(node.get("entries", {}), path, where))
         elif node_type == "cipher":
+            schema.check_value(node.get("cipher", "caesar"), {"caesar", "xor"}, "cipher", node_where)
             ciphers[path] = CipherMeta(
                 cipher=node.get("cipher", "caesar"),
                 plaintext=node.get("plaintext", ""),
                 on_success_flag=node.get("on_success_flag"),
             )
-        elif node_type not in ("text", "config"):
-            raise StoryLoadError(f"Unknown filesystem node type '{node_type}'")
     return ciphers
 
 
@@ -158,6 +173,17 @@ class Host:
     filesystem: dict[str, Any] = field(default_factory=dict)
 
 
+HOST_KEYS = {
+    "address",
+    "banner",
+    "requires_to_connect",
+    "on_connect_flag",
+    "logins",
+    "services",
+    "filesystem",
+}
+
+
 @dataclass
 class Network:
     hosts: dict[str, Host] = field(default_factory=dict)
@@ -165,8 +191,21 @@ class Network:
     @classmethod
     def load(cls, path: Path) -> "Network":
         data = yaml.safe_load(path.read_text()) or {}
+        schema.check_keys(data, {"hosts"}, path.name)
         hosts: dict[str, Host] = {}
         for host_id, hd in (data.get("hosts") or {}).items():
+            where = f"{path.name} host '{host_id}'"
+            schema.check_keys(hd, HOST_KEYS, where)
+            schema.check_requires(hd.get("requires_to_connect"), where)
+            for svc_id, sd in (hd.get("services") or {}).items():
+                schema.check_keys(
+                    sd,
+                    {"config_path", "required_config", "on_fix_flag"},
+                    f"{where} service '{svc_id}'",
+                    {"config_path"},
+                )
+            if not isinstance(hd.get("logins") or {}, dict):
+                raise StoryLoadError(f"{where} logins: expected a mapping of user: password")
             services = {
                 svc_id: Service(
                     id=svc_id,
@@ -185,7 +224,7 @@ class Network:
                 on_connect_flag=hd.get("on_connect_flag"),
                 logins={str(user): str(pw) for user, pw in (hd.get("logins") or {}).items()},
                 services=services,
-                ciphers=collect_cipher_meta(filesystem),
+                ciphers=collect_cipher_meta(filesystem, where=f"{where} file"),
                 filesystem=filesystem,
             )
         return cls(hosts=hosts)

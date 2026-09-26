@@ -61,6 +61,13 @@ last-saved time) and lets you pick one to continue or name a new one.
 (Saves from before slots existed, at the old flat `saves/<story_id>.json`
 path, are migrated into the `default` slot automatically.)
 
+`saves/` is the repo's own folder when you run from a checkout (as
+`setup.sh` does). An installed copy (`pip install .`, or later from PyPI)
+keeps its saves in your user data directory instead, e.g.
+`~/.local/share/terminalgames/saves/` on Linux. If a story was edited so
+that a save's scene no longer exists, continuing explains that and offers
+to restart the slot.
+
 Each slot also gets a real sandbox directory on disk
 (`saves/<story_id>/<slot>_sandbox/hosts/<host_id>/`) -- every file a story's
 `network.yaml` describes for a host is materialized there as an actual file,
@@ -157,6 +164,13 @@ story_dir/
   network.yaml       # (optional) the virtual hosts the fake terminal exposes
   npcs.yaml           # (optional) chat/email contacts
 ```
+
+Story files are loaded strictly. An unknown key (a typo like `requries:`) or
+an invalid value (a journal category `tracee`, a scene type, an NPC channel)
+is a load error that names the file, scene and choice, and suggests the
+closest valid key. Scenes must also be consistent: a terminal scene needs its
+`terminal` block, an ending has no choices, and a narrative scene without
+choices would be a dead end.
 
 A story can be a single short chapter, a few (like Zero Day's three), or many chapters
 spanning a long, non-linear investigation -- the engine doesn't distinguish

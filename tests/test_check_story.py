@@ -435,3 +435,64 @@ def test_graph_cli_prints_a_story_graph(capsys):
 def test_graph_cli_rejects_all(capsys):
     with pytest.raises(SystemExit):
         main(["--all", "--graph"])
+
+
+def test_a_trust_raising_loop_keeps_the_search_finite():
+    """Every pass round the loop used to be a new state (trust 1, 2, 3, ...),
+    so the search ran into its cap. Trust is clamped to the thresholds that
+    are actually checked, so the loop closes after a few passes."""
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text="flatter", next="c1:start", sets={"trust.x": 1}),
+                    Choice(text="ask", next="c1:end", requires={"trust_at_least": {"npc": "x", "value": 3}}),
+                ],
+            ),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    assert check_story(story, Network(), {}).ok
+    assert check_story(story, Network(), {}, max_states=10).ok  # a handful of states, not thousands
+
+
+def test_trust_nobody_checks_is_ignored_by_the_search():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text="loop", next="c1:start", sets={"trust.y": 1}),
+                    Choice(text="go", next="c1:end"),
+                ],
+            ),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    assert check_story(story, Network(), {}, max_states=5).ok
+
+
+def test_trust_that_can_rise_and_fall_is_not_merged():
+    """With both directions possible no clamp is sound, so a small cap is
+    hit -- and the message says what's likely going on."""
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text="flatter", next="c1:start", sets={"trust.x": 1}),
+                    Choice(text="insult", next="c1:start", sets={"trust.x": -1}),
+                    Choice(text="ask", next="c1:end", requires={"trust_at_least": {"npc": "x", "value": 3}}),
+                ],
+            ),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {}, max_states=50)
+
+    assert "end" in report.visited_endings  # the reachable ending is still found
+    assert any("trust that can both rise and fall" in p for p in report.problems)
