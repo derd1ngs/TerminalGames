@@ -1,0 +1,5 @@
+id: dead_drop
+title: "Dead Drop"
+start: "chapter_01:intro"
+chapters:
+  - chapter_01.yaml

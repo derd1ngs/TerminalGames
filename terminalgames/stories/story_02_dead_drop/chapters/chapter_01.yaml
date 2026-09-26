@@ -1,0 +1,170 @@
+id: chapter_01
+scenes:
+  - id: intro
+    type: narrative
+    text: |
+      11:52 PM. A chat window opens on its own: JUNO.
+
+      JUNO: "Mara's gone dark. Three days, no posts, no replies, phone off.
+      That's not her. She kept a dead drop -- an old relay box and a vault
+      behind it -- and she always said if she vanished, the drop would
+      explain why. I can't get in. You can. Please."
+    choices:
+      - text: "\"Send me the address.\""
+        next: relay_shell
+        sets:
+          trust.juno: 1
+      - text: "\"Mara's a grown-up. If she went dark, she meant to.\""
+        next: ending_declined
+
+  - id: ending_declined
+    type: ending
+    text: |
+      JUNO doesn't answer for a long time. Then: "ok." The window closes.
+      Whatever is in the drop stays there, and so does whatever Mara was
+      trying to say.
+
+      -- ENDING: Not Your Circus --
+
+  - id: relay_shell
+    type: terminal
+    text: |
+      JUNO: "The relay is `relay`. It's older than both of us and it still
+      answers. `scan relay` first if you like, then `connect relay`."
+
+      If you lose track of where you are at any point, `status` sums it
+      up, and `journal lead` lists just the leads you've picked up.
+    terminal:
+      win_flag: on_relay
+      next: relay_log
+      logs:
+        - id: trace_relay
+          category: trace
+          text: "Connected to relay.drop (10.13.0.4), Mara's old BBS relay."
+
+  - id: relay_log
+    type: terminal
+    text: |
+      The relay is a museum: a home directory for mara and a log that has
+      been growing since 1998. Mara's `.plan` says the vault's lock is
+      something she told "the bot".
+
+      The log is far too long to read. Filter it instead: any command's
+      output can be piped into `grep`, and pipes chain --
+      `cat /var/log/relay.log | grep mara | grep vault`.
+
+      The vault is `vault`, and it only takes logins: `ssh <user>@vault`,
+      then the password on the next line. `chat juno` if you get stuck.
+    terminal:
+      win_flag: on_vault
+      next: vault_hub
+      logs:
+        - id: lead_vault_password
+          category: lead
+          text: "Mara's vault password was hiding in the relay's logbot chatter: lighthouse-42."
+
+  - id: vault_hub
+    type: narrative
+    text: |
+      You're in as mara. `/srv/drop` holds a manifest and a RUNBOOK. The
+      manifest is blunt: 214 files, read-only, because the replica is
+      stuck in standby and the primary -- archive.drop -- has been
+      unreachable for three days. Exactly as long as Mara has.
+
+      The runbook explains how to promote the replica. It is very
+      particular about the order.
+    choices:
+      - text: "Follow the runbook."
+        next: recover
+      - text: "Message Juno before touching anything."
+        next: juno_reply
+        requires:
+          not: {flag: asked_juno}
+        sets:
+          asked_juno: true
+        logs:
+          - id: note_asked_juno
+            category: note
+            text: "Checked in with Juno before promoting the replica."
+
+  - id: juno_reply
+    type: narrative
+    text: |
+      JUNO: "The primary died the same day she did. That's not a
+      coincidence. What did you find?"
+    choices:
+      - text: "Tell her everything, password and all."
+        next: vault_hub
+        sets:
+          trust.juno: 1
+      - text: "Keep it vague until you know more."
+        next: vault_hub
+
+  - id: recover
+    type: terminal
+    text: |
+      `cat /srv/drop/RUNBOOK`, then do what it says -- exactly those
+      commands, exactly that order, the same paths. If you slip, start the
+      sequence again from step 1.
+    terminal:
+      win_flag: drop_recovered
+      next: decide
+      ordered_commands:
+        - systemctl status replica
+        - set /etc/replica/replica.conf mode primary
+        - systemctl restart replica
+      logs:
+        - id: suspect_archive
+          category: suspect
+          text: "The drop is Mara's evidence about whoever took archive.drop offline -- and her with it."
+
+  - id: decide
+    type: narrative
+    text: |
+      The replica comes up as primary and the drop unlocks: 214 files of
+      mail, invoices and access logs. They all point at the people who
+      ran archive.drop, and at what it was quietly archiving. Mara didn't
+      vanish; she hid, and she left this behind so it wouldn't hide with
+      her.
+
+      It's yours now. What happens to it?
+    choices:
+      - text: "Publish the whole drop tonight."
+        next: ending_published
+      - text: "Hand everything to Juno and let her decide."
+        next: ending_trusted
+        requires:
+          all:
+            - {flag: asked_juno}
+            - {trust_at_least: {npc: juno, value: 2}}
+      - text: "Burn it. You went in alone, and Mara went dark for a reason."
+        next: ending_burned
+        requires:
+          not: {flag: asked_juno}
+
+  - id: ending_published
+    type: ending
+    text: |
+      By sunrise the drop is mirrored on a dozen sites. By noon it's news.
+      Somewhere, a phone that has been off for three days switches on,
+      reads the headlines, and switches off again.
+
+      -- ENDING: Signal Boost --
+
+  - id: ending_trusted
+    type: ending
+    text: |
+      You send Juno the keys. She knows the lawyers, the journalists, and
+      which of them Mara trusted. A week later a single message arrives,
+      from a handle neither of you has seen before: "thank you both. -- m"
+
+      -- ENDING: The Drop Worked --
+
+  - id: ending_burned
+    type: ending
+    text: |
+      You wipe the drop and the replica with it. Maybe that protects Mara.
+      Maybe it protects the people she was running from. You'll never
+      know which, and nobody else will ever know there was a choice.
+
+      -- ENDING: Scorched Earth --

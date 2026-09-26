@@ -172,7 +172,16 @@ function append(logId, text, cls, html = false) {
   return el;
 }
 
+// Showing or hiding the choices pane resizes the logs after text was
+// appended, so re-pin both to the bottom once the layout has settled.
+function scrollLogsToEnd() {
+  requestAnimationFrame(() => {
+    for (const id of ["story-log", "terminal-log"]) $(id).scrollTop = $(id).scrollHeight;
+  });
+}
+
 function render(view) {
+  scrollLogsToEnd();
   if (view.output) append("terminal-log", view.output, view.output === "Saved." ? "saved" : "");
   for (const notice of view.notices) append("story-log", notice, "notice");
   $("prompt").textContent = view.prompt;

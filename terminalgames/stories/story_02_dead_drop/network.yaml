@@ -1,0 +1,397 @@
+hosts:
+  relay:
+    address: "10.13.0.4"
+    banner: "relay.drop - store-and-forward BBS relay (online since 1998)"
+    on_connect_flag: on_relay
+    filesystem:
+      home:
+        type: dir
+        entries:
+          mara:
+            type: dir
+            entries:
+              .plan:
+                type: text
+                content: |
+                  gone fishing.
+                  if you're reading this you already know where the vault is.
+                  you just don't know how to open it. ask the bot.
+                  -- m
+      var:
+        type: dir
+        entries:
+          log:
+            type: dir
+            entries:
+              relay.log:
+                type: text
+                content: |
+                    1998-11-03 00:00 <opal> mara you around?
+                    1998-11-03 07:13 <dm0> rebooting the modem
+                    1998-11-03 14:26 <logbot> anyone up?
+                    1998-11-03 21:39 <kestrel> disk 3 is clicking
+                    1998-11-03 04:52 <syscop> relay lag again
+                    1998-11-03 11:05 <opal> ping
+                    1998-11-03 18:18 <kestrel> night all
+                    1998-11-03 01:31 <dm0> anyone up?
+                    1998-11-03 08:44 <kestrel> rebooting the modem
+                    1998-11-03 15:57 <wren> relay lag again
+                    1998-11-03 22:10 <dm0> relay lag again
+                    1998-11-03 05:23 <syscop> rebooting the modem
+                    1998-11-03 12:36 <kestrel> disk 3 is clicking
+                    1998-11-03 19:49 <syscop> relay lag again
+                    1998-11-03 02:02 <dm0> pong
+                    1998-11-03 09:15 <logbot> ping
+                    1998-11-03 16:28 <kestrel> ping
+                    1998-11-03 23:41 <syscop> rebooting the modem
+                    1998-11-03 06:54 <kestrel> who broke the mirror
+                    1998-11-03 13:07 <kestrel> night all
+                    1998-11-03 20:20 <dm0> lol
+                    1998-11-03 03:33 <wren> brb
+                    1998-11-03 10:46 <syscop> relay lag again
+                    1998-11-03 17:59 <syscop> mara you around?
+                    1998-11-03 00:12 <opal> night all
+                    1998-11-03 07:25 <logbot> brb
+                    1998-11-03 14:38 <kestrel> ping
+                    1998-11-03 21:51 <syscop> pong
+                    1998-11-03 04:04 <dm0> coffee run
+                    1998-11-03 11:17 <kestrel> night all
+                    1998-11-03 18:30 <logbot> relay lag again
+                    1998-11-03 01:43 <syscop> anyone up?
+                    1998-11-03 08:56 <syscop> who broke the mirror
+                    1998-11-03 15:09 <wren> pong
+                    1998-11-03 22:22 <syscop> rebooting the modem
+                    1998-11-03 05:35 <opal> that patch is cursed
+                    1998-11-03 12:48 <syscop> that patch is cursed
+                    1998-11-03 19:01 <opal> lol
+                    1998-11-03 02:14 <dm0> backup finished
+                    1998-11-03 09:27 <dm0> new zine is up
+                    1998-11-04 16:40 <mara> logbot: note to self, the vault replica keeps falling back to standby
+                    1998-11-04 23:53 <dm0> relay lag again
+                    1998-11-04 06:06 <syscop> lol
+                    1998-11-04 13:19 <syscop> that patch is cursed
+                    1998-11-04 20:32 <opal> new zine is up
+                    1998-11-04 03:45 <wren> lol
+                    1998-11-04 10:58 <syscop> mara you around?
+                    1998-11-04 17:11 <kestrel> relay lag again
+                    1998-11-04 00:24 <syscop> rebooting the modem
+                    1998-11-04 07:37 <dm0> backup finished
+                    1998-11-04 14:50 <opal> brb
+                    1998-11-04 21:03 <wren> rebooting the modem
+                    1998-11-04 04:16 <kestrel> pong
+                    1998-11-04 11:29 <kestrel> backup finished
+                    1998-11-04 18:42 <syscop> ping
+                    1998-11-04 01:55 <opal> coffee run
+                    1998-11-04 08:08 <logbot> coffee run
+                    1998-11-04 15:21 <syscop> that patch is cursed
+                    1998-11-04 22:34 <syscop> backup finished
+                    1998-11-04 05:47 <wren> relay lag again
+                    1998-11-04 12:00 <kestrel> lol
+                    1998-11-04 19:13 <wren> new zine is up
+                    1998-11-04 02:26 <logbot> relay lag again
+                    1998-11-04 09:39 <kestrel> new zine is up
+                    1998-11-04 16:52 <logbot> lol
+                    1998-11-04 23:05 <logbot> ping
+                    1998-11-04 06:18 <logbot> disk 3 is clicking
+                    1998-11-04 13:31 <wren> lol
+                    1998-11-04 20:44 <logbot> rebooting the modem
+                    1998-11-04 03:57 <logbot> mara you around?
+                    1998-11-04 10:10 <opal> anyone up?
+                    1998-11-04 17:23 <wren> coffee run
+                    1998-11-04 00:36 <dm0> ping
+                    1998-11-04 07:49 <kestrel> that patch is cursed
+                    1998-11-04 14:02 <kestrel> who broke the mirror
+                    1998-11-04 21:15 <opal> brb
+                    1998-11-04 04:28 <logbot> who broke the mirror
+                    1998-11-04 11:41 <wren> rebooting the modem
+                    1998-11-04 18:54 <wren> relay lag again
+                    1998-11-04 01:07 <dm0> that patch is cursed
+                    1998-11-05 08:20 <wren> night all
+                    1998-11-05 15:33 <opal> brb
+                    1998-11-05 22:46 <wren> disk 3 is clicking
+                    1998-11-05 05:59 <syscop> lol
+                    1998-11-05 12:12 <logbot> rebooting the modem
+                    1998-11-05 19:25 <opal> pong
+                    1998-11-05 02:38 <wren> who broke the mirror
+                    1998-11-05 09:51 <dm0> relay lag again
+                    1998-11-05 16:04 <dm0> brb
+                    1998-11-05 23:17 <dm0> pong
+                    1998-11-05 06:30 <dm0> anyone up?
+                    1998-11-05 13:43 <wren> disk 3 is clicking
+                    1998-11-05 20:56 <syscop> mara you around?
+                    1998-11-05 03:09 <dm0> lol
+                    1998-11-05 10:22 <opal> anyone up?
+                    1998-11-05 17:35 <mara> logbot: remember the runbook is in /srv/drop on the vault
+                    1998-11-05 00:48 <dm0> rebooting the modem
+                    1998-11-05 07:01 <syscop> coffee run
+                    1998-11-05 14:14 <syscop> ping
+                    1998-11-05 21:27 <opal> brb
+                    1998-11-05 04:40 <logbot> disk 3 is clicking
+                    1998-11-05 11:53 <syscop> ping
+                    1998-11-05 18:06 <logbot> pong
+                    1998-11-05 01:19 <logbot> anyone up?
+                    1998-11-05 08:32 <wren> disk 3 is clicking
+                    1998-11-05 15:45 <logbot> backup finished
+                    1998-11-05 22:58 <syscop> rebooting the modem
+                    1998-11-05 05:11 <wren> rebooting the modem
+                    1998-11-05 12:24 <wren> relay lag again
+                    1998-11-05 19:37 <wren> pong
+                    1998-11-05 02:50 <wren> anyone up?
+                    1998-11-05 09:03 <dm0> relay lag again
+                    1998-11-05 16:16 <dm0> that patch is cursed
+                    1998-11-05 23:29 <dm0> relay lag again
+                    1998-11-05 06:42 <opal> ping
+                    1998-11-05 13:55 <kestrel> mara you around?
+                    1998-11-05 20:08 <kestrel> anyone up?
+                    1998-11-05 03:21 <syscop> brb
+                    1998-11-05 10:34 <syscop> relay lag again
+                    1998-11-05 17:47 <opal> ping
+                    1998-11-06 00:00 <kestrel> relay lag again
+                    1998-11-06 07:13 <dm0> ping
+                    1998-11-06 14:26 <wren> brb
+                    1998-11-06 21:39 <logbot> lol
+                    1998-11-06 04:52 <opal> ping
+                    1998-11-06 11:05 <opal> that patch is cursed
+                    1998-11-06 18:18 <kestrel> relay lag again
+                    1998-11-06 01:31 <wren> that patch is cursed
+                    1998-11-06 08:44 <wren> that patch is cursed
+                    1998-11-06 15:57 <opal> relay lag again
+                    1998-11-06 22:10 <dm0> relay lag again
+                    1998-11-06 05:23 <logbot> coffee run
+                    1998-11-06 12:36 <logbot> lol
+                    1998-11-06 19:49 <wren> disk 3 is clicking
+                    1998-11-06 02:02 <logbot> brb
+                    1998-11-06 09:15 <syscop> anyone up?
+                    1998-11-06 16:28 <dm0> night all
+                    1998-11-06 23:41 <opal> brb
+                    1998-11-06 06:54 <logbot> mara you around?
+                    1998-11-06 13:07 <syscop> anyone up?
+                    1998-11-06 20:20 <syscop> lol
+                    1998-11-06 03:33 <logbot> disk 3 is clicking
+                    1998-11-06 10:46 <kestrel> new zine is up
+                    1998-11-06 17:59 <opal> night all
+                    1998-11-06 00:12 <opal> brb
+                    1998-11-06 07:25 <opal> backup finished
+                    1998-11-06 14:38 <dm0> night all
+                    1998-11-06 21:51 <syscop> backup finished
+                    1998-11-06 04:04 <syscop> coffee run
+                    1998-11-06 11:17 <logbot> who broke the mirror
+                    1998-11-06 18:30 <mara> logbot: vault pass rotated. new one: lighthouse-42
+                    1998-11-06 01:43 <syscop> backup finished
+                    1998-11-06 08:56 <dm0> backup finished
+                    1998-11-06 15:09 <dm0> disk 3 is clicking
+                    1998-11-06 22:22 <wren> new zine is up
+                    1998-11-06 05:35 <dm0> who broke the mirror
+                    1998-11-06 12:48 <syscop> that patch is cursed
+                    1998-11-06 19:01 <opal> new zine is up
+                    1998-11-06 02:14 <kestrel> anyone up?
+                    1998-11-06 09:27 <opal> that patch is cursed
+                    1998-11-07 16:40 <opal> who broke the mirror
+                    1998-11-07 23:53 <logbot> mara you around?
+                    1998-11-07 06:06 <syscop> coffee run
+                    1998-11-07 13:19 <wren> backup finished
+                    1998-11-07 20:32 <logbot> coffee run
+                    1998-11-07 03:45 <opal> relay lag again
+                    1998-11-07 10:58 <dm0> relay lag again
+                    1998-11-07 17:11 <dm0> that patch is cursed
+                    1998-11-07 00:24 <dm0> coffee run
+                    1998-11-07 07:37 <dm0> that patch is cursed
+                    1998-11-07 14:50 <syscop> ping
+                    1998-11-07 21:03 <kestrel> that patch is cursed
+                    1998-11-07 04:16 <logbot> coffee run
+                    1998-11-07 11:29 <logbot> relay lag again
+                    1998-11-07 18:42 <logbot> relay lag again
+                    1998-11-07 01:55 <wren> backup finished
+                    1998-11-07 08:08 <logbot> backup finished
+                    1998-11-07 15:21 <dm0> that patch is cursed
+                    1998-11-07 22:34 <dm0> rebooting the modem
+                    1998-11-07 05:47 <logbot> coffee run
+                    1998-11-07 12:00 <kestrel> backup finished
+                    1998-11-07 19:13 <logbot> rebooting the modem
+                    1998-11-07 02:26 <wren> rebooting the modem
+                    1998-11-07 09:39 <logbot> relay lag again
+                    1998-11-07 16:52 <logbot> mara you around?
+                    1998-11-07 23:05 <dm0> brb
+                    1998-11-07 06:18 <dm0> anyone up?
+                    1998-11-07 13:31 <dm0> ping
+                    1998-11-07 20:44 <wren> backup finished
+                    1998-11-07 03:57 <logbot> brb
+                    1998-11-07 10:10 <syscop> disk 3 is clicking
+                    1998-11-07 17:23 <syscop> that patch is cursed
+                    1998-11-07 00:36 <logbot> coffee run
+                    1998-11-07 07:49 <dm0> night all
+                    1998-11-07 14:02 <syscop> brb
+                    1998-11-07 21:15 <kestrel> anyone up?
+                    1998-11-07 04:28 <logbot> pong
+                    1998-11-07 11:41 <kestrel> night all
+                    1998-11-07 18:54 <logbot> brb
+                    1998-11-07 01:07 <wren> disk 3 is clicking
+                    1998-11-08 08:20 <dm0> disk 3 is clicking
+                    1998-11-08 15:33 <dm0> anyone up?
+                    1998-11-08 22:46 <opal> who broke the mirror
+                    1998-11-08 05:59 <opal> night all
+                    1998-11-08 12:12 <dm0> backup finished
+                    1998-11-08 19:25 <mara> logbot: if anyone asks, I was never here
+                    1998-11-08 02:38 <syscop> coffee run
+                    1998-11-08 09:51 <opal> mara you around?
+                    1998-11-08 16:04 <syscop> rebooting the modem
+                    1998-11-08 23:17 <dm0> anyone up?
+                    1998-11-08 06:30 <logbot> coffee run
+                    1998-11-08 13:43 <wren> pong
+                    1998-11-08 20:56 <syscop> disk 3 is clicking
+                    1998-11-08 03:09 <syscop> rebooting the modem
+                    1998-11-08 10:22 <syscop> brb
+                    1998-11-08 17:35 <syscop> brb
+                    1998-11-08 00:48 <syscop> night all
+                    1998-11-08 07:01 <kestrel> disk 3 is clicking
+                    1998-11-08 14:14 <wren> backup finished
+                    1998-11-08 21:27 <dm0> ping
+                    1998-11-08 04:40 <kestrel> backup finished
+                    1998-11-08 11:53 <dm0> brb
+                    1998-11-08 18:06 <dm0> that patch is cursed
+                    1998-11-08 01:19 <syscop> new zine is up
+                    1998-11-08 08:32 <kestrel> night all
+                    1998-11-08 15:45 <kestrel> coffee run
+                    1998-11-08 22:58 <logbot> night all
+                    1998-11-08 05:11 <syscop> night all
+                    1998-11-08 12:24 <wren> backup finished
+                    1998-11-08 19:37 <kestrel> night all
+                    1998-11-08 02:50 <kestrel> mara you around?
+                    1998-11-08 09:03 <dm0> who broke the mirror
+                    1998-11-08 16:16 <opal> anyone up?
+                    1998-11-08 23:29 <kestrel> night all
+                    1998-11-08 06:42 <wren> night all
+                    1998-11-08 13:55 <kestrel> backup finished
+                    1998-11-08 20:08 <kestrel> that patch is cursed
+                    1998-11-08 03:21 <opal> ping
+                    1998-11-08 10:34 <syscop> ping
+                    1998-11-08 17:47 <syscop> who broke the mirror
+                    1998-11-09 00:00 <logbot> lol
+                    1998-11-09 07:13 <wren> night all
+                    1998-11-09 14:26 <syscop> backup finished
+                    1998-11-09 21:39 <wren> night all
+                    1998-11-09 04:52 <dm0> new zine is up
+                    1998-11-09 11:05 <syscop> lol
+                    1998-11-09 18:18 <syscop> who broke the mirror
+                    1998-11-09 01:31 <wren> brb
+                    1998-11-09 08:44 <wren> relay lag again
+                    1998-11-09 15:57 <wren> that patch is cursed
+                    1998-11-09 22:10 <opal> relay lag again
+                    1998-11-09 05:23 <logbot> who broke the mirror
+                    1998-11-09 12:36 <wren> relay lag again
+                    1998-11-09 19:49 <dm0> mara you around?
+                    1998-11-09 02:02 <logbot> lol
+                    1998-11-09 09:15 <kestrel> backup finished
+                    1998-11-09 16:28 <dm0> new zine is up
+                    1998-11-09 23:41 <logbot> pong
+                    1998-11-09 06:54 <opal> brb
+                    1998-11-09 13:07 <opal> brb
+                    1998-11-09 20:20 <mara> logbot: vault pass is NOT my birthday anymore, stop guessing, kestrel
+                    1998-11-09 03:33 <wren> who broke the mirror
+                    1998-11-09 10:46 <logbot> relay lag again
+                    1998-11-09 17:59 <wren> that patch is cursed
+                    1998-11-09 00:12 <dm0> pong
+                    1998-11-09 07:25 <dm0> brb
+                    1998-11-09 14:38 <logbot> rebooting the modem
+                    1998-11-09 21:51 <syscop> rebooting the modem
+                    1998-11-09 04:04 <opal> rebooting the modem
+                    1998-11-09 11:17 <dm0> coffee run
+                    1998-11-09 18:30 <opal> relay lag again
+                    1998-11-09 01:43 <logbot> coffee run
+                    1998-11-09 08:56 <kestrel> coffee run
+                    1998-11-09 15:09 <syscop> that patch is cursed
+                    1998-11-09 22:22 <wren> new zine is up
+                    1998-11-09 05:35 <kestrel> rebooting the modem
+                    1998-11-09 12:48 <opal> mara you around?
+                    1998-11-09 19:01 <syscop> ping
+                    1998-11-09 02:14 <opal> night all
+                    1998-11-09 09:27 <kestrel> relay lag again
+                    1998-11-10 16:40 <dm0> relay lag again
+                    1998-11-10 23:53 <kestrel> lol
+                    1998-11-10 06:06 <opal> anyone up?
+                    1998-11-10 13:19 <dm0> lol
+                    1998-11-10 20:32 <dm0> disk 3 is clicking
+                    1998-11-10 03:45 <wren> disk 3 is clicking
+                    1998-11-10 10:58 <logbot> disk 3 is clicking
+                    1998-11-10 17:11 <opal> rebooting the modem
+                    1998-11-10 00:24 <dm0> night all
+                    1998-11-10 07:37 <syscop> ping
+                    1998-11-10 14:50 <wren> new zine is up
+                    1998-11-10 21:03 <opal> relay lag again
+                    1998-11-10 04:16 <opal> anyone up?
+                    1998-11-10 11:29 <logbot> brb
+                    1998-11-10 18:42 <wren> relay lag again
+                    1998-11-10 01:55 <opal> anyone up?
+                    1998-11-10 08:08 <logbot> relay lag again
+                    1998-11-10 15:21 <opal> relay lag again
+                    1998-11-10 22:34 <syscop> disk 3 is clicking
+                    1998-11-10 05:47 <dm0> mara you around?
+                    1998-11-10 12:00 <mara> logbot: going quiet for a while. juno knows how to find the drop
+                    1998-11-10 19:13 <kestrel> lol
+                    1998-11-10 02:26 <kestrel> that patch is cursed
+                    1998-11-10 09:39 <kestrel> coffee run
+                    1998-11-10 16:52 <syscop> rebooting the modem
+                    1998-11-10 23:05 <opal> ping
+                    1998-11-10 06:18 <dm0> anyone up?
+                    1998-11-10 13:31 <syscop> new zine is up
+                    1998-11-10 20:44 <dm0> relay lag again
+                    1998-11-10 03:57 <dm0> lol
+                    1998-11-10 10:10 <kestrel> brb
+                    1998-11-10 17:23 <dm0> lol
+                    1998-11-10 00:36 <logbot> lol
+                    1998-11-10 07:49 <syscop> backup finished
+                    1998-11-10 14:02 <dm0> lol
+                    1998-11-10 21:15 <wren> night all
+                    1998-11-10 04:28 <logbot> brb
+                    1998-11-10 11:41 <opal> coffee run
+                    1998-11-10 18:54 <kestrel> lol
+                    1998-11-10 01:07 <kestrel> anyone up?
+
+  vault:
+    address: "10.13.0.9"
+    banner: "vault.drop - OpenSSH_2.3 (password authentication only)"
+    logins:
+      mara: "lighthouse-42"
+    on_connect_flag: on_vault
+    services:
+      replica:
+        config_path: /etc/replica/replica.conf
+        required_config:
+          mode: "primary"
+    filesystem:
+      etc:
+        type: dir
+        entries:
+          replica:
+            type: dir
+            entries:
+              replica.conf:
+                type: config
+                values: {mode: "standby", primary_host: "archive.drop"}
+      srv:
+        type: dir
+        entries:
+          drop:
+            type: dir
+            entries:
+              manifest.txt:
+                type: text
+                content: |
+                  DROP MANIFEST (auto-generated)
+                  files .......... 214
+                  size ........... 1.9 GB
+                  replica ........ STANDBY
+                  primary ........ archive.drop -- UNREACHABLE for 3 days
+                  note ........... drop is read-only until the replica is promoted
+              RUNBOOK:
+                type: text
+                content: |
+                  REPLICA RECOVERY -- mara, for whoever comes after me
+
+                  If the primary is gone, promote the replica. Do exactly this,
+                  in exactly this order. Anything else and it re-syncs from the
+                  dead primary and eats the drop.
+
+                    1. systemctl status replica
+                    2. set /etc/replica/replica.conf mode primary
+                    3. systemctl restart replica
