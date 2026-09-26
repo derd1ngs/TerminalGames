@@ -326,14 +326,47 @@ def test_journal_entry_required_but_never_logged_is_a_problem():
     assert report.problems == ["journal entry 'sen' is required at c1:start, but nothing ever logs it"]
 
 
-def test_any_tool_requirement_is_a_problem():
+def test_tool_required_but_never_granted_is_a_problem():
     story = _lint_story([Choice(text="go", next="c1:end", requires={"tool": "wireshark"})])
 
     report = check_story(story, Network(), {})
 
-    assert report.problems == [
-        "tool 'wireshark' is required at c1:start, but no story content can grant tools"
-    ]
+    assert report.problems == ["tool 'wireshark' is required at c1:start, but nothing ever grants it"]
+
+
+def test_granted_tool_opens_its_gate_and_unused_grants_warn():
+    story = _story(
+        {
+            "start": Scene(
+                id="start",
+                choices=[
+                    Choice(text="pick up", next="c1:hub", sets={"tool.sniffer": True, "tool.spare": True})
+                ],
+            ),
+            "hub": Scene(id="hub", choices=[Choice(text="use", next="c1:end", requires={"tool": "sniffer"})]),
+            "end": Scene(id="end", type="ending"),
+        }
+    )
+
+    report = check_story(story, Network(), {})
+
+    assert report.ok  # reachable: the search applies the grant for real
+    assert report.warnings == ["tool 'spare' is granted at c1:start, but nothing ever requires it"]
+
+
+def test_a_topic_granting_a_tool_is_not_mistaken_for_a_flag():
+    npc = NPC(
+        id="n",
+        name="N",
+        channel="chat",
+        topics={"t": Topic(id="t", prompt="p", response="r", sets={"tool.key": True})},
+    )
+    story = _lint_story([Choice(text="go", next="c1:end", requires={"tool": "key"})])
+
+    report = check_story(story, Network(), {"n": npc})
+
+    assert not report.problems
+    assert not report.warnings
 
 
 def test_flag_set_but_never_read_is_only_a_warning():

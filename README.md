@@ -2,8 +2,11 @@
 
 [![Tests](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml)
 
-A hacker-themed CLI text adventure engine with a fake terminal, in the spirit
-of *Hackers*, *WarGames*, and *23*. Ships with two complete stories:
+A hacker-themed text adventure engine with a fake terminal, in the spirit of
+*Hackers*, *WarGames*, and *23*. Play it in your terminal (a full-screen
+Textual app) or right in your browser at
+**https://derd1ngs.github.io/TerminalGames/**, with nothing to install. Ships
+with two complete stories:
 
 - **Zero Day** -- a 3-chapter campaign that also doubles as an in-fiction
   tutorial: by the end you'll have used the core shell commands (`help`,
@@ -189,14 +192,15 @@ scenes:
         sets:                        # optional effects on success
           some_flag: true
           trust.ghost: 1             # "trust.<npc_id>" adjusts trust instead of a flag
+          tool.sniffer: true         # "tool.<tool_id>" grants a tool (false takes it away)
         logs:                        # optional journal entries
           - id: lead_1
             category: lead           # lead | trace | suspect | note
             text: "What the player learned."
 ```
 
-`requires` supports: `flag`, `flag_equals: {key, value}`, `tool`,
-`journal_has: <entry_id>`, `trust_at_least: {npc, value}`, and the
+`requires` supports: `flag`, `flag_equals: {key, value}`, `tool` (granted
+with `tool.<id>: true` in any `sets`), `journal_has: <entry_id>`, `trust_at_least: {npc, value}`, and the
 combinators `all: [...]`, `any: [...]` and `not: {...}`, which nest. Every
 key in a block must hold, so a plain block is an implicit `all`:
 
@@ -399,11 +403,10 @@ It also lints references across all of a story's files. These are
 - a flag some `requires` reads (in a choice, a topic or a host) that
   nothing ever sets;
 - a `journal_has` id that nothing ever logs;
-- any `tool` requirement, since the story format has no way to grant a tool
-  yet.
+- a `tool` that nothing ever grants.
 
-A flag that is set but never read is only a **warning**: harmless, but
-usually a leftover or a typo.
+A flag that is set, or a tool that is granted, but never read is only a
+**warning**: harmless, but usually a leftover or a typo.
 
 `--graph` prints the story's scene graph as a
 [Mermaid](https://mermaid.js.org) flowchart instead of checking it. Paste

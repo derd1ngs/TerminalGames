@@ -534,3 +534,11 @@ def test_status_summarizes_position(tmp_path):
 def test_complete_after_a_pipe_uses_the_last_stage(tmp_path):
     runner = build_runner(tmp_path)
     assert complete(runner, "help | gr") == ["grep"]
+
+
+def test_status_lists_tools_once_granted(tmp_path):
+    runner = build_runner(tmp_path)
+    assert "Tools:" not in runner.execute("status")
+    runner.state.add_tool("wireshark")
+    runner.state.add_tool("lockpick")
+    assert runner.execute("status").endswith("Tools:       lockpick, wireshark")

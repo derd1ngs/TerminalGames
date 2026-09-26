@@ -132,6 +132,17 @@ def test_check_requires_combinators():
     assert check_requires({"flag": "b", "any": [{"flag": "a"}]}, state) is False
 
 
+def test_apply_effects_grants_and_revokes_tools():
+    state = GameState(story_id="s", chapter_id="c", scene_id="a")
+    apply_effects({"tool.sniffer": True}, [], state, "c:a")
+    assert state.has_tool("sniffer")
+    assert "tool.sniffer" not in state.flags  # a tool, not a flag
+    assert check_requires({"tool": "sniffer"}, state) is True
+    apply_effects({"tool.sniffer": False}, [], state, "c:a")
+    assert not state.has_tool("sniffer")
+    assert check_requires({"tool": "sniffer"}, state) is False
+
+
 def test_apply_effects_sets_flags_and_trust():
     state = GameState(story_id="s", chapter_id="c", scene_id="a")
     apply_effects(
