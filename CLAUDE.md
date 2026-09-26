@@ -11,7 +11,10 @@
 - `main` is branch-protected and requires PR branches to be up to date: when
   a PR is "BEHIND" (e.g. after merging the lower PR of a stack), run
   `gh api -X PUT repos/derd1ngs/TerminalGames/pulls/<N>/update-branch`, wait
-  for CI, then `gh pr merge <N> --merge`.
+  for CI, then `gh pr merge <N> --merge`. That API call is refused (403, no
+  `workflow` scope) when `main` changed a file under `.github/workflows/`:
+  then `git merge origin/main` locally and `git push` instead, or for a
+  Dependabot PR comment `@dependabot rebase`.
 - `gh pr edit` fails on this machine's gh 2.45 ("Projects (classic) is being
   deprecated"); change a PR's base with
   `gh api -X PATCH repos/derd1ngs/TerminalGames/pulls/<N> -f base=main`.
@@ -43,3 +46,8 @@
 - To look at the TUI: `app.save_screenshot(filename=..., path=...)` inside
   `run_test(size=(80, 24))` writes an SVG; Playwright's Firefox can open it
   via `file://` and screenshot it to PNG.
+- Offline e2e in Playwright's Firefox: `context.setOffline(true)` is
+  unusable -- Firefox either serves its HTTP cache (the test passes even with
+  a broken service worker) or refuses the reload (`NS_ERROR_OFFLINE`). Cut
+  the network with `context.route("**/*", r => r.abort())` instead: routing
+  also disables the HTTP cache, so only the service worker can serve.

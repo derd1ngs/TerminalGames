@@ -115,7 +115,9 @@ The same game runs in a browser with nothing to install:
 **https://derd1ngs.github.io/TerminalGames/** (deployed from `main` by
 `.github/workflows/pages.yml`). The unchanged Python engine runs client-side
 in [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly); the
-first visit downloads about 10 MB, which the browser then caches. Saves are
+first visit downloads about 10 MB. After that one visit the game **works
+offline**: a service worker (`web/sw.js`) keeps the game and the Python
+runtime, and the slot menu says so once it's ready. Saves are
 kept in the browser's IndexedDB, so they're per browser and don't mix with
 the terminal version's `saves/`. Each slot has an **Export** button that
 downloads it as one JSON save file: the game state plus the slot's whole

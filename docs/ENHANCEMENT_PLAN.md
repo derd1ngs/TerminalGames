@@ -265,7 +265,13 @@ outside the repo.
    command. Both frontends send through `GameSession.compose_mail`, which
    writes a real draft and runs `mail sync`. The form uses compact widgets
    so it fits an 80x24 terminal.
-5. **Offline browser play**: a service worker caching Pyodide and the game.
+5. **Offline browser play** (done): `web/sw.js` caches the game per build
+   and Pyodide once (its URL is versioned). The page reports which Pyodide
+   files it loaded, so even the first visit ends offline-ready. The build id
+   now hashes every shipped file, not just the Python zip; otherwise a
+   web-only change would never replace an installed worker. The e2e test
+   proves the worker, not the HTTP cache, serves the reload (checked against
+   a control build that caches nothing).
 
 ## Phase 8 -- content and engine
 

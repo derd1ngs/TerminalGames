@@ -45,10 +45,32 @@ async function boot() {
     bridge.init(SAVES);
     bootLine("> ready.");
     showStoryMenu();
+    setUpOffline();
   } catch (err) {
     bootLine(`boot failed: ${err.message || err}`, "fail");
     bootLine("Reload to try again.", "fail");
     console.error(err);
+  }
+}
+
+// Offline play (see sw.js): register the service worker, then hand it the
+// Pyodide files this page loaded -- on a first visit they were fetched before
+// the worker existed, so it couldn't have cached them itself.
+async function setUpOffline() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    await navigator.serviceWorker.register("sw.js");
+    const registration = await navigator.serviceWorker.ready;
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data?.offlineReady) $("offline-status").hidden = false;
+    });
+    const urls = performance
+      .getEntriesByType("resource")
+      .map((entry) => entry.name)
+      .filter((url) => url.startsWith(PYODIDE_URL));
+    registration.active.postMessage({ cachePyodide: urls });
+  } catch (err) {
+    console.warn("offline play unavailable:", err);
   }
 }
 
