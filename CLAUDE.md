@@ -18,6 +18,9 @@
 - That gh also has no `--json` on `gh pr checks`, and its tab-separated
   output breaks `awk '{print $2}'` on names like `test (3.10)`: read results
   with `gh pr checks <N> | cut -f1,2`.
+- `gh run view <run> --log` can come back empty; fetch a job's log via REST
+  instead: `gh api repos/derd1ngs/TerminalGames/actions/jobs/<job-id>/logs`
+  (job ids: `gh api .../actions/runs/<run>/jobs -q '.jobs[] | .name, .id'`).
 - `terminalgames/engine/` and `web_bridge.py` must stay importable with only
   PyYAML (the browser build runs them in Pyodide) -- enforced by
   `tests/test_engine_is_ui_free.py`.
