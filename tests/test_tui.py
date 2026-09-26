@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from terminalgames.engine.dialogue import load_npcs
 from terminalgames.engine.journal import JournalEntry
+from terminalgames.engine.session import GameSession
 from terminalgames.engine.shell import Network
 from terminalgames.engine.state import EmailMessage, GameState
 from terminalgames.engine.story import Story
@@ -22,13 +22,7 @@ STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_
 
 def build_app(tmp_path: Path) -> GameApp:
     story = Story.load(STORY_DIR)
-    network = Network.load(STORY_DIR / "network.yaml")
-    npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
-    chapter_id, scene_id = story.start_ref()
-    state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
-    slot_path = tmp_path / "save.json"
-    network.materialize(GameState.sandbox_dir_for(slot_path))
-    return GameApp(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path)
+    return GameApp(GameSession.open(story, STORY_DIR, tmp_path / "save.json", fresh=True))
 
 
 def build_multichapter_story(tmp_path: Path) -> Story:
@@ -280,7 +274,7 @@ async def test_crossing_chapter_boundary_autosaves(tmp_path):
     story = build_multichapter_story(tmp_path)
     state = GameState(story_id=story.id, chapter_id="one", scene_id="start")
     slot_path = tmp_path / "save.json"
-    app = GameApp(story=story, network=Network(), npcs={}, state=state, slot_path=slot_path)
+    app = GameApp(GameSession(story, Network(), {}, state, slot_path))
     async with app.run_test() as pilot:
         await pilot.pause()
         assert not slot_path.exists()
@@ -306,7 +300,7 @@ async def test_crossing_a_scene_delivers_mail_as_a_real_file_and_notifies(tmp_pa
         )
     )
     slot_path = tmp_path / "save.json"
-    app = GameApp(story=story, network=Network(), npcs={}, state=state, slot_path=slot_path)
+    app = GameApp(GameSession(story, Network(), {}, state, slot_path))
     async with app.run_test() as pilot:
         await pilot.pause()
         inbox_dir = GameState.sandbox_dir_for(slot_path) / "mail" / "inbox"

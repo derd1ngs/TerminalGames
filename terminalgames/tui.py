@@ -12,7 +12,6 @@ scene transitions, mail delivery, autosave) lives in `engine/session.py`'s
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from rich.markup import escape
 from textual.app import App, ComposeResult
@@ -22,9 +21,8 @@ from textual.widgets import Footer, Header, Input, OptionList, RichLog
 from textual.widgets.option_list import Option
 
 from .engine.session import GameSession
-from .engine.shell import Network, TerminalRunner, complete
-from .engine.state import GameState
-from .engine.story import Choice, Story
+from .engine.shell import TerminalRunner, complete
+from .engine.story import Choice
 
 
 class CommandInput(Input):
@@ -97,11 +95,11 @@ class GameApp(App):
 
     BINDINGS = [("ctrl+s", "save_game", "Save"), ("ctrl+q", "quit_game", "Save & quit")]
 
-    def __init__(self, story: Story, network: Network, npcs: dict, state: GameState, slot_path: Path):
+    def __init__(self, session: GameSession):
         super().__init__()
-        self.session = GameSession(story=story, network=network, npcs=npcs, state=state, slot_path=slot_path)
-        self.slot_path = slot_path
-        self.title = story.title
+        self.session = session
+        self.slot_path = session.slot_path
+        self.title = session.story.title
         self.mode = "narrative"
         self.available_choices: list[Choice] = []
 

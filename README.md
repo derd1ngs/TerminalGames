@@ -312,7 +312,10 @@ running out isn't factored into reachability).
 `dialogue.py`, `journal.py`, `state.py`, `puzzles.py`) -- pure game logic
 with no UI dependency -- plus `session.py`, whose `GameSession` is the game
 loop itself (choices, commands, scene transitions, mail delivery, autosave)
-that any frontend drives. `terminalgames/tui.py` is the split-pane Textual
+that any frontend drives (`GameSession.open` starts or continues a save
+slot), and `loader.py`, which finds stories and save slots on disk. The
+engine needs only PyYAML -- `tests/test_engine_is_ui_free.py` keeps Textual
+and Rich out of it. `terminalgames/tui.py` is the split-pane Textual
 frontend that renders it; `main.py` is just the pre-flight story/save picker
 that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
 structural story validator described above. `terminalgames/stories/

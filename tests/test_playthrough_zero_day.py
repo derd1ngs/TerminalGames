@@ -11,68 +11,49 @@ from pathlib import Path
 import yaml
 
 from terminalgames.engine.dialogue import load_npcs
+from terminalgames.engine.session import GameSession
 from terminalgames.engine.shell import Network, TerminalRunner
 from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Story, apply_effects, check_requires
+from terminalgames.engine.story import Story
 
 STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
 
 
-def choose(story, state, index):
-    scene = story.get_scene(state.chapter_id, state.scene_id)
-    available = [c for c in scene.choices if check_requires(c.requires, state)]
-    choice = available[index]
-    apply_effects(choice.sets, choice.logs, state, f"{state.chapter_id}:{scene.id}")
-    state.chapter_id, state.scene_id = story.resolve(choice.next, state.chapter_id)
-    state.advance_scene()
+def new_playthrough(tmp_path: Path) -> GameSession:
+    return GameSession.open(Story.load(STORY_DIR), STORY_DIR, tmp_path / "playthrough.json", fresh=True)
 
 
-def run_terminal(story, state, runner, commands):
-    scene = story.get_scene(state.chapter_id, state.scene_id)
-    runner.current_chapter, runner.current_scene = state.chapter_id, scene.id
-    if scene.terminal.host:
-        runner.current_host = scene.terminal.host
-        runner.cwd = "/"
+def choose(session: GameSession, index: int) -> None:
+    session.choose(session.available_choices()[index])
+
+
+def run_terminal(session: GameSession, commands: list[str]) -> None:
+    """Runs commands until one solves the current terminal scene."""
+    scene = session.scene
+    assert scene.type == "terminal", f"scene '{scene.id}' is not a terminal scene"
     for cmd in commands:
-        runner.execute(cmd)
-        if state.has_flag(scene.terminal.win_flag):
-            break
-    assert state.has_flag(scene.terminal.win_flag), f"scene '{scene.id}' not solved by {commands}"
-    apply_effects({}, scene.terminal.logs, state, f"{state.chapter_id}:{scene.id}")
-    state.chapter_id, state.scene_id = story.resolve(scene.terminal.next, state.chapter_id)
-    state.advance_scene()
+        if session.run_command(cmd).advanced:
+            return
+    raise AssertionError(f"scene '{scene.id}' not solved by {commands}")
 
 
-def new_playthrough(tmp_path: Path):
-    story = Story.load(STORY_DIR)
-    network = Network.load(STORY_DIR / "network.yaml")
-    npcs = load_npcs(yaml.safe_load((STORY_DIR / "npcs.yaml").read_text()))
-    chapter_id, scene_id = story.start_ref()
-    state = GameState(story_id=story.id, chapter_id=chapter_id, scene_id=scene_id)
-    slot_path = tmp_path / "playthrough.json"
-    network.materialize(GameState.sandbox_dir_for(slot_path))
-    runner = TerminalRunner(state=state, network=network, npcs=npcs, save_slot_path=slot_path)
-    return story, state, runner
-
-
-def play_to_confrontation(story, state, runner):
+def play_to_confrontation(session: GameSession) -> None:
     """Drives the shared spine of the story -- chapter 1 through the
     trust_call choice -- exercising every documented shell command along the
     way. Returns after the caller still needs to make the trust_call choice
     and the final confrontation choice."""
-    assert story.get_scene(state.chapter_id, state.scene_id).id == "intro"
-    choose(story, state, 0)  # ask GHOST -> briefing
+    state = session.state
+    assert session.scene.id == "intro"
+    choose(session, 0)  # ask GHOST -> briefing
     assert state.scene_id == "briefing"
-    choose(story, state, 0)  # accept -> recon (terminal)
+    choose(session, 0)  # accept -> recon (terminal)
 
-    run_terminal(story, state, runner, ["help", "whoami", "scan gateway", "connect gateway"])
+    run_terminal(session, ["help", "whoami", "scan gateway", "connect gateway"])
     assert state.scene_id == "gateway_shell"
     assert state.has_flag("connected_gateway")
 
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         [
             "ls",
             "cd etc",
@@ -90,32 +71,28 @@ def play_to_confrontation(story, state, runner):
     assert state.has_flag("netmon_fixed")
     assert state.journal.has("lead_t_contact")
 
-    choose(story, state, 0)  # push further -> chapter_02:reach_sentinel
+    choose(session, 0)  # push further -> chapter_02:reach_sentinel
 
-    run_terminal(story, state, runner, ["disconnect", "scan sentinel", "connect sentinel"])
+    run_terminal(session, ["disconnect", "scan sentinel", "connect sentinel"])
     assert state.scene_id == "sentinel_shell"
     assert state.has_flag("connected_sentinel")
 
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         ["grep handoff /var/log/ops/access.log", "decrypt /var/log/ops/handoff.enc 5"],
     )
     assert state.scene_id == "contact_t"
     assert state.has_flag("found_override_code")
 
-    run_terminal(story, state, runner, ["mail send t cold_storage"])
+    run_terminal(session, ["mail send t cold_storage"])
     assert state.scene_id == "waiting"
     assert state.has_flag("emailed_t")
 
-    choose(story, state, 0)  # check back later -> blackbox
+    choose(session, 0)  # check back later -> blackbox
     assert state.scene_id == "blackbox"
 
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         ["mail list", "mail read t:cold_storage:1", "decrypt /var/log/ops/blackbox.enc RAVEN"],
     )
     assert state.scene_id == "trust_call"
@@ -128,23 +105,22 @@ def test_mail_sync_reaches_t_via_a_real_drafted_message(tmp_path):
     actually writing a real draft file and running `mail sync` -- proving
     the freeform path works against T's real outbox_match content, not just
     a synthetic NPC fixture."""
-    story, state, runner = new_playthrough(tmp_path)
-    choose(story, state, 0)
-    choose(story, state, 0)
-    run_terminal(story, state, runner, ["connect gateway"])
+    session = new_playthrough(tmp_path)
+    state, runner = session.state, session.runner
+    choose(session, 0)
+    choose(session, 0)
+    run_terminal(session, ["connect gateway"])
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         [
             "set /etc/netmon/netmon.conf bind_address 0.0.0.0",
             "set /etc/netmon/netmon.conf allow_query allow",
             "systemctl restart netmon",
         ],
     )
-    choose(story, state, 0)
-    run_terminal(story, state, runner, ["connect sentinel"])
-    run_terminal(story, state, runner, ["decrypt /var/log/ops/handoff.enc 5"])
+    choose(session, 0)
+    run_terminal(session, ["connect sentinel"])
+    run_terminal(session, ["decrypt /var/log/ops/handoff.enc 5"])
     assert state.scene_id == "contact_t"
 
     draft_dir = runner.sandbox_root / "mail" / "draft"
@@ -154,7 +130,7 @@ def test_mail_sync_reaches_t_via_a_real_drafted_message(tmp_path):
         "Saw in the access log you re-keyed it. Any chance you remember it?"
     )
 
-    run_terminal(story, state, runner, ["mail sync"])
+    run_terminal(session, ["mail sync"])
     assert state.scene_id == "waiting"
     assert state.has_flag("emailed_t")
     assert (runner.sandbox_root / "mail" / "sent" / "to_t.txt").exists()
@@ -165,14 +141,13 @@ def test_archive_sidequest_returns_to_the_discovery_hub(tmp_path):
     it branches off the discovery hub into its own terminal puzzle, then
     loops back to that exact same hub scene, which still offers all of its
     original choices afterward -- the main quest is entirely unaffected."""
-    story, state, runner = new_playthrough(tmp_path)
-    choose(story, state, 0)  # intro -> briefing
-    choose(story, state, 0)  # briefing -> recon
-    run_terminal(story, state, runner, ["connect gateway"])
+    session = new_playthrough(tmp_path)
+    state = session.state
+    choose(session, 0)  # intro -> briefing
+    choose(session, 0)  # briefing -> recon
+    run_terminal(session, ["connect gateway"])
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         [
             "set /etc/netmon/netmon.conf bind_address 0.0.0.0",
             "set /etc/netmon/netmon.conf allow_query allow",
@@ -180,16 +155,14 @@ def test_archive_sidequest_returns_to_the_discovery_hub(tmp_path):
         ],
     )
     assert state.scene_id == "discovery"
-    hub_scene = story.get_scene(state.chapter_id, state.scene_id)
+    hub_scene = session.scene
     assert len(hub_scene.choices) == 3
 
-    choose(story, state, 1)  # "Dig through that old archive box first."
+    choose(session, 1)  # "Dig through that old archive box first."
     assert state.scene_id == "archive_shell"
 
     run_terminal(
-        story,
-        state,
-        runner,
+        session,
         [
             "disconnect",
             "connect archive",
@@ -201,30 +174,30 @@ def test_archive_sidequest_returns_to_the_discovery_hub(tmp_path):
     assert state.journal.has("suspect_sentinel_history")
     assert state.scene_id == "archive_return"
 
-    choose(story, state, 0)  # "Back to it." -> loops back to the hub
+    choose(session, 0)  # "Back to it." -> loops back to the hub
     assert (state.chapter_id, state.scene_id) == ("chapter_01", "discovery")
 
     # The hub still works exactly as before -- the sidequest was a detour,
     # not a detour that broke anything.
-    choose(story, state, 0)  # push further -> chapter_02:reach_sentinel
+    choose(session, 0)  # push further -> chapter_02:reach_sentinel
     assert state.chapter_id == "chapter_02"
 
 
 def test_loyalist_path_unlocks_bonus_ending(tmp_path):
-    story, state, runner = new_playthrough(tmp_path)
-    play_to_confrontation(story, state, runner)
+    session = new_playthrough(tmp_path)
+    state = session.state
+    play_to_confrontation(session)
 
-    choose(story, state, 0)  # loyalist: tell GHOST everything
+    choose(session, 0)  # loyalist: tell GHOST everything
     assert state.scene_id == "confrontation"
     assert state.flags["allegiance"] == "loyalist"
     assert state.get_trust("ghost") == 3
 
-    scene = story.get_scene(state.chapter_id, state.scene_id)
-    available = [c for c in scene.choices if check_requires(c.requires, state)]
+    available = session.available_choices()
     assert len(available) == 4, "loyalist path with enough trust should unlock the 4th option"
 
-    choose(story, state, 3)  # the trust+allegiance-gated option
-    final_scene = story.get_scene(state.chapter_id, state.scene_id)
+    choose(session, 3)  # the trust+allegiance-gated option
+    final_scene = session.scene
     assert final_scene.id == "ending_partners"
     assert final_scene.type == "ending"
 
@@ -233,15 +206,16 @@ def test_loyalist_path_unlocks_bonus_ending(tmp_path):
 
 
 def test_wary_path_hides_bonus_ending_and_gated_topic(tmp_path):
-    story, state, runner = new_playthrough(tmp_path)
-    play_to_confrontation(story, state, runner)
+    session = new_playthrough(tmp_path)
+    state, runner = session.state, session.runner
+    play_to_confrontation(session)
 
-    choose(story, state, 1)  # wary: keep the ORACLE lead to yourself
+    choose(session, 1)  # wary: keep the ORACLE lead to yourself
     assert state.flags["allegiance"] == "wary"
     assert state.get_trust("ghost") == 1
 
-    scene = story.get_scene(state.chapter_id, state.scene_id)
-    available = [c for c in scene.choices if check_requires(c.requires, state)]
+    scene = session.scene
+    available = session.available_choices()
     assert len(available) == 3, "insufficient trust/allegiance should hide the bonus option"
 
     # The high-trust GHOST topic is also gated behind the same trust level.
@@ -249,8 +223,8 @@ def test_wary_path_hides_bonus_ending_and_gated_topic(tmp_path):
     listing = runner.execute("chat ghost")
     assert "why_gateway" not in listing
 
-    choose(story, state, 2)  # log everything and disappear -> ending_reported
-    final_scene = story.get_scene(state.chapter_id, state.scene_id)
+    choose(session, 2)  # log everything and disappear -> ending_reported
+    final_scene = session.scene
     assert final_scene.type == "ending"
     assert final_scene.id == "ending_reported"
 
@@ -282,8 +256,9 @@ def test_ghost_chat_topics_gated_by_flag_and_trust():
 
 
 def test_mail_ask_limit_enforced_for_t(tmp_path):
-    story, state, runner = new_playthrough(tmp_path)
-    play_to_confrontation(story, state, runner)
+    session = new_playthrough(tmp_path)
+    runner = session.runner
+    play_to_confrontation(session)
     # Two asks (cold_storage during the playthrough, then small_talk) reach
     # T's ask_limit of 2; a third should be refused rather than silently
     # accepted.
