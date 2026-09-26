@@ -255,8 +255,11 @@ outside the repo.
 2. **`hint`** (done): a terminal block's `hints` list, revealed one at a time
    and saved per scene. Both stories have hints for every terminal scene, and
    a test solves each scene using only its hints' commands.
-3. **Endings gallery**: which endings a player has found per story (e.g.
-   "2/4" in the slot menu), kept separately from save slots.
+3. **Endings gallery** (done): endings found per story across all slots,
+   recorded by `GameSession` on entering an ending and kept in
+   `found-endings.txt` next to the slots. It's shown at each ending, in the
+   TUI's slot listing, and in the browser's slot menu (undiscovered endings
+   stay "???").
 4. **Mail compose in the TUI**, matching the browser's Mail dialog.
 5. **Offline browser play**: a service worker caching Pyodide and the game.
 

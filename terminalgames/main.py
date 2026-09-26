@@ -14,6 +14,7 @@ from pathlib import Path
 from platformdirs import user_data_path
 from rich.console import Console
 
+from .engine.endings import gallery
 from .engine.loader import (
     DEFAULT_SLOT,
     STORIES_DIR,
@@ -67,6 +68,16 @@ def print_save_slots(story_id: str) -> None:
     console.print(f"[bold]Save slots for '{story_id}':[/bold]")
     for slot in slots:
         console.print(f"  {slot_summary(SAVES_DIR, story_id, slot)}")
+
+
+def print_endings(story: Story) -> None:
+    """The story's endings gallery, if any ending has been found yet."""
+    entries = gallery(story, SAVES_DIR / story.id)
+    found = [title for title, was_found in entries if was_found]
+    if found:
+        hidden = len(entries) - len(found)
+        listing = ", ".join(found) + (f", and {hidden} more" if hidden else "")
+        console.print(f"[bold]Endings found: {len(found)}/{len(entries)}[/bold] -- {listing}")
 
 
 def select_slot(story_id: str) -> str:
@@ -176,7 +187,10 @@ def main() -> None:
 
     if args.list:
         print_save_slots(story.id)
+        print_endings(story)
         return
+    if not args.story:
+        print_endings(story)
 
     slot = args.slot or (DEFAULT_SLOT if args.story else select_slot(story.id))
     slot_path = save_slot_path(SAVES_DIR, story.id, slot)

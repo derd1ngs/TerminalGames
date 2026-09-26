@@ -205,3 +205,17 @@ def test_start_on_a_stale_save_reports_it_instead_of_failing(saves_root):
         "which the story no longer has."
     }
     assert "scene" in json.loads(bridge.start("zero_day", "old", True))  # restarting works
+
+
+def test_endings_count_at_an_ending_and_gallery_hides_undiscovered_titles():
+    bridge.start("dead_drop", "dd", True)
+    assert [e["found"] for e in json.loads(bridge.list_endings("dead_drop"))] == [False] * 4
+    view = json.loads(bridge.choose(1))  # "Mara's a grown-up." -> ending_declined
+    assert view["scene"]["type"] == "ending"
+    assert view["endings"] == {"found": 1, "total": 4}
+    assert json.loads(bridge.list_endings("dead_drop")) == [
+        {"title": "Not Your Circus", "found": True},
+        {"title": None, "found": False},
+        {"title": None, "found": False},
+        {"title": None, "found": False},
+    ]

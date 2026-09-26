@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 import yaml
 
+from .engine.endings import gallery
 from .engine.loader import (
     discover_stories,
     find_story,
@@ -107,6 +108,17 @@ def list_slots(story_ref: str) -> str:
     migrate_legacy_save(_saves_root, story.id)
     slots = list_save_slots(_saves_root, story.id)
     return json.dumps([{"slot": s, "summary": slot_summary(_saves_root, story.id, s)} for s in slots])
+
+
+def list_endings(story_ref: str) -> str:
+    """The story's endings in order; titles only for the ones found."""
+    story = _load_story(story_ref)
+    return json.dumps(
+        [
+            {"title": title if found else None, "found": found}
+            for title, found in gallery(story, _saves_root / story.id)
+        ]
+    )
 
 
 def export_slot(story_ref: str, slot: str) -> str:
@@ -237,4 +249,7 @@ def _view(*, entered: bool = False, output: Optional[str] = None, notices: Optio
         "output": output,
         "notices": notices or [],
     }
+    if scene.type == "ending":
+        found, total = session.endings_found()
+        view["endings"] = {"found": found, "total": total}
     return json.dumps(view)

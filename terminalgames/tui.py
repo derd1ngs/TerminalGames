@@ -167,6 +167,8 @@ class GameApp(App):
             self.mode = "ended"
             self.log_text(scene.text, style="bold yellow")
             self.log_text(f"-- THE END ({scene.id}) --", style="bold red")
+            found, total = self.session.endings_found()
+            self.log_text(f"Endings found: {found}/{total}", style="dim italic")
             decisions.display = False
             terminal_group.display = False
             return

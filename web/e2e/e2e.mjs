@@ -65,6 +65,7 @@ async function zeroDay(browser) {
   check((await page.locator("#story-list button").count()) === 2, "menu lists both stories");
   await page.getByRole("button", { name: "Zero Day" }).click();
   check((await page.inputValue("#new-slot-name")) === "default", "new slot name defaults to 'default'");
+  check(!(await page.isVisible("#endings-gallery")), "no endings gallery before any ending is found");
   await page.fill("#new-slot-name", "e2e");
   await page.click("#new-slot-form button[type=submit]");
   await page.waitForSelector("#screen-game:not([hidden])");
@@ -157,6 +158,13 @@ async function deadDrop(browser) {
   await page.keyboard.press("2"); // Burn it (went in alone)
   await page.waitForSelector("#screen-game.ended");
   check((await page.textContent("#story-log")).includes("Scorched Earth"), "reached an ending");
+  check((await page.textContent("#story-log")).includes("Endings found: 1/4"), "ending shows the endings count");
+  await page.getByRole("button", { name: "Back to menu" }).click();
+  await page.waitForSelector("#endings-gallery:not([hidden])");
+  check((await page.textContent("#endings-count")) === "Endings found: 1/4", "slot menu shows the gallery count");
+  const pills = await page.locator("#endings-list li").allTextContents();
+  check(JSON.stringify(pills) === JSON.stringify(["???", "???", "???", "Scorched Earth"]), `gallery lists found titles only (${pills})`);
+  await page.screenshot({ path: SHOTS + "endings-gallery.png" });
   noErrors(page, "Dead Drop");
   await page.context().close();
 }

@@ -103,6 +103,7 @@ function showSlotMenu(story) {
   $("menu-stories").hidden = true;
   $("menu-slots").hidden = false;
   $("slots-heading").textContent = story.title;
+  renderEndings(call("list_endings", story.ref));
   const slots = call("list_slots", story.ref);
   const list = $("slot-list");
   list.replaceChildren();
@@ -135,6 +136,20 @@ function showSlotMenu(story) {
   for (let n = 2; names.has(suggestion); n++) suggestion = `run${n}`;
   $("new-slot-name").value = suggestion;
   (list.querySelector("button") || $("new-slot-name")).focus();
+}
+
+function renderEndings(endings) {
+  const found = endings.filter((e) => e.found).length;
+  $("endings-gallery").hidden = found === 0;
+  $("endings-count").textContent = `Endings found: ${found}/${endings.length}`;
+  const list = $("endings-list");
+  list.replaceChildren();
+  for (const ending of endings) {
+    const item = document.createElement("li");
+    item.textContent = ending.found ? ending.title : "???";
+    item.className = ending.found ? "found" : "hidden-ending";
+    list.append(item);
+  }
 }
 
 function li(child) {
@@ -248,6 +263,7 @@ function render(view) {
     game.classList.add("ended", "narrative");
     append("story-log", scene.html, "ending", true);
     append("story-log", `-- THE END (${scene.id}) --`, "the-end");
+    append("story-log", `Endings found: ${view.endings.found}/${view.endings.total}`, "notice");
     renderChoices([]);
     const back = document.createElement("button");
     back.type = "button";
