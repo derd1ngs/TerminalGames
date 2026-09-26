@@ -85,6 +85,12 @@ def test_misspelled_requires_is_rejected_with_a_suggestion(story_dir):
             "  - id: relay_shell\n    type: narrative",
             "only terminal scenes may have a 'terminal' block",
         ),
+        ('        - "`connect relay`."', "        - 42", "every hint must be a non-empty string"),
+        (
+            '      hints:\n        - "Juno',
+            '      hint:\n        - "Juno',
+            "unknown key 'hint' (did you mean 'hints'?)",
+        ),
     ],
 )
 def test_chapter_mistakes_are_rejected(story_dir, old, new, message):

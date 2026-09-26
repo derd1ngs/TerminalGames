@@ -244,7 +244,17 @@ was built to support.
       win_flag: netmon_fixed   # scene advances once this flag is set
       next: discovery
       logs: [...]           # logged once the scene is solved
+      hints:                # optional: revealed one at a time by `hint`
+        - "The dead service is netmon; its config lives under /etc/netmon/."
+        - "`set /etc/netmon/netmon.conf bind_address 0.0.0.0`, then restart it."
 ```
+
+Order `hints` from a gentle nudge to nearly the answer. `hint` reveals the
+next one ("Hint 2/3: ..."), and once all are shown it lists them again; how
+many a player has seen is saved per scene. Every shipped terminal scene has
+hints, and `tests/test_hints.py` plays each story solving every terminal
+scene using only the commands its hints spell out in backticks -- so a hint
+that stops working after a story edit fails CI.
 
 `win_flag` is set by whichever shell command solves the puzzle (a service's
 `on_fix_flag`, a cipher file's `on_success_flag`, a host's `on_connect_flag`
@@ -315,7 +325,7 @@ prints the garbled result and writes nothing.
 
 Filesystem node types: `dir`, `text`, `config`, `cipher`.
 
-Shell commands available to the player: `help [command]`, `whoami`, `status`,
+Shell commands available to the player: `help [command]`, `hint`, `whoami`, `status`,
 `scan <host>`, `connect <host>`, `ssh <user>@<host>` (prompts for the
 password on the next line), `disconnect`/`exit`, `ls [path]`, `cd <path>`,
 `cat <file>`, `grep <pattern> <file>`, `set <file> <key> <value>`,

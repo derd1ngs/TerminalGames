@@ -8,6 +8,9 @@ scenes:
       `scan sentinel` if you want to check it's alive, then `connect
       sentinel`."
     terminal:
+      hints:
+        - "The next box is called sentinel."
+        - "`scan sentinel` to check it, then `connect sentinel`."
       win_flag: connected_sentinel
       next: "chapter_02:sentinel_shell"
       logs:
@@ -25,6 +28,10 @@ scenes:
       `grep handoff /var/log/ops/access.log`), and `decrypt` whatever you
       find once you've worked out the cipher.
     terminal:
+      hints:
+        - "Something was handed off. The ops access log, /var/log/ops/access.log, says what and how."
+        - "`grep handoff /var/log/ops/access.log` names the file and the cipher."
+        - "`decrypt /var/log/ops/handoff.enc 5`."
       host: sentinel
       win_flag: found_override_code
       next: "chapter_02:contact_t"
@@ -42,6 +49,10 @@ scenes:
       who signed that note on gateway. `mail send t cold_storage` and see
       if they still check this address.
     terminal:
+      hints:
+        - "T only answers email, and `chat` won't reach T. `mail` is your inbox and outbox."
+        - "Ask T about the cold storage backup: `mail send t cold_storage` asks directly."
+        - "Or write it yourself: a draft whose Subject mentions cold storage, then `mail sync` (in the browser, the Mail button does both)."
       win_flag: emailed_t
       next: "chapter_02:waiting"
 
@@ -62,6 +73,10 @@ scenes:
       show it, and `mail read <id>` will open it. Whatever passphrase they
       gave you, `decrypt /var/log/ops/blackbox.enc <key>` is what it's for.
     terminal:
+      hints:
+        - "T's reply has arrived. `mail list` shows it."
+        - "`mail read t:cold_storage:1` gives you the passphrase."
+        - "`decrypt /var/log/ops/blackbox.enc RAVEN`."
       win_flag: found_true_operator
       next: "chapter_02:trust_call"
       logs:

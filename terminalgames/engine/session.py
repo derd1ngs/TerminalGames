@@ -79,6 +79,7 @@ class GameSession:
         scene = self.story.get_scene(state.chapter_id, state.scene_id)
         self.scene = scene
         self.scene_commands = []
+        self.runner.hints = scene.terminal.hints if scene.terminal else []
         if scene.type == "terminal":
             assert scene.terminal is not None
             self.runner.current_chapter, self.runner.current_scene = state.chapter_id, scene.id

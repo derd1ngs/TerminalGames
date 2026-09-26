@@ -35,6 +35,9 @@ scenes:
       If you lose track of where you are at any point, `status` sums it
       up, and `journal lead` lists just the leads you've picked up.
     terminal:
+      hints:
+        - "Juno gave you the host: relay."
+        - "`connect relay`."
       win_flag: on_relay
       next: relay_log
       logs:
@@ -56,6 +59,10 @@ scenes:
       The vault is `vault`, and it only takes logins: `ssh <user>@vault`,
       then the password on the next line. `chat juno` if you get stuck.
     terminal:
+      hints:
+        - "Mara told the logbot her password. It's in /var/log/relay.log, which is far too long to read."
+        - "Filter it with pipes: `cat /var/log/relay.log | grep mara | grep vault`."
+        - "`ssh mara@vault`, then type the password `lighthouse-42` on the next line."
       win_flag: on_vault
       next: vault_hub
       logs:
@@ -107,6 +114,10 @@ scenes:
       commands, exactly that order, the same paths. If you slip, start the
       sequence again from step 1.
     terminal:
+      hints:
+        - "`cat /srv/drop/RUNBOOK`: it lists three commands."
+        - "Type them exactly as written, in order, with the full paths. Any other command in between restarts the sequence."
+        - "`systemctl status replica`, then `set /etc/replica/replica.conf mode primary`, then `systemctl restart replica`."
       win_flag: drop_recovered
       next: decide
       ordered_commands:

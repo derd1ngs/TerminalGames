@@ -120,6 +120,8 @@ async function deadDrop(browser) {
   await page.keyboard.press("1");
   await page.waitForSelector("#terminal-pane:not(.inactive)");
   check((await page.innerHTML("#story-log")).includes("<code>status</code>"), "scene text renders code spans");
+  await run(page, "hint");
+  check((await page.textContent("#terminal-log")).includes("Hint 1/2: Juno gave you the host: relay."), "hint shows the first hint");
   await run(page, "connect relay");
   await waitForPrompt(page, "relay$");
   await run(page, "cat /var/log/relay.log | grep mara | grep vault");
