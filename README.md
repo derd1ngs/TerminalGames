@@ -358,6 +358,7 @@ too, reading from the same underlying state).
 ```bash
 .venv/bin/python -m terminalgames.tools.check_story zero_day   # one story
 .venv/bin/python -m terminalgames.tools.check_story --all      # every shipped story
+.venv/bin/python -m terminalgames.tools.check_story dead_drop --graph   # Mermaid scene graph
 ```
 
 Explores every reachable combination of choices via the real engine (not a
@@ -371,6 +372,27 @@ fails CI the same way a broken test would. See
 `terminalgames/tools/check_story.py`'s module docstring for how the search
 works and what it deliberately doesn't model (e.g. an NPC's `ask_limit`
 running out isn't factored into reachability).
+
+It also lints references across all of a story's files. These are
+**problems**, which fail the check:
+- a flag some `requires` reads (in a choice, a topic or a host) that
+  nothing ever sets;
+- a `journal_has` id that nothing ever logs;
+- any `tool` requirement, since the story format has no way to grant a tool
+  yet.
+
+A flag that is set but never read is only a **warning**: harmless, but
+usually a leftover or a typo.
+
+`--graph` prints the story's scene graph as a
+[Mermaid](https://mermaid.js.org) flowchart instead of checking it. Paste
+it into a ```` ```mermaid ```` block in any GitHub Markdown file (or the
+Mermaid live editor) to see it drawn:
+- narrative scenes are boxes, terminal scenes double-bordered boxes and
+  endings rounded;
+- choices are arrows labelled with their text, dashed when gated by
+  `requires`;
+- a terminal scene's exit is a thick arrow labelled with its `win_flag`.
 
 ## Project layout
 

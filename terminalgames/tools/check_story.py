@@ -23,14 +23,22 @@ per fresh state as long as the topic's own `requires` are satisfiable,
 which is the common case but wouldn't catch an ask_limit set so low it
 makes a *specific* topic unreachable in practice.
 
+Also lints cross-file references without searching (see `lint_story`):
+flags that are required but never set, journal ids that are required but
+never logged, `tool` requirements (which nothing can grant), and -- as
+warnings only -- flags that are set but never read. `--graph` prints the
+scene graph as a Mermaid flowchart instead of checking.
+
 Usage:
     python -m terminalgames.tools.check_story <story_dir_name_or_id>
     python -m terminalgames.tools.check_story --all
+    python -m terminalgames.tools.check_story <story> --graph
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from collections import deque
 from dataclasses import dataclass, field
@@ -75,6 +83,103 @@ def collect_settable_flags(network: Network, npcs: dict) -> dict[str, SettableBy
     return settable
 
 
+# --- static lint: flags, journal ids and tools across every file -----------------
+
+
+@dataclass
+class _Usage:
+    """name -> where it was first seen, for each kind of reference."""
+
+    flags_set: dict[str, str] = field(default_factory=dict)
+    flags_read: dict[str, str] = field(default_factory=dict)
+    journal_logged: dict[str, str] = field(default_factory=dict)
+    journal_read: dict[str, str] = field(default_factory=dict)
+    tools_read: dict[str, str] = field(default_factory=dict)
+
+    def add_requires(self, requires: Optional[dict[str, Any]], where: str) -> None:
+        if not requires:
+            return
+        if "flag" in requires:
+            self.flags_read.setdefault(requires["flag"], where)
+        if "flag_equals" in requires:
+            self.flags_read.setdefault(requires["flag_equals"]["key"], where)
+        if "journal_has" in requires:
+            self.journal_read.setdefault(requires["journal_has"], where)
+        if "tool" in requires:
+            self.tools_read.setdefault(requires["tool"], where)
+        for sub in [*requires.get("all", []), *requires.get("any", [])]:
+            self.add_requires(sub, where)
+        if "not" in requires:
+            self.add_requires(requires["not"], where)
+
+    def add_effects(self, sets: dict[str, Any], logs: list[dict[str, Any]], where: str) -> None:
+        for key in sets or {}:
+            if not key.startswith("trust."):
+                self.flags_set.setdefault(key, where)
+        for entry in logs or []:
+            self.journal_logged.setdefault(entry["id"], where)
+
+
+def lint_story(story: Story, network: Network, npcs: dict) -> tuple[list[str], list[str]]:
+    """Cross-file reference checks that don't need the reachability search.
+    Returns (problems, warnings): a flag some `requires` reads but nothing
+    ever sets, a `journal_has` id nothing ever logs, and any `tool`
+    requirement (no story content can grant tools) are problems -- that gate
+    can never open. A flag that is set but never read is only a warning:
+    harmless, but usually a leftover or a typo. (A win_flag nothing sets is
+    reported by the search itself.)"""
+    usage = _Usage()
+    win_flags: set[str] = set()
+    for chapter in story.chapters.values():
+        for scene in chapter.scenes.values():
+            here = f"{chapter.id}:{scene.id}"
+            for choice in scene.choices:
+                usage.add_requires(choice.requires, here)
+                usage.add_effects(choice.sets, choice.logs, here)
+            if scene.terminal:
+                win_flags.add(scene.terminal.win_flag)
+                usage.flags_read.setdefault(scene.terminal.win_flag, here)
+                usage.add_effects({}, scene.terminal.logs, here)
+                if scene.terminal.ordered_commands:
+                    usage.flags_set.setdefault(scene.terminal.win_flag, here)
+    for host in network.hosts.values():
+        usage.add_requires(host.requires_to_connect, f"host {host.id}")
+        if host.on_connect_flag:
+            usage.flags_set.setdefault(host.on_connect_flag, f"host {host.id}")
+        for svc in host.services.values():
+            if svc.on_fix_flag:
+                usage.flags_set.setdefault(svc.on_fix_flag, f"service {svc.id}@{host.id}")
+        for path, meta in host.ciphers.items():
+            if meta.on_success_flag:
+                usage.flags_set.setdefault(meta.on_success_flag, f"{path}@{host.id}")
+    for npc in npcs.values():
+        for topic in npc.topics.values():
+            where = f"topic {npc.id}:{topic.id}"
+            usage.add_requires(topic.requires, where)
+            usage.add_effects(topic.sets, topic.logs, where)
+
+    problems = [
+        f"flag '{flag}' is required at {where}, but nothing ever sets it"
+        for flag, where in sorted(usage.flags_read.items())
+        if flag not in usage.flags_set and flag not in win_flags
+    ]
+    problems += [
+        f"journal entry '{entry}' is required at {where}, but nothing ever logs it"
+        for entry, where in sorted(usage.journal_read.items())
+        if entry not in usage.journal_logged
+    ]
+    problems += [
+        f"tool '{tool}' is required at {where}, but no story content can grant tools"
+        for tool, where in sorted(usage.tools_read.items())
+    ]
+    warnings = [
+        f"flag '{flag}' is set at {where}, but nothing ever reads it"
+        for flag, where in sorted(usage.flags_set.items())
+        if flag not in usage.flags_read
+    ]
+    return problems, warnings
+
+
 def _state_key(state: GameState) -> tuple:
     return (
         state.chapter_id,
@@ -97,6 +202,7 @@ class Report:
     all_endings: set[str]
     visited_endings: set[str]
     problems: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)  # reported, but don't affect `ok`
 
     @property
     def unreached_scenes(self) -> set[tuple[str, str]]:
@@ -115,7 +221,7 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
     settable = collect_settable_flags(network, npcs)
     visited_scenes: set[tuple[str, str]] = set()
     visited_endings: set[str] = set()
-    problems: list[str] = []
+    problems, warnings = lint_story(story, network, npcs)
     seen_keys: set[tuple] = set()
 
     start_chapter, start_scene = story.start_ref()
@@ -175,7 +281,7 @@ def check_story(story: Story, network: Network, npcs: dict, *, max_states: int =
 
     all_scenes = {(cid, sid) for cid, ch in story.chapters.items() for sid in ch.scenes}
     all_endings = {s.id for ch in story.chapters.values() for s in ch.scenes.values() if s.type == "ending"}
-    return Report(all_scenes, visited_scenes, all_endings, visited_endings, problems)
+    return Report(all_scenes, visited_scenes, all_endings, visited_endings, problems, warnings)
 
 
 def print_report(story: Story, report: Report) -> None:
@@ -195,8 +301,55 @@ def print_report(story: Story, report: Report) -> None:
         print("Problems:")
         for problem in report.problems:
             print(f"  {problem}")
+    if report.warnings:
+        print("Warnings:")
+        for warning in report.warnings:
+            print(f"  {warning}")
     if report.ok:
         print("OK.")
+
+
+# --- scene graph -----------------------------------------------------------------
+
+
+def _mermaid_id(*parts: str) -> str:
+    # Prefixed, since bare `end` is a Mermaid keyword.
+    return "n_" + "__".join(re.sub(r"\W", "_", part) for part in parts)
+
+
+def _mermaid_label(text: str, limit: int = 40) -> str:
+    text = " ".join(text.split())
+    if len(text) > limit:
+        text = text[: limit - 1] + "…"
+    return text.replace('"', "#quot;")
+
+
+def mermaid_graph(story: Story) -> str:
+    """The story's scene graph as a Mermaid flowchart (GitHub renders
+    ```mermaid blocks): narrative scenes are boxes, terminal scenes
+    double-bordered boxes, endings rounded; choice edges carry the choice
+    text (dashed when gated by `requires`), and a terminal scene's exit is a
+    thick edge labelled with its win_flag. One subgraph per chapter."""
+    lines = ["flowchart TD"]
+    for chapter in story.chapters.values():
+        lines.append(f'  subgraph {_mermaid_id(chapter.id)}["{_mermaid_label(chapter.id)}"]')
+        for scene in chapter.scenes.values():
+            node, name = _mermaid_id(chapter.id, scene.id), _mermaid_label(scene.id)
+            shape = {"ending": '(["{}"])', "terminal": '[["{}"]]'}.get(scene.type, '["{}"]')
+            lines.append(f"    {node}{shape.format(name)}")
+        lines.append("  end")
+    lines.append(f'  start((" ")) --> {_mermaid_id(*story.start_ref())}')
+    for chapter in story.chapters.values():
+        for scene in chapter.scenes.values():
+            node = _mermaid_id(chapter.id, scene.id)
+            for choice in scene.choices:
+                target = _mermaid_id(*story.resolve(choice.next, chapter.id))
+                arrow = "-.->" if choice.requires else "-->"
+                lines.append(f'  {node} {arrow}|"{_mermaid_label(choice.text)}"| {target}')
+            if scene.terminal:
+                target = _mermaid_id(*story.resolve(scene.terminal.next, chapter.id))
+                lines.append(f'  {node} ==>|"{_mermaid_label(scene.terminal.win_flag)}"| {target}')
+    return "\n".join(lines)
 
 
 def check_story_dir(story_dir: Path) -> Report:
@@ -214,10 +367,17 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("story", nargs="?", help="story directory name or manifest id")
     parser.add_argument("--all", action="store_true", help="check every shipped story")
+    parser.add_argument(
+        "--graph",
+        action="store_true",
+        help="instead of checking, print the story's scene graph as a Mermaid flowchart",
+    )
     args = parser.parse_args(argv)
 
     if not args.all and not args.story:
         parser.error("pass a story, or --all")
+    if args.graph and args.all:
+        parser.error("--graph takes a single story, not --all")
 
     stories = discover_stories()
     if args.all:
@@ -237,6 +397,9 @@ def main(argv: list[str] | None = None) -> None:
             print(f"{story_dir.name}: failed to load: {exc}", file=sys.stderr)
             all_ok = False
             continue
+        if args.graph:
+            print(mermaid_graph(story))
+            return
         network = load_network(story_dir)
         npcs = load_npc_roster(story_dir)
         report = check_story(story, network, npcs)
