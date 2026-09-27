@@ -372,7 +372,7 @@ bible". Owner decisions (2026-09-27):
   day -120, an audition job, then months of research.
 - **Release order C**, the attacker first: Part 1 Black, then Blue, White,
   Gray, Green, Red, and Purple last.
-- The company is **Brackwater Terminals**; the draft's "Brackwater Terminals" is
+- The company is **Brackwater Terminals**; the draft's "Meridian Freight" is
   a real company. All other names stay.
 - **Each story is released separately.**
 - Vesper's three endings (caught, escaped, cliffhanger), with the
@@ -395,8 +395,8 @@ Inspired by the seven hacker "hats"
 
 **Concept: one incident, seven points of view** (a "Rashomon" structure).
 Each story stands alone, but each also shows traces of the others, so
-together they reveal the whole picture. The fictional setting is Meridian
-Freight, a port-logistics company launching a customer portal, "TrackNet".
+together they reveal the whole picture. The fictional setting is Brackwater
+Terminals, a port-logistics company launching a customer portal, "TrackNet".
 
 | Hat | Story idea | What it teaches |
 |---|---|---|
