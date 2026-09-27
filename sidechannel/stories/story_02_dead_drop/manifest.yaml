@@ -1,5 +1,7 @@
 id: dead_drop
 title: "Dead Drop"
+published: 2026-09-26
+description: "Your friend went dark and left a dead drop behind. Pipes, an ssh login and a runbook to follow to the letter."
 start: "chapter_01:intro"
 chapters:
   - chapter_01.yaml

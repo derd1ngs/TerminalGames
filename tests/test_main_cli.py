@@ -174,3 +174,33 @@ def test_print_endings_lists_found_titles_and_hides_the_rest(tmp_path, monkeypat
     record_ending(tmp_path / "dead_drop", "ending_burned")
     main_module.print_endings(story)
     assert capsys.readouterr().out.strip() == "Endings found: 1/4 -- Scorched Earth, and 3 more"
+
+
+def _stories(n: int) -> list:
+    from sidechannel.engine.catalog import StoryInfo
+
+    return [StoryInfo(f"ref{i}", f"id{i}", f"Story {i}", None, "", 1, 1, 0) for i in range(1, n + 1)]
+
+
+def test_select_story_pages_with_n_and_p_and_numbers_are_global(monkeypatch, capsys):
+    answers = iter(["n", "p", "n", "n", "11"])  # page 2, back to 1, page 2, stay (last page), pick #11
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": next(answers))
+    chosen = main_module.select_story(_stories(12), per_page=9)
+    assert chosen.ref == "ref11"
+    out = capsys.readouterr().out
+    assert "Available stories (page 1/2):" in out and "Available stories (page 2/2):" in out
+    assert "Invalid choice." in out  # "n" on the last page
+
+
+def test_select_story_single_page_has_no_paging(monkeypatch, capsys):
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": "2")
+    assert main_module.select_story(_stories(3)).ref == "ref2"
+    assert "(page" not in capsys.readouterr().out
+
+
+def test_list_shows_refs_titles_and_dates(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(main_module, "SAVES_DIR", tmp_path)
+    monkeypatch.setattr("sys.argv", ["sidechannel", "--list"])
+    main_module.main()
+    out = capsys.readouterr().out
+    assert "story_03_night_shift     Night Shift (published 26 Sep 2026)" in out

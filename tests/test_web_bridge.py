@@ -38,9 +38,21 @@ def play(steps):
     return view
 
 
-def test_list_stories_includes_zero_day():
-    stories = json.loads(bridge.list_stories())
-    assert {"ref": "story_01_zero_day", "id": "zero_day", "title": "Zero Day"} in stories
+def test_list_stories_is_the_catalog_newest_first():
+    result = json.loads(bridge.list_stories())
+    assert (result["page"], result["pages"], result["total"]) == (1, 1, 3)
+    assert [s["id"] for s in result["stories"]] == ["dead_drop", "night_shift", "zero_day"]
+    zero_day = result["stories"][2]
+    assert zero_day["published"] == "2026-09-08"
+    assert zero_day["summary"] == "Published 8 Sep 2026 · 3 chapters · 6 endings"
+    assert zero_day["description"].startswith("A decommissioned military network")
+
+
+def test_list_stories_paginates_and_clamps():
+    pages = [json.loads(bridge.list_stories(page, 2)) for page in (1, 2, 3, 0)]
+    assert [len(p["stories"]) for p in pages] == [2, 1, 1, 2]
+    assert [p["page"] for p in pages] == [1, 2, 2, 1]  # 3 clamps to the last page, 0 to the first
+    assert all(p["pages"] == 2 and p["total"] == 3 for p in pages)
 
 
 def test_start_fresh_shows_the_first_scene_with_choices():

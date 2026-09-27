@@ -30,7 +30,12 @@
       <div class="menu">
         <div id="menu-stories">
           <h1>Select a story</h1>
-          <ul class="menu-list" id="story-list"></ul>
+          <ul class="menu-list story-list" id="story-list"></ul>
+          <nav class="pager" id="story-pager" aria-label="Story pages" hidden>
+            <button type="button" id="story-prev">&lsaquo; Prev</button>
+            <span id="story-page-info" aria-live="polite"></span>
+            <button type="button" id="story-next">Next &rsaquo;</button>
+          </nav>
         </div>
         <div id="menu-slots" hidden>
           <h1 id="slots-heading"></h1>

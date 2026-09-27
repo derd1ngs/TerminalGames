@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Story lists show each story's publishing date, a one-line description,
+  its size and the endings you've found, newest first. The browser pages
+  them six at a time, and the terminal picker nine at a time (`n`/`p`), with
+  titles instead of folder names. Story manifests take optional `published`
+  and `description` fields.
+
 ## 1.0.1 -- 2026-09-27
 
 - The browser version has a favicon: a green prompt and an amber cursor

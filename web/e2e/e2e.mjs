@@ -26,14 +26,14 @@ function check(ok, what) {
 }
 
 // A fresh context per scenario: its own IndexedDB, so saves never leak between scenarios.
-async function openPage(browser, viewport = { width: 1280, height: 800 }) {
+async function openPage(browser, viewport = { width: 1280, height: 800 }, query = "") {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   page.errors = [];
   page.on("console", (m) => m.type() === "error" && page.errors.push(`console: ${m.text()}`));
   page.on("pageerror", (e) => page.errors.push(`pageerror: ${e.message}`));
   const started = Date.now();
-  await page.goto(SITE);
+  await page.goto(SITE + query);
   await page.waitForSelector("#screen-menu:not([hidden])", { timeout: BOOT_TIMEOUT });
   console.log(`  (boot took ${((Date.now() - started) / 1000).toFixed(1)}s)`);
   return page;
@@ -208,6 +208,32 @@ async function nightShift(browser) {
   await page.context().close();
 }
 
+async function storyList(browser) {
+  console.log("Story list: cards, dates, pagination");
+  const page = await openPage(browser);
+  const cards = await page.locator("#story-list .story-card").allTextContents();
+  check(cards[0].startsWith("Dead Drop") && cards[2].startsWith("Zero Day"), "stories are listed newest first");
+  check(cards[2].includes("Published 8 Sep 2026 · 3 chapters · 6 endings"), "a card shows the publishing date and size");
+  check(cards[2].includes("A decommissioned military network"), "a card shows the story's description");
+  check(!(await page.isVisible("#story-pager")), "no pager while every story fits on one page");
+  await page.screenshot({ path: SHOTS + "story-list.png" });
+  await page.context().close();
+
+  const paged = await openPage(browser, undefined, "?stories_per_page=2");
+  check((await paged.textContent("#story-page-info")) === "Stories 1–2 of 3", "pager shows the range");
+  check(await paged.isDisabled("#story-prev"), "Prev is disabled on the first page");
+  await paged.click("#story-next");
+  check((await paged.locator("#story-list .story-card").count()) === 1, "the last page has the remaining story");
+  check((await paged.textContent("#story-page-info")) === "Story 3 of 3", "pager range on the last page");
+  check(await paged.isDisabled("#story-next"), "Next is disabled on the last page");
+  await paged.getByRole("button", { name: /Zero Day/ }).click();
+  await paged.click("#btn-back-stories");
+  check((await paged.textContent("#story-page-info")) === "Story 3 of 3", "going back returns to the same page");
+  await paged.screenshot({ path: SHOTS + "story-list-paged.png" });
+  noErrors(paged, "Story list");
+  await paged.context().close();
+}
+
 async function saveFiles(browser) {
   console.log("Save export/import (two separate browsers)");
   const a = await openPage(browser);
@@ -314,7 +340,7 @@ async function phone(browser) {
 
 const browser = await firefox.launch();
 try {
-  for (const scenario of [zeroDay, deadDrop, nightShift, saveFiles, offline, phone]) {
+  for (const scenario of [zeroDay, deadDrop, nightShift, storyList, saveFiles, offline, phone]) {
     try {
       await scenario(browser);
     } catch (err) {

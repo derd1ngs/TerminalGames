@@ -1,5 +1,7 @@
 id: zero_day
 title: "Zero Day"
+published: 2026-09-08
+description: "A decommissioned military network wakes up at 2 AM. The tutorial campaign, and the longest story."
 start: "chapter_01:intro"
 chapters:
   - chapter_01.yaml

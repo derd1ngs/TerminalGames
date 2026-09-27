@@ -13,7 +13,9 @@ from pathlib import Path
 
 from platformdirs import user_data_path
 from rich.console import Console
+from rich.markup import escape
 
+from .engine.catalog import StoryInfo, catalog
 from .engine.endings import gallery
 from .engine.loader import (
     DEFAULT_SLOT,
@@ -46,18 +48,33 @@ SAVES_DIR = default_saves_dir(Path(__file__).resolve().parent)
 console = Console()
 
 
-def select_story(stories: list[Path]) -> Path:
+def select_story(stories: list[StoryInfo], per_page: int = 9) -> StoryInfo:
+    """Interactive story picker over the catalog (newest first), a page at a
+    time. Numbers are global (1..N), so a number always means the same story;
+    `n`/`p` flip pages when there's more than one."""
     if not stories:
         console.print(f"[bold red]No stories found in {STORIES_DIR}[/bold red]")
         sys.exit(1)
-    console.print("[bold]Available stories:[/bold]")
-    for i, story_dir in enumerate(stories, start=1):
-        console.print(f"  {i}. {story_dir.name}")
+    pages = -(-len(stories) // per_page)
+    page = 0
     while True:
-        choice = console.input("Select a story #: ")
+        heading = "Available stories" + (f" (page {page + 1}/{pages})" if pages > 1 else "")
+        console.print(f"[bold]{heading}:[/bold]")
+        first = page * per_page
+        for i, info in enumerate(stories[first : first + per_page], start=first + 1):
+            console.print(f"  {i}. [bold]{escape(info.title)}[/bold]  [dim]{escape(info.summary)}[/dim]")
+            if info.description:
+                console.print(f"     [dim]{escape(info.description)}[/dim]")
+        paging = ", n/p for the next/previous page" if pages > 1 else ""
+        choice = console.input(f"Select a story #{paging}: ").strip().lower()
         if choice.isdigit() and 1 <= int(choice) <= len(stories):
             return stories[int(choice) - 1]
-        console.print("[bold red]Invalid choice.[/bold red]")
+        if choice == "n" and page + 1 < pages:
+            page += 1
+        elif choice == "p" and page > 0:
+            page -= 1
+        else:
+            console.print("[bold red]Invalid choice.[/bold red]")
 
 
 def print_save_slots(story_id: str) -> None:
@@ -165,8 +182,9 @@ def main() -> None:
             console.print(f"[bold red]No stories found in {STORIES_DIR}[/bold red]")
             sys.exit(1)
         console.print("[bold]Available stories:[/bold]")
-        for available in stories:
-            console.print(f"  {available.name}")
+        for info in catalog(SAVES_DIR):
+            published = f" (published {info.published_label})" if info.published else ""
+            console.print(f"  {info.ref:24} {escape(info.title)}{published}")
         return
 
     if args.story:
@@ -175,7 +193,8 @@ def main() -> None:
             console.print(f"[bold red]No story matching '{args.story}'.[/bold red]")
             sys.exit(1)
     else:
-        story_dir = select_story(stories)
+        story_dir = find_story(select_story(catalog(SAVES_DIR)).ref, stories)
+        assert story_dir is not None
 
     try:
         story = Story.load(story_dir)
