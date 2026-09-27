@@ -505,3 +505,11 @@ the three shipped stories as complete worked content examples:
 `story_01_zero_day/` for the core features, `story_02_dead_drop/` for `ssh`
 logins, pipes, `ordered_commands` and `requires` combinators, and
 `story_03_night_shift/` for tool grants and the trace meter.
+
+## License
+
+Side Channel is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either **version 3 of the License, or (at your option)
+any later version** (SPDX: `GPL-3.0-or-later`). See [LICENSE](LICENSE) for
+the full text.
