@@ -22,6 +22,7 @@ from .schema import StoryLoadError
 from .state import GameState
 
 SCENE_TYPES = {"narrative", "terminal", "ending"}
+HATS = {"white", "black", "gray", "green", "red", "blue", "purple"}
 
 
 @dataclass
@@ -188,6 +189,10 @@ class Story:
     chapters: dict[str, Chapter]
     published: Optional[date] = None  # manifest `published: 2026-09-08`, shown in story lists
     description: str = ""  # manifest `description`: one line for story lists
+    version: int = 1  # the story's own version; stories don't change the game's version
+    series: str = ""  # e.g. "The Seven Hats"
+    part: Optional[int] = None  # position within the series
+    hat: str = ""  # for The Seven Hats: which hat the player wears
 
     def resolve(self, ref: str, current_chapter: str) -> tuple[str, str]:
         """Resolve a `next` reference ("scene_id" or "chapter_id:scene_id")."""
@@ -216,8 +221,29 @@ class Story:
         except (yaml.YAMLError, ValueError) as exc:  # e.g. `published: 2026-13-40` fails inside YAML
             raise StoryLoadError(f"manifest.yaml: {exc}") from exc
         schema.check_keys(
-            manifest, {"id", "title", "start", "chapters", "published", "description"}, "manifest.yaml"
+            manifest,
+            {
+                "id",
+                "title",
+                "start",
+                "chapters",
+                "published",
+                "description",
+                "version",
+                "series",
+                "part",
+                "hat",
+            },
+            "manifest.yaml",
         )
+        for key in ("version", "part"):
+            value = manifest.get(key)
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 1):
+                raise StoryLoadError(f"manifest.yaml: {key} must be a whole number of at least 1")
+        if "hat" in manifest:
+            schema.check_value(manifest["hat"], HATS, "hat", "manifest.yaml")
+        if ("part" in manifest or "hat" in manifest) and not manifest.get("series"):
+            raise StoryLoadError("manifest.yaml: part and hat need a series")
         try:
             manifest_id = manifest["id"]
             manifest_start = manifest["start"]
@@ -237,6 +263,10 @@ class Story:
             chapters=chapters,
             published=_published_date(manifest.get("published")),
             description=" ".join(str(manifest.get("description", "")).split()),
+            version=manifest.get("version", 1),
+            series=str(manifest.get("series", "")),
+            part=manifest.get("part"),
+            hat=str(manifest.get("hat", "")),
         )
         story.validate()
         return story

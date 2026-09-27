@@ -27,6 +27,21 @@ class StoryInfo:
     chapters: int
     endings: int
     endings_found: int
+    series: str = ""
+    part: Optional[int] = None
+    hat: str = ""
+
+    @property
+    def series_label(self) -> str:
+        """e.g. "The Seven Hats · Part 1 · Black Hat" ("" outside a series)."""
+        if not self.series:
+            return ""
+        parts = [self.series]
+        if self.part:
+            parts.append(f"Part {self.part}")
+        if self.hat:
+            parts.append(f"{self.hat.capitalize()} Hat")
+        return " · ".join(parts)
 
     @property
     def published_label(self) -> str:
@@ -60,11 +75,24 @@ def story_info(story_dir: Path, saves_root: Path) -> StoryInfo:
         chapters=len(story.chapters),
         endings=len(ending_ids),
         endings_found=sum(1 for e in ending_ids if e in found),
+        series=story.series,
+        part=story.part,
+        hat=story.hat,
     )
 
 
 def catalog(saves_root: Path, stories_dir: Optional[Path] = None) -> list[StoryInfo]:
-    """Every story, newest first; undated stories last, then by title."""
+    """Every story, newest first; undated stories last. Parts of a series
+    published the same day keep their order; otherwise by title."""
     dirs = discover_stories() if stories_dir is None else discover_stories(stories_dir)
     infos = [story_info(d, saves_root) for d in dirs]
-    return sorted(infos, key=lambda i: (i.published is None, -(i.published or date.min).toordinal(), i.title))
+    return sorted(
+        infos,
+        key=lambda i: (
+            i.published is None,
+            -(i.published or date.min).toordinal(),
+            i.series,
+            i.part or 0,
+            i.title,
+        ),
+    )

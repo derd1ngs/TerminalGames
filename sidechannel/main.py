@@ -63,7 +63,10 @@ def select_story(stories: list[StoryInfo], per_page: int = 9) -> StoryInfo:
         console.print(f"[bold]{heading}:[/bold]")
         first = page * per_page
         for i, info in enumerate(stories[first : first + per_page], start=first + 1):
-            console.print(f"  {i}. [bold]{escape(info.title)}[/bold]  [dim]{escape(info.summary)}[/dim]")
+            series = f"[magenta]{escape(info.series_label)}[/magenta]  " if info.series_label else ""
+            console.print(
+                f"  {i}. {series}[bold]{escape(info.title)}[/bold]  [dim]{escape(info.summary)}[/dim]"
+            )
             if info.description:
                 console.print(f"     [dim]{escape(info.description)}[/dim]")
         paging = ", n/p for the next/previous page" if pages > 1 else ""
