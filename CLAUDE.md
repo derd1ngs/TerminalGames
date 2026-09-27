@@ -68,3 +68,7 @@
   machine's older checkout: `git remote set-url origin <url ending in
   sidechannel.git>` (GitHub redirects meanwhile), then `./setup.sh` to swap
   the old `sidechannel` command for `sidechannel`.
+- Favicons: `web/favicon.svg` is the source; the PNGs come from
+  `web/e2e/make-icons.mjs` (rasterized through an in-page canvas -- this
+  Playwright Firefox can't take transparent or SVG-element screenshots:
+  "Not implemented").
