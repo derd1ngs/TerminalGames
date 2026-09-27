@@ -63,3 +63,7 @@
   dynamically); a release is a `vX.Y.Z` tag matching it
   (`.github/workflows/release.yml` checks that). Build locally with
   `build`/`twine` in a scratch venv, never the project venv.
+- The repo was renamed TerminalGames -> sidechannel (2026-09-27). On another
+  machine's older checkout: `git remote set-url origin <url ending in
+  sidechannel.git>` (GitHub redirects meanwhile), then `./setup.sh` to swap
+  the old `terminalgames` command for `sidechannel`.
