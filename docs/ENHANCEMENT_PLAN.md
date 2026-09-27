@@ -1,7 +1,7 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
-skipped. Phases 6-8 are done; Phase 9 is prepared, waiting on the PyPI side. Each phase is
+Status as of 2026-09-27. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
+skipped. Phases 6-9 are done: Side Channel 1.0.0 is released. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -284,7 +284,7 @@ outside the repo.
    hides dotfiles), `history`, `clear`, `man <cmd>`, with a man page for
    every command.
 
-## Phase 9 -- distribution (prepared; waiting on the PyPI side)
+## Phase 9 -- distribution (done)
 
 **The game is now "Side Channel".** `terminalgames` clashes with PyPI's
 existing `terminal-games`, and the owner chose a distinct name over a
@@ -306,14 +306,12 @@ Done:
 License: `GPL-3.0-or-later` (the owner's decision), as the SPDX `license`
 expression in pyproject and a README section.
 
-Remaining, in order:
-1. Rename the GitHub repo to `sidechannel` (GitHub redirects the repo; the
-   old Pages URL stops working), merge, and check the site at the new URL.
-2. On pypi.org, add a pending trusted publisher: project `sidechannel`, owner
-   `derd1ngs`, repo `sidechannel`, workflow `release.yml`, environment `pypi`
-   (owner only).
-3. Push the tag `v1.0.0` on main, which runs `release.yml`.
-4. Check `pipx install sidechannel` from a clean environment.
+**Released 2026-09-27:** the repo was renamed to `sidechannel` (the site is
+now https://derd1ngs.github.io/sidechannel/), the tag `v1.0.0` ran
+`release.yml`, and `sidechannel` 1.0.0 is on PyPI
+(https://pypi.org/project/sidechannel/) via trusted publishing, with a
+matching GitHub release. It was verified by installing from PyPI into a
+clean venv and running it.
 
 ## Suggested order (Phases 6-9)
 
