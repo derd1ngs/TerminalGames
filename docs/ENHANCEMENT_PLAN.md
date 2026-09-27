@@ -303,8 +303,8 @@ Done:
 - `setup.sh` drops the old distributions, so a stale command never lingers;
 - the renamed player-facing names, the command and all URLs.
 
-Left open: an SPDX `license` expression. It depends on whether the project
-is "GPL-3.0-only" or "GPL-3.0-or-later", which is the owner's call.
+License: `GPL-3.0-or-later` (the owner's decision), as the SPDX `license`
+expression in pyproject and a README section.
 
 Remaining, in order:
 1. Rename the GitHub repo to `sidechannel` (GitHub redirects the repo; the

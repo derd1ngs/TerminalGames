@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]  # 77+: license-files
+requires = ["setuptools>=77"]  # 77+: SPDX `license` and license-files
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,13 +9,13 @@ name = "sidechannel"
 dynamic = ["version"]  # from terminalgames/__init__.py -- the one place to bump it
 description = "Side Channel: a hacker-themed text adventure with a fake terminal, playable in a terminal or a browser"
 readme = "README.md"
+license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 keywords = ["game", "text adventure", "interactive fiction", "hacker", "terminal", "textual"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console :: Curses",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
