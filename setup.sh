@@ -20,6 +20,10 @@ fi
 
 echo "Installing TerminalGames ..."
 .venv/bin/pip install --upgrade pip --quiet
+# The distribution was renamed terminalgames -> terminalgames-hacker (1.0.0).
+# Drop the old one first: both install the `terminalgames` command, and
+# uninstalling the old name later would take the command with it.
+.venv/bin/pip uninstall --yes --quiet terminalgames 2>/dev/null || true
 .venv/bin/pip install -e .
 
 echo

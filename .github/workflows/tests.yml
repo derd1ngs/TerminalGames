@@ -75,6 +75,7 @@ jobs:
           /tmp/venv/bin/terminalgames --list | tee stories.txt
           grep -q story_01_zero_day stories.txt
           grep -q story_02_dead_drop stories.txt
+          grep -q story_03_night_shift stories.txt
           /tmp/venv/bin/python -m terminalgames.tools.check_story --all
 
   web-e2e:

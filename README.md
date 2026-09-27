@@ -25,7 +25,20 @@ with three complete stories:
   off -- with one retry. Tools you pick up along the way (the key, a
   colleague's packet sniffer) open hosts and endings.
 
-## Running it
+## Installing
+
+```bash
+pipx install terminalgames-hacker   # or: pip install terminalgames-hacker
+terminalgames                       # play
+```
+
+The PyPI package is called `terminalgames-hacker` (plain `terminalgames` is
+too close to an unrelated project's name); the command it installs is
+`terminalgames`. Saves go to your user data directory, e.g.
+`~/.local/share/terminalgames/saves/` on Linux. Or skip installing entirely
+and play in the browser: **https://derd1ngs.github.io/TerminalGames/**.
+
+## Running from a checkout
 
 ```bash
 ./setup.sh   # one-time: creates .venv and installs the package into it

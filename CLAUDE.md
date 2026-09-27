@@ -55,3 +55,10 @@
   entry (a test enforces it) and, if it touches a host, a place in
   `TRACED_COMMANDS` -- otherwise it slips past scenes' trace meters. Adding a
   command can also change completion results that tests pin.
+- Names: the PyPI distribution is `terminalgames-hacker` (plain
+  `terminalgames` clashes with PyPI's existing `terminal-games`), but the
+  command and the import package are both `terminalgames`. The version lives
+  only in `terminalgames/__init__.py` (pyproject reads it dynamically); a
+  release is a `vX.Y.Z` tag matching it (`.github/workflows/release.yml`
+  checks that). Build locally with `build`/`twine` in a scratch venv, never
+  the project venv.

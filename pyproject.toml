@@ -1,11 +1,29 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]  # 77+: license-files
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "terminalgames"
-version = "0.1.0"
+# The PyPI name. The command stays `terminalgames` and so does the import
+# package; plain "terminalgames" is too close to the existing
+# "terminal-games" project for PyPI to accept.
+name = "terminalgames-hacker"
+dynamic = ["version"]  # from terminalgames/__init__.py -- the one place to bump it
 description = "A hacker-themed text adventure engine with a fake terminal, playable in a terminal or a browser"
+readme = "README.md"
+license-files = ["LICENSE"]
+keywords = ["game", "text adventure", "interactive fiction", "hacker", "terminal", "textual"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+]
 requires-python = ">=3.10"
 dependencies = [
     "rich>=13.0",
@@ -18,11 +36,20 @@ dependencies = [
 test = ["pytest", "pytest-asyncio"]
 lint = ["ruff>=0.6", "mypy>=1.10", "types-PyYAML"]
 
+[project.urls]
+"Play in your browser" = "https://derd1ngs.github.io/TerminalGames/"
+Source = "https://github.com/derd1ngs/TerminalGames"
+Issues = "https://github.com/derd1ngs/TerminalGames/issues"
+Changelog = "https://github.com/derd1ngs/TerminalGames/blob/main/CHANGELOG.md"
+
 [project.scripts]
 terminalgames = "terminalgames.main:main"
 
 [tool.setuptools.packages.find]
 include = ["terminalgames*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "terminalgames.__version__"}
 
 [tool.setuptools.package-data]
 terminalgames = ["stories/**/*.yaml"]
