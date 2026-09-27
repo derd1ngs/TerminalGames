@@ -1,7 +1,8 @@
 # Enhancement plan
 
 Status as of 2026-09-27. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
-skipped. Phases 6-9 are done: Side Channel 1.0.0 is released. Each phase is
+skipped. Phases 6-9 are done (Side Channel 1.0.x is on PyPI), Phase 10 is
+done, and Phases 11-13 are proposals. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -313,6 +314,44 @@ now https://derd1ngs.github.io/sidechannel/), the tag `v1.0.0` ran
 (https://pypi.org/project/sidechannel/) via trusted publishing, with a
 matching GitHub release. It was verified by installing from PyPI into a
 clean venv and running it.
+
+## Phase 10 -- story selection (done; item 4 left for later)
+
+From a third analysis after 1.0.1. The story lists showed titles only (the
+TUI even showed folder names), with no dates and no pagination.
+
+1. **Story metadata:** optional `published` (an ISO date) and `description`
+   (one line) in `manifest.yaml`, validated strictly. Dates from git history:
+   Zero Day 2026-09-08, Dead Drop and Night Shift 2026-09-26.
+2. **Story cards:** the title, "Published 8 Sep 2026", the description,
+   chapter and ending counts, and endings found. Sorted newest first.
+3. **Pagination:** in the browser, ~6 per page with Prev/Next and "Stories
+   1-6 of N", hidden while everything fits; in the TUI picker, `n`/`p` pages,
+   titles instead of folder names.
+4. Later, with many stories: a search/filter box.
+
+## Phase 11 -- robustness II
+
+1. **A save format version** in GameState saves, with migration hooks.
+   Saves carry none today, so a future format change couldn't tell old
+   saves from new.
+2. **Save when an ending is reached,** so a slot reflects a finished run.
+   Today it keeps its last save and "Continue" replays from there.
+
+## Phase 12 -- more stories
+
+1. **User stories:** a stories folder in the user data directory (TUI),
+   checked with `check_story` on load; loading a story zip in the browser.
+   This is what makes Phase 10's pagination matter.
+2. `sidechannel new-story <id>`: a skeleton story that passes the checker.
+3. **An author guide:** split the authoring half of the 513-line README
+   into `docs/authoring.md`.
+
+## Phase 13 -- polish
+
+1. Browser settings: text size and a light theme, remembered per browser.
+2. Load progress: a percentage for the first ~10 MB download.
+3. Optional: a German interface and stories.
 
 ## Suggested order (Phases 6-9)
 

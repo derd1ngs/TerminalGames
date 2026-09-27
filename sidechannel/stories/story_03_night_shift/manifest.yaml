@@ -1,5 +1,7 @@
 id: night_shift
 title: "Night Shift"
+published: 2026-09-26
+description: "3 AM: someone signed a release nobody scheduled. Hidden files, borrowed tools and a mirror that traces you."
 start: "chapter_01:intro"
 chapters:
   - chapter_01.yaml

@@ -10,6 +10,7 @@ in chapter 7 without any special-casing.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any, Optional
 
@@ -185,6 +186,8 @@ class Story:
     title: str
     start: str
     chapters: dict[str, Chapter]
+    published: Optional[date] = None  # manifest `published: 2026-09-08`, shown in story lists
+    description: str = ""  # manifest `description`: one line for story lists
 
     def resolve(self, ref: str, current_chapter: str) -> tuple[str, str]:
         """Resolve a `next` reference ("scene_id" or "chapter_id:scene_id")."""
@@ -208,8 +211,13 @@ class Story:
 
     @classmethod
     def load(cls, story_dir: Path) -> "Story":
-        manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
-        schema.check_keys(manifest, {"id", "title", "start", "chapters"}, "manifest.yaml")
+        try:
+            manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
+        except (yaml.YAMLError, ValueError) as exc:  # e.g. `published: 2026-13-40` fails inside YAML
+            raise StoryLoadError(f"manifest.yaml: {exc}") from exc
+        schema.check_keys(
+            manifest, {"id", "title", "start", "chapters", "published", "description"}, "manifest.yaml"
+        )
         try:
             manifest_id = manifest["id"]
             manifest_start = manifest["start"]
@@ -227,6 +235,8 @@ class Story:
             title=manifest.get("title", manifest_id),
             start=manifest_start,
             chapters=chapters,
+            published=_published_date(manifest.get("published")),
+            description=" ".join(str(manifest.get("description", "")).split()),
         )
         story.validate()
         return story
@@ -250,6 +260,19 @@ class Story:
             raise StoryLoadError("manifest 'start' must be 'chapter_id:scene_id'")
         start_chapter, start_scene = self.start_ref()
         self.get_scene(start_chapter, start_scene)
+
+
+def _published_date(value: Any) -> Optional[date]:
+    """YAML reads an unquoted `2026-09-08` as a date and a quoted one as a
+    string; accept both, but only a real YYYY-MM-DD date."""
+    if value is None or isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value))
+    except ValueError:
+        raise StoryLoadError(
+            f"manifest.yaml: published must be a date like 2026-09-08, not {value!r}"
+        ) from None
 
 
 def check_requires(requires: Optional[dict[str, Any]], state: GameState) -> bool:

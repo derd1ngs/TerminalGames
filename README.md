@@ -140,6 +140,10 @@ sandbox, `set` edits and mail included. **Import a save file…** brings it
 back, in any browser. The file is fully validated before anything is
 written: right story, known scene, no paths outside the sandbox.
 
+The story list shows each story's publishing date, description, size and how
+many endings you've found, newest first, a page of six at a time (the TUI's
+picker pages nine at a time with `n`/`p`).
+
 It plays like the TUI -- story, choices and terminal panes, Tab completion,
 Up/Down history, `Ctrl+S` -- with three browser-specific touches: number keys
 pick a choice; on phones and other touch or narrow screens, **⇥ ↑ ↓** buttons
@@ -209,6 +213,8 @@ lead planted in chapter 3 can pay off in chapter 12.
 ```yaml
 id: zero_day
 title: "Zero Day"
+published: 2026-09-08       # optional: shown in story lists, which sort newest first
+description: "A decommissioned military network wakes up at 2 AM."   # optional, one line
 start: "chapter_01:intro"   # must be "chapter_id:scene_id"
 chapters:
   - chapter_01.yaml

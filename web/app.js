@@ -13,6 +13,10 @@ let bridge = null;
 let currentStory = null; // {ref, id, title}
 let mode = "menu"; // menu | narrative | terminal | ended
 let secret = false; // the next terminal line is a password (after `ssh`)
+let storyPage = 1;
+// Stories per page in the story list; `?stories_per_page=N` overrides it
+// (the browser test uses that, since three stories fit on one page).
+const STORIES_PER_PAGE = Number(new URLSearchParams(location.search).get("stories_per_page")) || 6;
 const history = [];
 let historyIndex = 0;
 
@@ -101,20 +105,33 @@ function showScreen(name) {
   if (name !== "game") $("game-title").textContent = "";
 }
 
-function showStoryMenu() {
+function showStoryMenu(page = storyPage) {
   mode = "menu";
   showScreen("menu");
   $("menu-stories").hidden = false;
   $("menu-slots").hidden = true;
+  const result = call("list_stories", page, STORIES_PER_PAGE);
+  storyPage = result.page;
   const list = $("story-list");
   list.replaceChildren();
-  for (const story of call("list_stories")) {
+  for (const story of result.stories) {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = story.title;
+    button.className = "story-card";
+    button.innerHTML = `<strong></strong><span class="meta"></span><span class="sub"></span>`;
+    button.querySelector("strong").textContent = story.title;
+    button.querySelector(".meta").textContent = story.summary;
+    button.querySelector(".sub").textContent = story.description;
     button.addEventListener("click", () => showSlotMenu(story));
     list.append(li(button));
   }
+  const first = (result.page - 1) * STORIES_PER_PAGE + 1;
+  $("story-pager").hidden = result.pages <= 1;
+  const last = first + result.stories.length - 1;
+  $("story-page-info").textContent =
+    first === last ? `Story ${first} of ${result.total}` : `Stories ${first}–${last} of ${result.total}`;
+  $("story-prev").disabled = result.page <= 1;
+  $("story-next").disabled = result.page >= result.pages;
   list.querySelector("button")?.focus();
 }
 
@@ -187,7 +204,9 @@ $("new-slot-form").addEventListener("submit", (event) => {
   if (exists && !confirm(`Slot "${slot}" already exists. Overwrite it with a new game?`)) return;
   startGame(slot, true);
 });
-$("btn-back-stories").addEventListener("click", showStoryMenu);
+$("btn-back-stories").addEventListener("click", () => showStoryMenu());
+$("story-prev").addEventListener("click", () => showStoryMenu(storyPage - 1));
+$("story-next").addEventListener("click", () => showStoryMenu(storyPage + 1));
 
 // --- save files ------------------------------------------------------------------
 

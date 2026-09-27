@@ -18,8 +18,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-import yaml
-
+from .engine.catalog import catalog
 from .engine.endings import gallery
 from .engine.loader import (
     discover_stories,
@@ -95,12 +94,33 @@ def scene_html(text: str) -> str:
 # --- menus -------------------------------------------------------------------
 
 
-def list_stories() -> str:
-    stories = []
-    for story_dir in discover_stories():
-        manifest = yaml.safe_load((story_dir / "manifest.yaml").read_text()) or {}
-        stories.append({"ref": story_dir.name, "id": manifest.get("id"), "title": manifest.get("title")})
-    return json.dumps(stories)
+def list_stories(page: int = 1, per_page: int = 6) -> str:
+    """One page of the story catalog, newest first:
+    {"stories": [...], "page": n, "pages": total pages, "total": story count}.
+    Out-of-range pages are clamped, so the page can't end up on an empty one."""
+    stories = catalog(_saves_root)
+    per_page = max(1, per_page)
+    pages = max(1, -(-len(stories) // per_page))
+    page = min(max(1, page), pages)
+    shown = stories[(page - 1) * per_page : page * per_page]
+    return json.dumps(
+        {
+            "stories": [
+                {
+                    "ref": s.ref,
+                    "id": s.id,
+                    "title": s.title,
+                    "published": s.published.isoformat() if s.published else None,
+                    "description": s.description,
+                    "summary": s.summary,
+                }
+                for s in shown
+            ],
+            "page": page,
+            "pages": pages,
+            "total": len(stories),
+        }
+    )
 
 
 def list_slots(story_ref: str) -> str:
