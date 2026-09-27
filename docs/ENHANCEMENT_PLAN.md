@@ -1,6 +1,6 @@
 # Enhancement plan
 
-Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
+Status as of 2026-09-27. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
 skipped. Phases 6-9 are done: Side Channel 1.0.0 is released. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
