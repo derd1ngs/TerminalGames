@@ -77,3 +77,55 @@ def test_quoted_published_date_is_accepted(tmp_path):
     manifest = story_dir / "manifest.yaml"
     manifest.write_text(manifest.read_text().replace("published: 2026-09-26", 'published: "2026-09-26"'))
     assert Story.load(story_dir).published == date(2026, 9, 26)
+
+
+def with_manifest_lines(tmp_path, name: str, *lines: str) -> Path:
+    story_dir = shutil.copytree(STORIES / "story_02_dead_drop", tmp_path / name)
+    manifest = story_dir / "manifest.yaml"
+    manifest.write_text(manifest.read_text() + "".join(f"{line}\n" for line in lines))
+    return story_dir
+
+
+def test_series_part_hat_and_version_load(tmp_path):
+    story = Story.load(
+        with_manifest_lines(tmp_path, "s", 'series: "The Seven Hats"', "part: 1", "hat: black", "version: 2")
+    )
+    assert (story.series, story.part, story.hat, story.version) == ("The Seven Hats", 1, "black", 2)
+    assert Story.load(STORIES / "story_02_dead_drop").version == 1  # the default
+
+
+@pytest.mark.parametrize(
+    ("lines", "error"),
+    [
+        (("version: 0",), "version must be a whole number of at least 1"),
+        (('series: "S"', "part: two"), "part must be a whole number of at least 1"),
+        (('series: "S"', "hat: pink"), "invalid hat 'pink'"),
+        (("part: 1",), "part and hat need a series"),
+        (("hat: gray",), "part and hat need a series"),
+    ],
+)
+def test_bad_series_fields_are_load_errors(tmp_path, lines, error):
+    with pytest.raises(StoryLoadError, match=error):
+        Story.load(with_manifest_lines(tmp_path, "s", *lines))
+
+
+def test_series_label():
+    story = StoryInfo("r", "i", "t", None, "", 1, 1, 0, series="The Seven Hats", part=1, hat="black")
+    assert story.series_label == "The Seven Hats · Part 1 · Black Hat"
+    assert info("x", None).series_label == ""
+
+
+def test_parts_of_a_series_published_the_same_day_keep_their_order(tmp_path):
+    stories_dir = tmp_path / "stories"
+    for name, part, title in [("a", 2, "Alpha"), ("b", 1, "Zulu")]:
+        story_dir = with_manifest_lines(stories_dir, name, 'series: "S"', f"part: {part}")
+        manifest = story_dir / "manifest.yaml"
+        manifest.write_text(
+            manifest.read_text()
+            .replace('title: "Dead Drop"', f'title: "{title}"')
+            .replace("id: dead_drop", f"id: {name}")
+        )
+    assert [s.title for s in catalog(tmp_path, stories_dir)] == [
+        "Zulu",
+        "Alpha",
+    ]  # part 1 first, not by title

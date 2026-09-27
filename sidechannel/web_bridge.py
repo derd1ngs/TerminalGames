@@ -114,6 +114,7 @@ def list_stories(page: int = 1, per_page: int = 6) -> str:
                     "published": s.published.isoformat() if s.published else None,
                     "description": s.description,
                     "summary": s.summary,
+                    "series_label": s.series_label,
                 }
                 for s in shown
             ],

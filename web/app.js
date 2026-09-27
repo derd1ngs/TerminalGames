@@ -118,7 +118,9 @@ function showStoryMenu(page = storyPage) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "story-card";
-    button.innerHTML = `<strong></strong><span class="meta"></span><span class="sub"></span>`;
+    button.innerHTML = `<span class="series"></span><strong></strong><span class="meta"></span><span class="sub"></span>`;
+    button.querySelector(".series").textContent = story.series_label;
+    button.querySelector(".series").hidden = !story.series_label;
     button.querySelector("strong").textContent = story.title;
     button.querySelector(".meta").textContent = story.summary;
     button.querySelector(".sub").textContent = story.description;

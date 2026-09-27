@@ -74,6 +74,7 @@ main { flex: 1; min-height: 0; display: flex; }
 .menu-list .slot-row button:first-child { flex: 1; }
 .menu-list .sub { display: block; color: var(--muted); font-size: 0.85em; }
 .story-card strong { display: block; color: var(--text); }
+.story-card .series { display: block; color: var(--choices); font-size: 0.75em; letter-spacing: 0.04em; }
 .story-card .meta { display: block; color: var(--terminal); font-size: 0.8em; margin: 0.15rem 0 0.25rem; }
 .story-card .sub { line-height: 1.4; }
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: -0.75rem 0 1.5rem; }

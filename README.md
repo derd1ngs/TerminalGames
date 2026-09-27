@@ -215,6 +215,10 @@ id: zero_day
 title: "Zero Day"
 published: 2026-09-08       # optional: shown in story lists, which sort newest first
 description: "A decommissioned military network wakes up at 2 AM."   # optional, one line
+version: 1                  # optional: the story's own version (stories don't bump the game's)
+series: "The Seven Hats"    # optional, with part and (for that series) hat:
+part: 1                     #   the story list shows "The Seven Hats · Part 1 · Black Hat"
+hat: black                  #   white | black | gray | green | red | blue | purple
 start: "chapter_01:intro"   # must be "chapter_id:scene_id"
 chapters:
   - chapter_01.yaml

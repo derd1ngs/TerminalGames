@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Stories can belong to a series: manifests take `series`, `part` and `hat`,
+  and the story list shows e.g. "The Seven Hats · Part 1 · Black Hat".
+  Manifests also take a per-story `version`, since new or revised stories
+  don't change the game's version.
 - Saves carry a format version (`save_version`), so future versions can
   migrate them. A save from a newer version of the game is refused with a
   clear "update the game" message instead of misbehaving.

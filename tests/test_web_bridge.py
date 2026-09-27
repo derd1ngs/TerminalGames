@@ -46,6 +46,7 @@ def test_list_stories_is_the_catalog_newest_first():
     assert zero_day["published"] == "2026-09-08"
     assert zero_day["summary"] == "Published 8 Sep 2026 · 3 chapters · 6 endings"
     assert zero_day["description"].startswith("A decommissioned military network")
+    assert zero_day["series_label"] == ""  # not part of a series
 
 
 def test_list_stories_paginates_and_clamps():
