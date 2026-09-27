@@ -72,3 +72,7 @@
   `web/e2e/make-icons.mjs` (rasterized through an in-page canvas -- this
   Playwright Firefox can't take transparent or SVG-element screenshots:
   "Not implemented").
+- Saves are versioned (`SAVE_VERSION` in `engine/state.py`). A new GameState
+  field with a default needs nothing; any change `from_dict`'s defaults
+  can't absorb (a renamed or restructured field) must bump `SAVE_VERSION`
+  and add a `_MIGRATIONS` step, with a test that loads an old-shaped save.
