@@ -129,3 +129,37 @@ def test_parts_of_a_series_published_the_same_day_keep_their_order(tmp_path):
         "Zulu",
         "Alpha",
     ]  # part 1 first, not by title
+
+
+def test_draft_stories_are_hidden_unless_asked_for(tmp_path):
+    stories_dir = tmp_path / "stories"
+    with_manifest_lines(stories_dir, "published_one")
+    draft_dir = with_manifest_lines(stories_dir, "draft_one", "draft: true")
+    manifest = draft_dir / "manifest.yaml"
+    manifest.write_text(
+        manifest.read_text()
+        .replace("id: dead_drop", "id: draft_one")
+        .replace('title: "Dead Drop"', 'title: "WIP"')
+    )
+
+    assert [s.title for s in catalog(tmp_path, stories_dir)] == ["Dead Drop"]
+    assert sorted(s.title for s in catalog(tmp_path, stories_dir, include_drafts=True)) == [
+        "Dead Drop",
+        "WIP",
+    ]
+    assert Story.load(draft_dir).draft is True  # still loads directly, for the author
+
+
+def test_draft_must_be_a_boolean(tmp_path):
+    with pytest.raises(StoryLoadError, match="draft must be true or false"):
+        Story.load(with_manifest_lines(tmp_path, "s", 'draft: "yes"'))
+
+
+def test_published_stories_contain_no_author_placeholders():
+    """A story's placeholders are fine while it's a draft; once `draft: true`
+    is removed, nothing marked TODO(author) may reach players."""
+    for story_dir in sorted(STORIES.iterdir()):
+        if not (story_dir / "manifest.yaml").exists() or Story.load(story_dir).draft:
+            continue
+        leftovers = [p.name for p in story_dir.rglob("*.yaml") if "TODO(author)" in p.read_text()]
+        assert not leftovers, f"{story_dir.name} is published but still has placeholders in {leftovers}"

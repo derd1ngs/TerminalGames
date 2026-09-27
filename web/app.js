@@ -17,6 +17,8 @@ let storyPage = 1;
 // Stories per page in the story list; `?stories_per_page=N` overrides it
 // (the browser test uses that, since three stories fit on one page).
 const STORIES_PER_PAGE = Number(new URLSearchParams(location.search).get("stories_per_page")) || 6;
+// `?drafts=1` also lists draft stories (`draft: true`), for authors checking their work on the site.
+const SHOW_DRAFTS = new URLSearchParams(location.search).get("drafts") === "1";
 const history = [];
 let historyIndex = 0;
 
@@ -110,7 +112,7 @@ function showStoryMenu(page = storyPage) {
   showScreen("menu");
   $("menu-stories").hidden = false;
   $("menu-slots").hidden = true;
-  const result = call("list_stories", page, STORIES_PER_PAGE);
+  const result = call("list_stories", page, STORIES_PER_PAGE, SHOW_DRAFTS);
   storyPage = result.page;
   const list = $("story-list");
   list.replaceChildren();

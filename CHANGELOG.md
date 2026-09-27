@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Draft stories: `draft: true` in a manifest keeps a story out of the story
+  lists while it's being written. Authors can still launch it directly, or
+  list drafts in the browser with `?drafts=1`. A test keeps `TODO(author)`
+  placeholders out of published stories.
 - Stories can belong to a series: manifests take `series`, `part` and `hat`,
   and the story list shows e.g. "The Seven Hats · Part 1 · Black Hat".
   Manifests also take a per-story `version`, since new or revised stories

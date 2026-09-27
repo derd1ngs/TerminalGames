@@ -30,6 +30,7 @@ class StoryInfo:
     series: str = ""
     part: Optional[int] = None
     hat: str = ""
+    draft: bool = False
 
     @property
     def series_label(self) -> str:
@@ -78,14 +79,19 @@ def story_info(story_dir: Path, saves_root: Path) -> StoryInfo:
         series=story.series,
         part=story.part,
         hat=story.hat,
+        draft=story.draft,
     )
 
 
-def catalog(saves_root: Path, stories_dir: Optional[Path] = None) -> list[StoryInfo]:
+def catalog(
+    saves_root: Path, stories_dir: Optional[Path] = None, include_drafts: bool = False
+) -> list[StoryInfo]:
     """Every story, newest first; undated stories last. Parts of a series
-    published the same day keep their order; otherwise by title."""
+    published the same day keep their order; otherwise by title. Drafts
+    (`draft: true`) are left out unless asked for -- they can still be
+    launched directly by name while being written."""
     dirs = discover_stories() if stories_dir is None else discover_stories(stories_dir)
-    infos = [story_info(d, saves_root) for d in dirs]
+    infos = [i for i in (story_info(d, saves_root) for d in dirs) if include_drafts or not i.draft]
     return sorted(
         infos,
         key=lambda i: (
