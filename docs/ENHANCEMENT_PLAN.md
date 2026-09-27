@@ -358,7 +358,16 @@ TUI even showed folder names), with no dates and no pagination.
 2. Load progress: a percentage for the first ~10 MB download.
 3. Optional: a German interface and stories.
 
-## Phase 14 -- "The Seven Hats" (a story series; planned)
+## Phase 14 -- "The Seven Hats" (a story series; storyline in review)
+
+**Owner direction (2026-09-27):** one long, complex scenario in which the
+hats join the storyline at different times. The black hat is part of it,
+with three endings: caught, escaped, and an unclear cliffhanger (a possible
+hook for a sequel). The high-level storyline comes first, and the story
+order gets decided on it. It is in **`docs/seven-hats/STORYLINE.md`**:
+premise, timeline, acts, a per-hat table, Vesper's endings, cross-story
+artefacts, and the owner's decisions. The notes below are the original
+proposal.
 
 Inspired by the seven hacker "hats"
 (https://www.softwaresecured.com/post/the-7-hats-of-hacking):
