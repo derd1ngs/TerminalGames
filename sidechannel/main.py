@@ -28,6 +28,7 @@ from .engine.loader import (
     slot_summary,
 )
 from .engine.session import GameSession, StaleSaveError
+from .engine.state import SaveFormatError
 from .engine.story import Story, StoryLoadError
 from .tui import GameApp
 
@@ -223,6 +224,11 @@ def open_session(story: Story, story_dir: Path, slot_path: Path, *, fresh: bool,
     --continue was given (which promises not to touch the slot)."""
     try:
         return GameSession.open(story, story_dir, slot_path, fresh=fresh)
+    except SaveFormatError as exc:
+        # No restart offer here: that would overwrite a newer save.
+        console.print(f"[bold red]Can't continue slot '{slot_path.stem}': {exc}.[/bold red]")
+        console.print("Update with: pipx upgrade sidechannel (or pip install --upgrade sidechannel)")
+        sys.exit(1)
     except StaleSaveError as exc:
         console.print(f"[bold red]Can't continue slot '{slot_path.stem}': {exc}.[/bold red]")
         if cont:

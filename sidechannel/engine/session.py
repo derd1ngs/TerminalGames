@@ -178,4 +178,6 @@ class GameSession:
             self.save()
             notices.append(f"Autosaved -- entering chapter '{state.chapter_id}'.")
         self.enter_scene()
+        if self.scene.type == "ending":
+            self.save()  # so the slot reflects the finished run, not an earlier save
         return notices

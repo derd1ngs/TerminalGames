@@ -1,6 +1,7 @@
 """engine/loader.py: story discovery and save-slot paths, with the saves
 root passed in (no module global to patch)."""
 
+import json
 from pathlib import Path
 
 from sidechannel.engine.loader import (
@@ -85,3 +86,12 @@ def test_migrate_legacy_save_is_a_noop_when_default_slot_already_exists(tmp_path
 def test_migrate_legacy_save_is_a_noop_when_no_legacy_file(tmp_path):
     migrate_legacy_save(tmp_path, "zero_day")  # should not raise
     assert list_save_slots(tmp_path, "zero_day") == []
+
+
+def test_slot_summary_of_a_newer_save_does_not_crash(tmp_path):
+    slot_path = _save_state_at(tmp_path, "future")
+    data = json.loads(slot_path.read_text())
+    slot_path.write_text(json.dumps({**data, "save_version": 99}))
+    assert (
+        slot_summary(tmp_path, "zero_day", "future") == "future -- saved by a newer version of Side Channel"
+    )

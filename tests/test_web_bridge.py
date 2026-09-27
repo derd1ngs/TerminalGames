@@ -238,3 +238,15 @@ def test_clear_is_in_the_view():
     play([("choose", 0), ("choose", 0)])
     assert json.loads(bridge.command("clear"))["clear"] is True
     assert json.loads(bridge.command("whoami"))["clear"] is False
+
+
+def test_start_on_a_newer_save_reports_an_error(saves_root):
+    bridge.start("zero_day", "future", True)
+    slot = saves_root / "zero_day" / "future.json"
+    slot.write_text(json.dumps({**json.loads(slot.read_text()), "save_version": 99}))
+    result = json.loads(bridge.start("zero_day", "future", False))
+    assert "newer version of Side Channel" in result["error"]
+    assert (
+        json.loads(bridge.list_slots("zero_day"))[0]["summary"]
+        == "future -- saved by a newer version of Side Channel"
+    )

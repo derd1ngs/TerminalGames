@@ -16,7 +16,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .loader import save_slot_path
-from .state import GameState
+from .state import GameState, SaveFormatError
 from .story import Story, StoryLoadError
 
 FORMAT = "terminalgames-save"
@@ -89,6 +89,8 @@ def _validated(story: Story, data: Any, slot: str | None) -> tuple[str, GameStat
 
     try:
         state = GameState.from_dict(data["state"])
+    except SaveFormatError as exc:
+        raise SaveFileError(str(exc)) from exc
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise SaveFileError(f"damaged game state ({exc})") from exc
     if state.story_id != story.id:

@@ -255,6 +255,10 @@ function startGame(slot, fresh) {
   history.length = 0;
   historyIndex = 0;
   const view = call("start", currentStory.ref, slot, fresh);
+  if (view.error) {
+    showSlotMessage(view.error, "error");
+    return;
+  }
   if (view.stale) {
     if (confirm(`${view.stale}\n\nRestart this slot from the beginning?`)) startGame(slot, true);
     else showSlotMessage(view.stale, "error");
