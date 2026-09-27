@@ -1,12 +1,12 @@
 # Side Channel (repo: sidechannel, formerly TerminalGames) -- notes for Claude
 
 - A `.venv` created before the project directory was moved/renamed is broken
-  (`.venv/bin/pytest: bad interpreter`, `No module named 'terminalgames'`
+  (`.venv/bin/pytest: bad interpreter`, `No module named 'sidechannel'`
   outside the repo): it hardcodes its absolute path. `./setup.sh` detects
   this and recreates it; then `.venv/bin/pip install -e ".[test,lint]"` for
   the dev tools.
 - CI (`.github/workflows/tests.yml`) runs pytest plus `ruff check .`,
-  `ruff format --check .` and `mypy terminalgames` -- run all four before
+  `ruff format --check .` and `mypy sidechannel` -- run all four before
   calling a change done.
 - `main` is branch-protected and requires PR branches to be up to date: when
   a PR is "BEHIND" (e.g. after merging the lower PR of a stack), run
@@ -24,7 +24,7 @@
 - `gh run view <run> --log` can come back empty; fetch a job's log via REST
   instead: `gh api repos/derd1ngs/sidechannel/actions/jobs/<job-id>/logs`
   (job ids: `gh api .../actions/runs/<run>/jobs -q '.jobs[] | .name, .id'`).
-- `terminalgames/engine/` and `web_bridge.py` must stay importable with only
+- `sidechannel/engine/` and `web_bridge.py` must stay importable with only
   PyYAML (the browser build runs them in Pyodide) -- enforced by
   `tests/test_engine_is_ui_free.py`.
 - Browser build: to check a change, run `python web/build.py`, then
@@ -35,7 +35,7 @@
   `new Uint8Array(buf).buffer` -- a Node `Buffer` fails with "Unknown typed
   array type".
 - The editable install from `setup.sh` hides packaging mistakes: any new
-  non-`.py` file under `terminalgames/` (story YAML, data) must be listed in
+  non-`.py` file under `sidechannel/` (story YAML, data) must be listed in
   `[tool.setuptools.package-data]` in `pyproject.toml`, or a real install
   silently lacks it. CI's `package` job (wheel -> clean venv -> run outside
   the repo) catches this.
@@ -55,15 +55,16 @@
   entry (a test enforces it) and, if it touches a host, a place in
   `TRACED_COMMANDS` -- otherwise it slips past scenes' trace meters. Adding a
   command can also change completion results that tests pin.
-- Names: the game is "Side Channel" -- PyPI distribution, command and GitHub
-  repo are `sidechannel` (site: derd1ngs.github.io/sidechannel/); the import
-  package kept the original name `terminalgames`. Exported browser saves keep
-  the format tag `terminalgames-save` so older exports still import. The
-  version lives only in `terminalgames/__init__.py` (pyproject reads it
-  dynamically); a release is a `vX.Y.Z` tag matching it
-  (`.github/workflows/release.yml` checks that). Build locally with
-  `build`/`twine` in a scratch venv, never the project venv.
+- Names: the game is "Side Channel" -- PyPI distribution, command, GitHub
+  repo and import package are all `sidechannel` (site:
+  derd1ngs.github.io/sidechannel/; the package was `terminalgames` until
+  after 1.0.0). Exported browser saves keep the format tag
+  `terminalgames-save` so older exports still import. The version lives only
+  in `sidechannel/__init__.py` (pyproject reads it dynamically); a release is
+  a `vX.Y.Z` tag matching it (`.github/workflows/release.yml` checks that).
+  Build locally with `build`/`twine` in a scratch venv, never the project
+  venv.
 - The repo was renamed TerminalGames -> sidechannel (2026-09-27). On another
   machine's older checkout: `git remote set-url origin <url ending in
   sidechannel.git>` (GitHub redirects meanwhile), then `./setup.sh` to swap
-  the old `terminalgames` command for `sidechannel`.
+  the old `sidechannel` command for `sidechannel`.

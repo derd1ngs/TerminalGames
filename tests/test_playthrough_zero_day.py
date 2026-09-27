@@ -10,13 +10,13 @@ from pathlib import Path
 
 import yaml
 
-from terminalgames.engine.dialogue import load_npcs
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.shell import Network, TerminalRunner
-from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Story
+from sidechannel.engine.dialogue import load_npcs
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.shell import Network, TerminalRunner
+from sidechannel.engine.state import GameState
+from sidechannel.engine.story import Story
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 
 
 def new_playthrough(tmp_path: Path) -> GameSession:

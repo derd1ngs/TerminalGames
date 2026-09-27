@@ -8,10 +8,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from terminalgames.engine.loader import load_network, load_npc_roster
-from terminalgames.engine.story import Story, StoryLoadError
+from sidechannel.engine.loader import load_network, load_npc_roster
+from sidechannel.engine.story import Story, StoryLoadError
 
-DEAD_DROP = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_02_dead_drop"
+DEAD_DROP = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_02_dead_drop"
 
 
 @pytest.fixture

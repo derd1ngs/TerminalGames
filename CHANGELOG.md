@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The Python package is now `sidechannel`, matching the game's name. It was
+  `terminalgames`, the project's original name. The `sidechannel` command is
+  unchanged, and save files exported from the browser still import.
+
 ## 1.0.0 -- 2026-09-27
 
 First release, on PyPI as `sidechannel`: the game is now called **Side

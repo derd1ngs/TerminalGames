@@ -2,10 +2,10 @@ from pathlib import Path
 
 import yaml
 
-from terminalgames.engine.dialogue import NPC, Topic
-from terminalgames.engine.puzzles import parse_config_text
-from terminalgames.engine.shell import Network, TerminalRunner, complete
-from terminalgames.engine.state import GameState
+from sidechannel.engine.dialogue import NPC, Topic
+from sidechannel.engine.puzzles import parse_config_text
+from sidechannel.engine.shell import Network, TerminalRunner, complete
+from sidechannel.engine.state import GameState
 
 
 def build_network(tmp_path: Path) -> Network:
@@ -499,7 +499,7 @@ def test_pipe_rejects_other_targets_and_bad_syntax(tmp_path):
 
 
 def test_journal_filters_by_category(tmp_path):
-    from terminalgames.engine.journal import JournalEntry
+    from sidechannel.engine.journal import JournalEntry
 
     runner = build_runner(tmp_path)
     assert runner.execute("journal lead") == "No lead entries yet."
@@ -512,7 +512,7 @@ def test_journal_filters_by_category(tmp_path):
 
 
 def test_status_summarizes_position(tmp_path):
-    from terminalgames.engine.journal import JournalEntry
+    from sidechannel.engine.journal import JournalEntry
 
     runner = build_runner(tmp_path)
     assert runner.execute("status") == (
@@ -632,6 +632,6 @@ def test_only_commands_that_touch_a_host_are_traced(tmp_path):
 
 
 def test_every_command_has_a_manual_page():
-    from terminalgames.engine.shell import COMMANDS, MANUAL
+    from sidechannel.engine.shell import COMMANDS, MANUAL
 
     assert sorted(set(COMMANDS) - set(MANUAL)) == []

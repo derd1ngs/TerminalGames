@@ -11,9 +11,9 @@
 
 const BUILD_ID = "__BUILD_ID__";
 const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
-const SHELL_CACHE = `terminalgames-${BUILD_ID}`;
+const SHELL_CACHE = `sidechannel-${BUILD_ID}`;
 const PYODIDE_CACHE = "pyodide-v314.0.7";
-const SHELL = ["./", "index.html", "style.css", "app.js", `terminalgames.zip?v=${BUILD_ID}`];
+const SHELL = ["./", "index.html", "style.css", "app.js", `sidechannel.zip?v=${BUILD_ID}`];
 
 self.addEventListener("install", (event) => {
   // cache: "reload" skips the HTTP cache, so a new build never precaches a

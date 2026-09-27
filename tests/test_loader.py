@@ -3,7 +3,7 @@ root passed in (no module global to patch)."""
 
 from pathlib import Path
 
-from terminalgames.engine.loader import (
+from sidechannel.engine.loader import (
     DEFAULT_SLOT,
     discover_stories,
     find_story,
@@ -12,9 +12,9 @@ from terminalgames.engine.loader import (
     save_slot_path,
     slot_summary,
 )
-from terminalgames.engine.state import GameState
+from sidechannel.engine.state import GameState
 
-ZERO_DAY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+ZERO_DAY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 
 
 def _save_state_at(saves_root: Path, slot: str, scene_id: str = "gateway_shell") -> Path:

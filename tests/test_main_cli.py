@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames import main as main_module
-from terminalgames.engine.endings import record_ending
-from terminalgames.engine.loader import DEFAULT_SLOT, save_slot_path
-from terminalgames.engine.state import GameState
+from sidechannel import main as main_module
+from sidechannel.engine.endings import record_ending
+from sidechannel.engine.loader import DEFAULT_SLOT, save_slot_path
+from sidechannel.engine.state import GameState
 
 
 def test_parse_args_defaults():
@@ -107,14 +107,14 @@ def test_new_or_continue_restart_choice_starts_fresh(tmp_path, monkeypatch):
 
 def test_saves_stay_in_the_repo_for_a_checkout(tmp_path):
     (tmp_path / "pyproject.toml").write_text("")
-    assert main_module.default_saves_dir(tmp_path / "terminalgames") == tmp_path / "saves"
+    assert main_module.default_saves_dir(tmp_path / "sidechannel") == tmp_path / "saves"
 
 
 def test_an_installed_copy_saves_to_the_user_data_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(main_module, "user_data_path", lambda app: tmp_path / "data" / app)
     site_packages = tmp_path / "site-packages"
     assert (
-        main_module.default_saves_dir(site_packages / "terminalgames")
+        main_module.default_saves_dir(site_packages / "sidechannel")
         == tmp_path / "data" / "sidechannel" / "saves"
     )
 

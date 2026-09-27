@@ -50,7 +50,7 @@ jobs:
         run: ruff format --check .
 
       - name: Mypy
-        run: mypy terminalgames
+        run: mypy sidechannel
 
   package:
     # A real (non-editable) install must ship the stories as package data --
@@ -76,7 +76,7 @@ jobs:
           grep -q story_01_zero_day stories.txt
           grep -q story_02_dead_drop stories.txt
           grep -q story_03_night_shift stories.txt
-          /tmp/venv/bin/python -m terminalgames.tools.check_story --all
+          /tmp/venv/bin/python -m sidechannel.tools.check_story --all
 
   web-e2e:
     # Plays both stories in headless Firefox against a freshly built site

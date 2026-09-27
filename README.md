@@ -33,9 +33,7 @@ sidechannel                # play
 ```
 
 Saves go to your user data directory, e.g. `~/.local/share/sidechannel/saves/`
-on Linux. (Inside, the Python package is still called `terminalgames`, the
-game's original name.) Or skip installing entirely
-and play in the browser: **https://derd1ngs.github.io/sidechannel/**.
+on Linux. Or skip installing entirely and play in the browser: **https://derd1ngs.github.io/sidechannel/**.
 
 ## Running from a checkout
 
@@ -55,7 +53,7 @@ If you'd rather manage the virtual environment yourself:
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/sidechannel
-# or: .venv/bin/python -m terminalgames.main
+# or: .venv/bin/python -m sidechannel.main
 ```
 
 With no arguments, story/save-slot selection is a plain pre-flight prompt. You
@@ -101,7 +99,7 @@ sandbox as-is (so anything you've edited via `set` stays edited); restarting
 a slot wipes it back to the story's original files.
 
 The game itself then runs full-screen as a three-pane Textual app
-(`terminalgames/tui.py`): a **story pane** (pure narration -- scene text and
+(`sidechannel/tui.py`): a **story pane** (pure narration -- scene text and
 choice echoes) with a small **choices pane** underneath it (narrative
 scenes -- arrow keys + Enter), and a **terminal pane** filling the rest of
 the screen (a command's echo/output log paired with the input line, terminal
@@ -161,7 +159,7 @@ python3 -m http.server -d _site 8000     # then open http://localhost:8000
 
 `web/` holds the page (`index.html`, `app.js`, `style.css`) and `build.py`,
 which zips only what the browser runs -- `engine/`, `stories/` and
-`terminalgames/web_bridge.py`, the JSON facade over `GameSession` that
+`sidechannel/web_bridge.py`, the JSON facade over `GameSession` that
 `app.js` calls.
 
 `web/e2e/e2e.mjs` plays both stories in headless Firefox against a built
@@ -183,7 +181,7 @@ node e2e.mjs http://localhost:8000/
 
 ## How a story is put together
 
-A **story** lives in `terminalgames/stories/<story_id>/` and has:
+A **story** lives in `sidechannel/stories/<story_id>/` and has:
 
 ```
 story_dir/
@@ -379,7 +377,7 @@ There's deliberately no `crack`-style instant password break. The
 config-edit-and-restart puzzle (`cat` a config, `set` the wrong key, `systemctl
 restart`) is the sysadmin-flavored core loop; `grep` a log and `decrypt` a
 cipher round out the puzzle types a story can use (see
-`terminalgames/engine/puzzles.py` for the underlying, independently reusable
+`sidechannel/engine/puzzles.py` for the underlying, independently reusable
 validators), along with `ssh` logins with a password found somewhere in the
 story, and `ordered_commands` procedure puzzles.
 
@@ -450,9 +448,9 @@ too, reading from the same underlying state).
 ### Checking a story for structural bugs
 
 ```bash
-.venv/bin/python -m terminalgames.tools.check_story zero_day   # one story
-.venv/bin/python -m terminalgames.tools.check_story --all      # every shipped story
-.venv/bin/python -m terminalgames.tools.check_story dead_drop --graph   # Mermaid scene graph
+.venv/bin/python -m sidechannel.tools.check_story zero_day   # one story
+.venv/bin/python -m sidechannel.tools.check_story --all      # every shipped story
+.venv/bin/python -m sidechannel.tools.check_story dead_drop --graph   # Mermaid scene graph
 ```
 
 Explores every reachable combination of choices via the real engine (not a
@@ -463,7 +461,7 @@ between two files that's easy to introduce and hard to spot by reading
 either file alone. `tests/test_story_reachability.py` runs this against
 every shipped story as part of the normal test suite, so a broken story
 fails CI the same way a broken test would. See
-`terminalgames/tools/check_story.py`'s module docstring for how the search
+`sidechannel/tools/check_story.py`'s module docstring for how the search
 works and what it deliberately doesn't model (e.g. an NPC's `ask_limit`
 running out isn't factored into reachability).
 
@@ -489,7 +487,7 @@ Mermaid live editor) to see it drawn:
 
 ## Project layout
 
-`terminalgames/engine/` holds the engine modules (`story.py`, `shell.py`,
+`sidechannel/engine/` holds the engine modules (`story.py`, `shell.py`,
 `dialogue.py`, `journal.py`, `state.py`, `puzzles.py`, `savefile.py` for
 the export/import format) -- pure game logic with no UI dependency -- plus
 `session.py`, whose `GameSession` is the game
@@ -497,10 +495,10 @@ loop itself (choices, commands, scene transitions, mail delivery, autosave)
 that any frontend drives (`GameSession.open` starts or continues a save
 slot), and `loader.py`, which finds stories and save slots on disk. The
 engine needs only PyYAML -- `tests/test_engine_is_ui_free.py` keeps Textual
-and Rich out of it. `terminalgames/tui.py` is the split-pane Textual
+and Rich out of it. `sidechannel/tui.py` is the split-pane Textual
 frontend that renders it; `main.py` is just the pre-flight story/save picker
-that hands off to it. `terminalgames/tools/` holds `check_story.py`, the
-structural story validator described above. `terminalgames/stories/` holds
+that hands off to it. `sidechannel/tools/` holds `check_story.py`, the
+structural story validator described above. `sidechannel/stories/` holds
 the three shipped stories as complete worked content examples:
 `story_01_zero_day/` for the core features, `story_02_dead_drop/` for `ssh`
 logins, pipes, `ordered_commands` and `requires` combinators, and

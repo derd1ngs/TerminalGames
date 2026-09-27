@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.story import Story
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.story import Story
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_03_night_shift"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_03_night_shift"
 FIX = [
     "ssh deploy@mirror",
     "tidewater-9",

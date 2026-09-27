@@ -17,7 +17,7 @@ def test_build_writes_assets_and_stamps_the_build_id(tmp_path):
         "style.css",
         "app.js",
         "sw.js",
-        "terminalgames.zip",
+        "sidechannel.zip",
     }
     for name in ("app.js", "sw.js"):
         stamped = (tmp_path / name).read_text()
@@ -27,9 +27,9 @@ def test_build_writes_assets_and_stamps_the_build_id(tmp_path):
 
 def test_zip_holds_only_what_the_browser_runs():
     names = zipfile.ZipFile(io.BytesIO(BUILD["python_zip"]())).namelist()
-    assert "terminalgames/web_bridge.py" in names
-    assert "terminalgames/engine/session.py" in names
-    assert "terminalgames/stories/story_01_zero_day/manifest.yaml" in names
+    assert "sidechannel/web_bridge.py" in names
+    assert "sidechannel/engine/session.py" in names
+    assert "sidechannel/stories/story_01_zero_day/manifest.yaml" in names
     assert not [n for n in names if n.endswith(("tui.py", "main.py")) or "/tools/" in n or "__pycache__" in n]
 
 

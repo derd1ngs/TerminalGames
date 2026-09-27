@@ -1,6 +1,6 @@
 // Browser frontend for Side Channel. The game itself is the unchanged
 // Python engine, run in Pyodide; this file only renders the JSON views
-// terminalgames/web_bridge.py returns and forwards the player's input.
+// sidechannel/web_bridge.py returns and forwards the player's input.
 // Saves live in IndexedDB (Pyodide's IDBFS mounted at /saves).
 
 const PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
@@ -33,15 +33,15 @@ async function boot() {
     bootLine("> loading pyyaml ...");
     await py.loadPackage("pyyaml");
     bootLine("> loading game engine ...");
-    const response = await fetch(`terminalgames.zip?v=${BUILD_ID}`);
-    if (!response.ok) throw new Error(`terminalgames.zip: HTTP ${response.status}`);
+    const response = await fetch(`sidechannel.zip?v=${BUILD_ID}`);
+    if (!response.ok) throw new Error(`sidechannel.zip: HTTP ${response.status}`);
     py.unpackArchive(await response.arrayBuffer(), "zip", { extractDir: "/app" });
     py.runPython("import sys; sys.path.insert(0, '/app')");
     bootLine("> mounting save storage ...");
     py.FS.mkdirTree(SAVES);
     py.FS.mount(py.FS.filesystems.IDBFS, {}, SAVES);
     await syncSaves(true);
-    bridge = py.pyimport("terminalgames.web_bridge");
+    bridge = py.pyimport("sidechannel.web_bridge");
     bridge.init(SAVES);
     bootLine("> ready.");
     showStoryMenu();

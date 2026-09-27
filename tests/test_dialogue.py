@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames.engine.dialogue import (
+from sidechannel.engine.dialogue import (
     NPC,
     DialogueError,
     Topic,
@@ -13,7 +13,7 @@ from terminalgames.engine.dialogue import (
     parse_mail_text,
     send_topic_by_email,
 )
-from terminalgames.engine.state import EmailMessage, GameState
+from sidechannel.engine.state import EmailMessage, GameState
 
 
 def make_state() -> GameState:

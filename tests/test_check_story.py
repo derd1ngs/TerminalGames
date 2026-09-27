@@ -1,13 +1,13 @@
-"""Unit tests for terminalgames/tools/check_story.py, using small synthetic
+"""Unit tests for sidechannel/tools/check_story.py, using small synthetic
 stories built directly from the dataclasses (not via YAML) so each test
 isolates exactly one reachability scenario."""
 
 import pytest
 
-from terminalgames.engine.dialogue import NPC, Topic
-from terminalgames.engine.shell import Host, Network
-from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
-from terminalgames.tools.check_story import check_story, main, mermaid_graph
+from sidechannel.engine.dialogue import NPC, Topic
+from sidechannel.engine.shell import Host, Network
+from sidechannel.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
+from sidechannel.tools.check_story import check_story, main, mermaid_graph
 
 
 def _story(scenes: dict[str, Scene], start: str = "c1:start") -> Story:

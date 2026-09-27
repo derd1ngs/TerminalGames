@@ -1,5 +1,5 @@
 {
-  "name": "terminalgames-web-e2e",
+  "name": "sidechannel-web-e2e",
   "private": true,
   "type": "module",
   "description": "End-to-end test of the browser build (see e2e.mjs)",

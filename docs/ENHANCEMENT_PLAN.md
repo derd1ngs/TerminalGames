@@ -290,7 +290,8 @@ outside the repo.
 existing `terminal-games`, and the owner chose a distinct name over a
 suffix. The PyPI distribution, the command and the GitHub repo are
 `sidechannel`, and the site moves to `derd1ngs.github.io/sidechannel/`. The
-import package keeps its original name, `terminalgames`. Version 1.0.0, with
+import package kept its original name, `terminalgames`, for 1.0.0; right
+after the release it was renamed to `sidechannel` too. Version 1.0.0, with
 no TestPyPI run.
 
 Done:
