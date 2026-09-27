@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The browser version has a favicon: a green prompt and an amber cursor
+  (SVG, plus PNGs for older browsers and iOS home screens).
 - The Python package is now `sidechannel`, matching the game's name. It was
   `terminalgames`, the project's original name. The `sidechannel` command is
   unchanged, and save files exported from the browser still import.

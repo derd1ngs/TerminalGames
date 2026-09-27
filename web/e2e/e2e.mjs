@@ -63,6 +63,10 @@ async function zeroDay(browser) {
   const page = await openPage(browser);
   await page.screenshot({ path: SHOTS + "menu.png" });
   check((await page.locator("#story-list button").count()) === 3, "menu lists all three stories");
+  const icons = await page.evaluate(async () =>
+    Promise.all([...document.querySelectorAll("link[rel~=icon], link[rel=apple-touch-icon]")].map(async (l) => (await fetch(l.href)).status)),
+  );
+  check(icons.length === 3 && icons.every((s) => s === 200), `favicons declared and served (${icons})`);
   await page.getByRole("button", { name: "Zero Day" }).click();
   check((await page.inputValue("#new-slot-name")) === "default", "new slot name defaults to 'default'");
   check(!(await page.isVisible("#endings-gallery")), "no endings gallery before any ending is found");

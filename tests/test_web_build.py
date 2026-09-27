@@ -18,7 +18,11 @@ def test_build_writes_assets_and_stamps_the_build_id(tmp_path):
         "app.js",
         "sw.js",
         "sidechannel.zip",
+        "favicon.svg",
+        "favicon-32.png",
+        "apple-touch-icon.png",
     }
+    assert (tmp_path / "favicon-32.png").read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"  # copied as binary
     for name in ("app.js", "sw.js"):
         stamped = (tmp_path / name).read_text()
         assert "__BUILD_ID__" not in stamped
@@ -54,7 +58,7 @@ def test_changing_any_shipped_web_file_changes_the_build_id(tmp_path, monkeypatc
     monkeypatch.setitem(BUILD["compute_build_id"].__globals__, "WEB_DIR", web)  # run_path returns a copy
     data = BUILD["python_zip"]()
     ids = {BUILD["compute_build_id"](data)}
-    for name in ["index.html", "style.css", "app.js", "sw.js"]:
+    for name in ["index.html", "style.css", "app.js", "sw.js", "favicon.svg"]:
         (web / name).write_text((web / name).read_text() + "\n/* changed */\n")
         ids.add(BUILD["compute_build_id"](data))
-    assert len(ids) == 5  # every edit produced a new id
+    assert len(ids) == 6  # every edit produced a new id

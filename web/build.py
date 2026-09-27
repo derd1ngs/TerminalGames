@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 PACKAGE_DIR = ROOT / "sidechannel"
-ASSETS = ["index.html", "style.css"]
+ASSETS = ["index.html", "style.css", "favicon.svg", "favicon-32.png", "apple-touch-icon.png"]
 STAMPED = ["app.js", "sw.js"]  # get the build id in place of __BUILD_ID__
 PYTHON_PARTS = ["__init__.py", "engine", "stories", "web_bridge.py"]
 
