@@ -219,6 +219,8 @@ version: 1                  # optional: the story's own version (stories don't b
 series: "The Seven Hats"    # optional, with part and (for that series) hat:
 part: 1                     #   the story list shows "The Seven Hats · Part 1 · Black Hat"
 hat: black                  #   white | black | gray | green | red | blue | purple
+draft: true                 # optional: hidden from story lists while it's being written;
+                            #   launch it directly (`sidechannel <id>`, or `?drafts=1` in the browser)
 start: "chapter_01:intro"   # must be "chapter_id:scene_id"
 chapters:
   - chapter_01.yaml

@@ -82,3 +82,8 @@
   merge; they reach installed copies with the next game release, or via
   story delivery once Phase 12 builds it. Story changes are logged in the
   changelog's "Stories" section, not under a game version.
+- The Seven Hats, Part 1 (the black hat's story): Claude's attempts to write
+  its content -- even a placeholder skeleton -- were repeatedly stopped by a
+  safety check, so the owner writes that story's text. Claude handles the
+  engine, validation (`check_story`), tests and publishing, and can write
+  the other hats' stories. Unfinished stories use `draft: true`.

@@ -193,6 +193,7 @@ class Story:
     series: str = ""  # e.g. "The Seven Hats"
     part: Optional[int] = None  # position within the series
     hat: str = ""  # for The Seven Hats: which hat the player wears
+    draft: bool = False  # hidden from story lists until the author clears it
 
     def resolve(self, ref: str, current_chapter: str) -> tuple[str, str]:
         """Resolve a `next` reference ("scene_id" or "chapter_id:scene_id")."""
@@ -233,9 +234,12 @@ class Story:
                 "series",
                 "part",
                 "hat",
+                "draft",
             },
             "manifest.yaml",
         )
+        if not isinstance(manifest.get("draft", False), bool):
+            raise StoryLoadError("manifest.yaml: draft must be true or false")
         for key in ("version", "part"):
             value = manifest.get(key)
             if value is not None and (not isinstance(value, int) or isinstance(value, bool) or value < 1):
@@ -267,6 +271,7 @@ class Story:
             series=str(manifest.get("series", "")),
             part=manifest.get("part"),
             hat=str(manifest.get("hat", "")),
+            draft=manifest.get("draft", False),
         )
         story.validate()
         return story

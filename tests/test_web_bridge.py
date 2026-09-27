@@ -251,3 +251,18 @@ def test_start_on_a_newer_save_reports_an_error(saves_root):
         json.loads(bridge.list_slots("zero_day"))[0]["summary"]
         == "future -- saved by a newer version of Side Channel"
     )
+
+
+def test_list_stories_hides_drafts_unless_asked(monkeypatch):
+    from sidechannel.engine import catalog as catalog_module
+
+    real = catalog_module.catalog
+
+    def with_a_draft(saves_root, stories_dir=None, include_drafts=False):
+        stories = real(saves_root, stories_dir, include_drafts=True)
+        stories[0].draft = True
+        return [s for s in stories if include_drafts or not s.draft]
+
+    monkeypatch.setattr(bridge, "catalog", with_a_draft)
+    assert json.loads(bridge.list_stories())["total"] == 2
+    assert json.loads(bridge.list_stories(1, 6, True))["total"] == 3

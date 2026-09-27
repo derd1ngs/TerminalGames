@@ -95,11 +95,11 @@ def scene_html(text: str) -> str:
 # --- menus -------------------------------------------------------------------
 
 
-def list_stories(page: int = 1, per_page: int = 6) -> str:
+def list_stories(page: int = 1, per_page: int = 6, include_drafts: bool = False) -> str:
     """One page of the story catalog, newest first:
     {"stories": [...], "page": n, "pages": total pages, "total": story count}.
     Out-of-range pages are clamped, so the page can't end up on an empty one."""
-    stories = catalog(_saves_root)
+    stories = catalog(_saves_root, include_drafts=include_drafts)
     per_page = max(1, per_page)
     pages = max(1, -(-len(stories) // per_page))
     page = min(max(1, page), pages)
