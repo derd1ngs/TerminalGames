@@ -33,6 +33,7 @@ from .engine.savefile import export_slot as export_slot_doc
 from .engine.savefile import import_slot as import_slot_doc
 from .engine.session import GameSession, StaleSaveError
 from .engine.shell import complete as shell_complete
+from .engine.state import SaveFormatError
 from .engine.story import Story
 
 _saves_root = Path("/saves")
@@ -180,6 +181,8 @@ def start(story_ref: str, slot: str, fresh: bool) -> str:
         _session = GameSession.open(story, story_dir, slot_path, fresh=fresh or not slot_path.exists())
     except StaleSaveError as exc:
         return json.dumps({"stale": f"Can't continue slot '{slot}': {exc}."})
+    except SaveFormatError as exc:
+        return json.dumps({"error": f"Can't continue slot '{slot}': {exc}."})
     if fresh:
         _session.save()  # a new game shows up in the slot list right away
     return _view(entered=True)

@@ -2,7 +2,8 @@
 
 Status as of 2026-09-27. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
 skipped. Phases 6-9 are done (Side Channel 1.0.x is on PyPI), Phase 10 is
-done, and Phases 11-13 are proposals. Each phase is
+done, Phase 11 is done, Phases 12-13 are proposals, and Phase 14 (the
+Seven Hats series) is planned. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -330,13 +331,17 @@ TUI even showed folder names), with no dates and no pagination.
    titles instead of folder names.
 4. Later, with many stories: a search/filter box.
 
-## Phase 11 -- robustness II
+## Phase 11 -- robustness II (done)
 
-1. **A save format version** in GameState saves, with migration hooks.
-   Saves carry none today, so a future format change couldn't tell old
-   saves from new.
-2. **Save when an ending is reached,** so a slot reflects a finished run.
-   Today it keeps its last save and "Continue" replays from there.
+1. **A save format version** (done): saves carry `save_version` (1).
+   `state.migrate` upgrades older ones, and a save without a version is 0,
+   from <= 1.0.1. A save from a *newer* game is refused with an "update the
+   game" message:
+   - the slot list shows it instead of crashing;
+   - the TUI exits without offering a restart, which would overwrite it;
+   - the browser and save import show the error.
+2. **Save when an ending is reached** (done), so a slot reflects a finished
+   run.
 
 ## Phase 12 -- more stories
 
@@ -352,6 +357,67 @@ TUI even showed folder names), with no dates and no pagination.
 1. Browser settings: text size and a light theme, remembered per browser.
 2. Load progress: a percentage for the first ~10 MB download.
 3. Optional: a German interface and stories.
+
+## Phase 14 -- "The Seven Hats" (a story series; planned)
+
+Inspired by the seven hacker "hats"
+(https://www.softwaresecured.com/post/the-7-hats-of-hacking):
+
+- **White:** authorized, stays in scope.
+- **Black:** malicious, no authorization.
+- **Gray:** probes without permission but discloses.
+- **Green:** a learning beginner.
+- **Red:** a vigilante who hacks back.
+- **Blue:** an invited pre-release tester.
+- **Purple:** a self-taught home-lab tinkerer.
+
+**Concept: one incident, seven points of view** (a "Rashomon" structure).
+Each story stands alone, but each also shows traces of the others, so
+together they reveal the whole picture. The fictional setting is Meridian
+Freight, a port-logistics company launching a customer portal, "TrackNet".
+
+| Hat | Story idea | What it teaches |
+|---|---|---|
+| Blue | Invited to test TrackNet before launch, on a deadline. Finds a flaw; the report gets deprioritized. | Time-boxed, authorized testing (an engagement clock) |
+| White | A signed pentest of Meridian's internal network. The tempting TrackNet production box is *out of scope*. | Permission and scope: staying in bounds is the win condition |
+| Gray | An independent researcher stumbles on the same flaw, now live. Report it, publish it, or sit on it? | Responsible disclosure and legal risk, with branching endings |
+| Black | The attacker who exploits it. Endings show the consequences; the logs from the other stories are what catch them. | No clean wins; consequences |
+| Red | A vigilante tracks the attacker and hacks back, and hits a compromised innocent machine. | Why hack-back is a problem |
+| Green | A new hire in Meridian's training lab: a gentle tutorial that turns up the attacker's traces. | Onboarding, like Zero Day |
+| Purple | Rebuilds the TrackNet flaw in a home lab to understand it: a short, open-ended epilogue. | Learning by building |
+
+**Cross-story links:** each story's logs, mail and files contain artefacts
+of the others, e.g. the gray hat's probe in the white hat's logs, the blue
+hat's buried report leaking in the gray hat's story, the attacker's servers
+turning up in the red hat's. Stories stay independent in code (no shared
+save state); the connection is narrative.
+
+**Engine work first (one PR):**
+1. **Series metadata** in the manifest: `series: "The Seven Hats"`,
+   `part: 3`, `hat: gray`. Story cards show "The Seven Hats · Part 3 of 7 ·
+   Gray Hat", and a series sorts by part instead of by date.
+2. **Scope:** a terminal block's `scope: [hosts]` with `on_scope_violation:
+   <scene>`. `scan`/`connect`/`ssh` against a host outside the scope sends
+   the story there (or logs a violation that later gates endings), like the
+   trace meter. This is the article's core distinction, permission and
+   scope, as a mechanic.
+3. **An engagement clock:** the trace meter with a label, e.g. `trace: {limit:
+   12, label: "hours left"}`, so a deadline doesn't read as "trace".
+
+**Content guidelines:** fictional companies, hosts and people only, and no
+real-world exploit techniques (the shell is simulated anyway).
+Unauthorized hats' stories show legal and personal consequences; a black or
+red hat can't "win" cleanly. Each story states its hat's rules in-world.
+
+**Suggested order:** the engine PR; then Blue + White (the authorized pair,
+using scope and the clock); then Gray + Black (the flaw goes public); then
+Red, Green and Purple.
+
+**Decisions for the owner:**
+1. One shared incident (above), or seven independent stories?
+2. Include a black-hat point of view (consequence-focused), or leave it out?
+3. Which hats first? The suggestion is Blue + White.
+4. The setting name ("Meridian Freight" / "TrackNet" are placeholders).
 
 ## Suggested order (Phases 6-9)
 

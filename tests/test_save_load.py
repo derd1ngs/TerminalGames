@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from sidechannel.engine.journal import JournalEntry
 from sidechannel.engine.state import EmailMessage, GameState
 
@@ -81,3 +83,36 @@ def test_advance_scene_only_returns_messages_newly_delivered_this_call():
 
     third = state.advance_scene()
     assert third == []
+
+
+def test_saves_carry_the_format_version():
+    from sidechannel.engine.state import SAVE_VERSION
+
+    assert build_state().to_dict()["save_version"] == SAVE_VERSION == 1
+
+
+def test_a_save_from_before_versioning_still_loads():
+    data = build_state().to_dict()
+    del data["save_version"]
+    for key in ("hints_shown", "trace_counts", "running_services", "current_user"):
+        data.pop(key)  # fields added after 1.0.0 are absent in the oldest saves
+    restored = GameState.from_dict(data)
+    assert restored.scene_id == build_state().scene_id
+    assert restored.hints_shown == {} and restored.trace_counts == {}
+
+
+@pytest.mark.parametrize("version", [2, 99])
+def test_a_save_from_a_newer_version_is_refused(version):
+    from sidechannel.engine.state import SaveFormatError
+
+    data = {**build_state().to_dict(), "save_version": version}
+    with pytest.raises(SaveFormatError, match="newer version of Side Channel"):
+        GameState.from_dict(data)
+
+
+@pytest.mark.parametrize("version", ["1", -1, True])
+def test_an_invalid_save_version_is_refused(version):
+    from sidechannel.engine.state import SaveFormatError
+
+    with pytest.raises(SaveFormatError, match="unknown save format version"):
+        GameState.from_dict({**build_state().to_dict(), "save_version": version})

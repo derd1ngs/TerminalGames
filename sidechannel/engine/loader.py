@@ -12,7 +12,7 @@ import yaml
 
 from .dialogue import NPC, load_npcs
 from .shell import Network
-from .state import GameState
+from .state import GameState, SaveFormatError
 
 STORIES_DIR = Path(__file__).resolve().parent.parent / "stories"
 DEFAULT_SLOT = "default"
@@ -63,7 +63,10 @@ def list_save_slots(saves_root: Path, story_id: str) -> list[str]:
 
 
 def slot_summary(saves_root: Path, story_id: str, slot: str) -> str:
-    state = GameState.load(save_slot_path(saves_root, story_id, slot))
+    try:
+        state = GameState.load(save_slot_path(saves_root, story_id, slot))
+    except SaveFormatError:
+        return f"{slot} -- saved by a newer version of Side Channel"
     return f"{slot} -- {state.chapter_id}:{state.scene_id} (saved {state.saved_at or 'unknown'})"
 
 

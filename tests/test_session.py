@@ -250,3 +250,10 @@ def test_an_ssh_password_line_is_not_traced(tmp_path):
     assert session.run_command("ssh ops@box").output.endswith("[trace 1/5]")
     assert "[trace" not in session.run_command("pw").output
     assert session.run_command("ls").output.endswith("[trace 2/5]")
+
+
+def test_reaching_an_ending_saves_the_slot(tmp_path):
+    session = build_session(tmp_path)
+    session.choose(next(c for c in session.available_choices() if c.next == "ending_ignored"))
+    assert session.scene.type == "ending"
+    assert GameState.load(session.slot_path).scene_id == "ending_ignored"

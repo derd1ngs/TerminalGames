@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from .journal import Journal
 
@@ -40,6 +40,41 @@ class EmailMessage:
             deliver_after_scene_count=data["deliver_after_scene_count"],
             delivered=data.get("delivered", False),
         )
+
+
+# The save format's version. Bump it when GameState's stored shape changes
+# in a way `from_dict`'s defaults can't absorb, and add a migration below.
+SAVE_VERSION = 1
+
+
+class SaveFormatError(ValueError):
+    """A save this version can't read -- written by a newer Side Channel."""
+
+
+def _from_v0(data: dict[str, Any]) -> dict[str, Any]:
+    # Saves from before versioning (<= 1.0.1): every field added since has a
+    # default in `from_dict`, so nothing needs converting.
+    return data
+
+
+# save_version n -> n + 1
+_MIGRATIONS: dict[int, Callable[[dict[str, Any]], dict[str, Any]]] = {0: _from_v0}
+
+
+def migrate(data: dict[str, Any]) -> dict[str, Any]:
+    """Bring saved GameState data up to SAVE_VERSION, or refuse a newer one."""
+    version = data.get("save_version", 0)
+    if not isinstance(version, int) or isinstance(version, bool) or version < 0:
+        raise SaveFormatError(f"unknown save format version {version!r}")
+    if version > SAVE_VERSION:
+        raise SaveFormatError(
+            f"this save is from a newer version of Side Channel (save format {version}; "
+            f"this version reads up to {SAVE_VERSION}) -- update the game to continue it"
+        )
+    while version < SAVE_VERSION:
+        data = _MIGRATIONS[version](dict(data))
+        version += 1
+    return data
 
 
 @dataclass
@@ -114,6 +149,7 @@ class GameState:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "save_version": SAVE_VERSION,
             "story_id": self.story_id,
             "chapter_id": self.chapter_id,
             "scene_id": self.scene_id,
@@ -135,6 +171,7 @@ class GameState:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "GameState":
+        data = migrate(data)
         return cls(
             story_id=data["story_id"],
             chapter_id=data["chapter_id"],

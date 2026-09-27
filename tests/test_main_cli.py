@@ -204,3 +204,19 @@ def test_list_shows_refs_titles_and_dates(tmp_path, monkeypatch, capsys):
     main_module.main()
     out = capsys.readouterr().out
     assert "story_03_night_shift     Night Shift (published 26 Sep 2026)" in out
+
+
+def test_a_newer_save_exits_with_an_upgrade_hint_and_never_offers_a_restart(tmp_path, monkeypatch, capsys):
+    import json
+
+    story_dir = main_module.find_story("zero_day", main_module.discover_stories())
+    story = main_module.Story.load(story_dir)
+    slot_path = save_slot_path(tmp_path, story.id, "future")
+    GameState(story_id=story.id, chapter_id="chapter_01", scene_id="intro").save(slot_path)
+    slot_path.write_text(json.dumps({**json.loads(slot_path.read_text()), "save_version": 99}))
+    monkeypatch.setattr(main_module.console, "input", lambda prompt="": pytest.fail("offered a restart"))
+    with pytest.raises(SystemExit):
+        main_module.open_session(story, story_dir, slot_path, fresh=False, cont=False)
+    out = capsys.readouterr().out
+    assert "newer version of Side Channel" in out and "pipx upgrade sidechannel" in out
+    assert json.loads(slot_path.read_text())["save_version"] == 99  # untouched

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Saves carry a format version (`save_version`), so future versions can
+  migrate them. A save from a newer version of the game is refused with a
+  clear "update the game" message instead of misbehaving.
+- Reaching an ending saves the slot, so it shows the finished run rather than
+  an earlier save.
 - Story lists show each story's publishing date, a one-line description,
   its size and the endings you've found, newest first. The browser pages
   them six at a time, and the terminal picker nine at a time (`n`/`p`), with

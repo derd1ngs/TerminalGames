@@ -95,3 +95,11 @@ def test_import_rejects_non_objects(tmp_path):
 def test_export_of_a_missing_slot_fails(tmp_path):
     with pytest.raises(SaveFileError, match="no save in slot 'ghost'"):
         export_slot(tmp_path, STORY.id, "ghost")
+
+
+def test_import_refuses_a_save_from_a_newer_version(tmp_path):
+    played_slot(tmp_path / "src")
+    doc = export_slot(tmp_path / "src", STORY.id, "run1")
+    doc["state"]["save_version"] = 99
+    with pytest.raises(SaveFileError, match="newer version of Side Channel"):
+        import_slot(tmp_path / "dst", STORY, doc)
