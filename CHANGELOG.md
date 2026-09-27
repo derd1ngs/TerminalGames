@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 -- 2026-09-27
 
 - The browser version has a favicon: a green prompt and an amber cursor
   (SVG, plus PNGs for older browsers and iOS home screens).
