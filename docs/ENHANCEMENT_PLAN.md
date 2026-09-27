@@ -348,8 +348,13 @@ TUI even showed folder names), with no dates and no pagination.
 1. **User stories:** a stories folder in the user data directory (TUI),
    checked with `check_story` on load; loading a story zip in the browser.
    This is what makes Phase 10's pagination matter.
-2. `sidechannel new-story <id>`: a skeleton story that passes the checker.
-3. **An author guide:** split the authoring half of the 513-line README
+2. **Story delivery independent of the game version**, needed because new
+   stories don't bump the game version (owner decision): published stories
+   are downloadable into the user stories folder (e.g. `sidechannel stories
+   update`), each with its own `version` in its manifest. The browser needs
+   none of this, since it deploys from `main`.
+3. `sidechannel new-story <id>`: a skeleton story that passes the checker.
+4. **An author guide:** split the authoring half of the 513-line README
    into `docs/authoring.md`.
 
 ## Phase 13 -- polish
@@ -358,16 +363,24 @@ TUI even showed folder names), with no dates and no pagination.
 2. Load progress: a percentage for the first ~10 MB download.
 3. Optional: a German interface and stories.
 
-## Phase 14 -- "The Seven Hats" (a story series; storyline in review)
+## Phase 14 -- "The Seven Hats" (a story series; storyline agreed)
 
-**Owner direction (2026-09-27):** one long, complex scenario in which the
-hats join the storyline at different times. The black hat is part of it,
-with three endings: caught, escaped, and an unclear cliffhanger (a possible
-hook for a sequel). The high-level storyline comes first, and the story
-order gets decided on it. It is in **`docs/seven-hats/STORYLINE.md`**:
-premise, timeline, acts, a per-hat table, Vesper's endings, cross-story
-artefacts, and the owner's decisions. The notes below are the original
-proposal.
+The storyline is in **`docs/seven-hats/STORYLINE.md`**, the series' "story
+bible". Owner decisions (2026-09-27):
+- One long scenario in which the hats join at different times.
+- The black hat is in it, and **starts long before the others**: hired at
+  day -120, an audition job, then months of research.
+- **Release order C**, the attacker first: Part 1 Black, then Blue, White,
+  Gray, Green, Red, and Purple last.
+- The company is **Brackwater Terminals**; the draft's "Meridian Freight" is
+  a real company. All other names stay.
+- **Each story is released separately.**
+- Vesper's three endings (caught, escaped, cliffhanger), with the
+  cliffhanger kept as a hook for a sequel.
+- **New stories don't change the game's version number.**
+
+The notes below are the original proposal; where they differ, the
+storyline document wins.
 
 Inspired by the seven hacker "hats"
 (https://www.softwaresecured.com/post/the-7-hats-of-hacking):
@@ -382,17 +395,17 @@ Inspired by the seven hacker "hats"
 
 **Concept: one incident, seven points of view** (a "Rashomon" structure).
 Each story stands alone, but each also shows traces of the others, so
-together they reveal the whole picture. The fictional setting is Meridian
-Freight, a port-logistics company launching a customer portal, "TrackNet".
+together they reveal the whole picture. The fictional setting is Brackwater
+Terminals, a port-logistics company launching a customer portal, "TrackNet".
 
 | Hat | Story idea | What it teaches |
 |---|---|---|
 | Blue | Invited to test TrackNet before launch, on a deadline. Finds a flaw; the report gets deprioritized. | Time-boxed, authorized testing (an engagement clock) |
-| White | A signed pentest of Meridian's internal network. The tempting TrackNet production box is *out of scope*. | Permission and scope: staying in bounds is the win condition |
+| White | A signed pentest of Brackwater's internal network. The tempting TrackNet production box is *out of scope*. | Permission and scope: staying in bounds is the win condition |
 | Gray | An independent researcher stumbles on the same flaw, now live. Report it, publish it, or sit on it? | Responsible disclosure and legal risk, with branching endings |
 | Black | The attacker who exploits it. Endings show the consequences; the logs from the other stories are what catch them. | No clean wins; consequences |
 | Red | A vigilante tracks the attacker and hacks back, and hits a compromised innocent machine. | Why hack-back is a problem |
-| Green | A new hire in Meridian's training lab: a gentle tutorial that turns up the attacker's traces. | Onboarding, like Zero Day |
+| Green | A new hire in Brackwater's training lab: a gentle tutorial that turns up the attacker's traces. | Onboarding, like Zero Day |
 | Purple | Rebuilds the TrackNet flaw in a home lab to understand it: a short, open-ended epilogue. | Learning by building |
 
 **Cross-story links:** each story's logs, mail and files contain artefacts
@@ -426,7 +439,7 @@ Red, Green and Purple.
 1. One shared incident (above), or seven independent stories?
 2. Include a black-hat point of view (consequence-focused), or leave it out?
 3. Which hats first? The suggestion is Blue + White.
-4. The setting name ("Meridian Freight" / "TrackNet" are placeholders).
+4. The setting name ("Brackwater Terminals" / "TrackNet" are placeholders).
 
 ## Suggested order (Phases 6-9)
 

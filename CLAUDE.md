@@ -76,3 +76,9 @@
   field with a default needs nothing; any change `from_dict`'s defaults
   can't absorb (a renamed or restructured field) must bump `SAVE_VERSION`
   and add a `_MIGRATIONS` step, with a test that loads an old-shaped save.
+- Release policy (owner decision): **new or revised stories don't change the
+  game's version number.** Bump `__version__` and tag a release only for
+  engine or player-facing code changes. Stories go live in the browser on
+  merge; they reach installed copies with the next game release, or via
+  story delivery once Phase 12 builds it. Story changes are logged in the
+  changelog's "Stories" section, not under a game version.
