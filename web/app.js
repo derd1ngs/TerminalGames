@@ -1,4 +1,4 @@
-// Browser frontend for TerminalGames. The game itself is the unchanged
+// Browser frontend for Side Channel. The game itself is the unchanged
 // Python engine, run in Pyodide; this file only renders the JSON views
 // terminalgames/web_bridge.py returns and forwards the player's input.
 // Saves live in IndexedDB (Pyodide's IDBFS mounted at /saves).
@@ -201,7 +201,7 @@ function downloadSlot(slot) {
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = `terminalgames-${currentStory.id}-${slot}.json`;
+  link.download = `sidechannel-${currentStory.id}-${slot}.json`;
   document.body.append(link);
   link.click();
   link.remove();

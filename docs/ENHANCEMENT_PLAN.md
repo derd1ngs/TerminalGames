@@ -286,10 +286,12 @@ outside the repo.
 
 ## Phase 9 -- distribution (prepared; waiting on the PyPI side)
 
-Decided: the distribution is `terminalgames-hacker` (plain `terminalgames`
-clashes with PyPI's existing `terminal-games`), the version is 1.0.0, and
-there's no TestPyPI run. The command and the import package stay
-`terminalgames`.
+**The game is now "Side Channel".** `terminalgames` clashes with PyPI's
+existing `terminal-games`, and the owner chose a distinct name over a
+suffix. The PyPI distribution, the command and the GitHub repo are
+`sidechannel`, and the site moves to `derd1ngs.github.io/sidechannel/`. The
+import package keeps its original name, `terminalgames`. Version 1.0.0, with
+no TestPyPI run.
 
 Done:
 - pyproject metadata: README, license file, classifiers, URLs;
@@ -298,22 +300,20 @@ Done:
 - `.github/workflows/release.yml`: a `vX.Y.Z` tag builds and checks, installs
   the wheel into a clean venv and runs it, publishes via trusted publishing
   (environment `pypi`), then creates a GitHub release;
-- `setup.sh` drops the old `terminalgames` distribution so the command
-  survives the rename.
-
-Verified locally: `twine check --strict`, and an install from the built
-wheel runs from outside the repo.
+- `setup.sh` drops the old distributions, so a stale command never lingers;
+- the renamed player-facing names, the command and all URLs.
 
 Left open: an SPDX `license` expression. It depends on whether the project
-is "GPL-3.0-only" or "GPL-3.0-or-later", which is the owner's call. Until
-then setuptools prints a deprecation notice about the GPLv3 classifier.
+is "GPL-3.0-only" or "GPL-3.0-or-later", which is the owner's call.
 
 Remaining, in order:
-1. On pypi.org, add a pending trusted publisher: project
-   `terminalgames-hacker`, owner `derd1ngs`, repo `TerminalGames`, workflow
-   `release.yml`, environment `pypi` (owner only).
-2. Push the tag `v1.0.0` on main, which runs `release.yml`.
-3. Check `pipx install terminalgames-hacker` from a clean environment.
+1. Rename the GitHub repo to `sidechannel` (GitHub redirects the repo; the
+   old Pages URL stops working), merge, and check the site at the new URL.
+2. On pypi.org, add a pending trusted publisher: project `sidechannel`, owner
+   `derd1ngs`, repo `sidechannel`, workflow `release.yml`, environment `pypi`
+   (owner only).
+3. Push the tag `v1.0.0` on main, which runs `release.yml`.
+4. Check `pipx install sidechannel` from a clean environment.
 
 ## Suggested order (Phases 6-9)
 
@@ -325,4 +325,5 @@ wanted.
 
 1. Phase 2 was skipped in favour of Phase 3.
 2. Save download/import shipped as a follow-up to Phase 3.
-3. The site uses the default URL, `derd1ngs.github.io/TerminalGames/`.
+3. The site used the default URL `derd1ngs.github.io/TerminalGames/`, and
+   moved to `derd1ngs.github.io/sidechannel/` with the rename to Side Channel.

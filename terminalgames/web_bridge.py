@@ -140,7 +140,7 @@ def import_slot(story_ref: str, text: str, overwrite: bool) -> str:
             return json.dumps({"exists": slot})
         return json.dumps({"slot": import_slot_doc(_saves_root, story, data)})
     except ValueError:
-        return json.dumps({"error": "not a TerminalGames save file"})
+        return json.dumps({"error": "not a Side Channel save file"})
     except SaveFileError as exc:
         return json.dumps({"error": str(exc)})
 

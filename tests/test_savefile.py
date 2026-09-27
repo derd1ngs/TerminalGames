@@ -65,7 +65,7 @@ def test_import_into_a_new_slot_name_and_overwrite_replaces_the_sandbox(tmp_path
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        (lambda d: d.update(format="zip"), "not a TerminalGames save file"),
+        (lambda d: d.update(format="zip"), "not a Side Channel save file"),
         (lambda d: d.update(version=99), "unsupported save file version"),
         (lambda d: d.update(story_id="dead_drop"), "this save is for 'dead_drop'"),
         (lambda d: d.update(slot="../evil"), "invalid slot name"),
@@ -88,7 +88,7 @@ def test_import_rejects_bad_documents_without_writing_anything(tmp_path, change,
 
 
 def test_import_rejects_non_objects(tmp_path):
-    with pytest.raises(SaveFileError, match="not a TerminalGames save file"):
+    with pytest.raises(SaveFileError, match="not a Side Channel save file"):
         import_slot(tmp_path, STORY, ["a", "list"])
 
 

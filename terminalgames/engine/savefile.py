@@ -78,7 +78,7 @@ def import_slot(saves_root: Path, story: Story, data: Any, slot: str | None = No
 
 def _validated(story: Story, data: Any, slot: str | None) -> tuple[str, GameState, dict[str, str]]:
     if not isinstance(data, dict) or data.get("format") != FORMAT:
-        raise SaveFileError("not a TerminalGames save file")
+        raise SaveFileError("not a Side Channel save file")
     if data.get("version") != VERSION:
         raise SaveFileError(f"unsupported save file version {data.get('version')!r}")
     if data.get("story_id") != story.id:

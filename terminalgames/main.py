@@ -33,12 +33,12 @@ from .tui import GameApp
 def default_saves_dir(package_dir: Path) -> Path:
     """A repo checkout (pyproject.toml next to the package) keeps its saves
     in the repo's gitignored `saves/`, as it always has; an installed copy
-    uses the per-user data directory (e.g. ~/.local/share/terminalgames/saves)
+    uses the per-user data directory (e.g. ~/.local/share/sidechannel/saves)
     rather than writing into site-packages."""
     repo_root = package_dir.parent
     if (repo_root / "pyproject.toml").exists():
         return repo_root / "saves"
-    return user_data_path("terminalgames") / "saves"
+    return user_data_path("sidechannel") / "saves"
 
 
 SAVES_DIR = default_saves_dir(Path(__file__).resolve().parent)
@@ -126,7 +126,7 @@ def new_or_continue(slot_path: Path, *, new: bool = False, cont: bool = False) -
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="terminalgames", description="A hacker-themed CLI text adventure engine."
+        prog="sidechannel", description="Side Channel -- a hacker-themed text adventure in your terminal."
     )
     parser.add_argument(
         "story",

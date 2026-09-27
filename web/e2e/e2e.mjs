@@ -217,7 +217,7 @@ async function saveFiles(browser) {
   await a.click("#btn-menu"); // Save & exit
   await a.waitForSelector("#menu-slots:not([hidden])");
   const [download] = await Promise.all([a.waitForEvent("download"), a.getByRole("button", { name: "Export" }).click()]);
-  check(download.suggestedFilename() === "terminalgames-zero_day-moveme.json", "export downloads a named save file");
+  check(download.suggestedFilename() === "sidechannel-zero_day-moveme.json", "export downloads a named save file");
   const saveFile = SHOTS + download.suggestedFilename();
   await download.saveAs(saveFile);
   noErrors(a, "Export");
@@ -238,7 +238,7 @@ async function saveFiles(browser) {
 
   await b.setInputFiles("#import-file", { name: "junk.json", mimeType: "application/json", buffer: Buffer.from("{nope") });
   await b.waitForFunction(() => document.getElementById("slot-message").classList.contains("error"));
-  check((await b.textContent("#slot-message")) === "Import failed: not a TerminalGames save file", "junk file is rejected");
+  check((await b.textContent("#slot-message")) === "Import failed: not a Side Channel save file", "junk file is rejected");
 
   await b.getByRole("button", { name: /Continue moveme/ }).click();
   await waitForPrompt(b, "gateway$");

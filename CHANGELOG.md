@@ -2,8 +2,9 @@
 
 ## 1.0.0 -- 2026-09-27
 
-First release on PyPI, as `terminalgames-hacker` (the command is
-`terminalgames`). Everything below is new since the 0.1.0 prototype.
+First release, on PyPI as `sidechannel`: the game is now called **Side
+Channel** (it started out as "TerminalGames"). Everything below is new since
+the 0.1.0 prototype.
 
 ### Stories
 - **Zero Day** (3 chapters, 6 endings): the in-fiction tutorial.
@@ -14,7 +15,7 @@ First release on PyPI, as `terminalgames-hacker` (the command is
 
 ### Playing
 - A browser version with nothing to install
-  (https://derd1ngs.github.io/TerminalGames/). It runs the same Python engine
+  (https://derd1ngs.github.io/sidechannel/). It runs the same Python engine
   in Pyodide, works offline after the first visit, has on-screen Tab and
   history buttons on phones, and can export and import save files.
 - The terminal version is a full-screen Textual app with Tab completion,

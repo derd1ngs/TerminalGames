@@ -183,7 +183,7 @@ def test_export_then_import_round_trip_with_overwrite_handshake(saves_root, tmp_
 
 def test_import_reports_unusable_files():
     assert json.loads(bridge.import_slot("zero_day", "not json {", False)) == {
-        "error": "not a TerminalGames save file"
+        "error": "not a Side Channel save file"
     }
     bridge.start("dead_drop", "dd", True)
     other_story = bridge.export_slot("dead_drop", "dd")

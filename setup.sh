@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup: create the virtual environment and install TerminalGames
+# One-time setup: create the virtual environment and install Side Channel
 # into it. Safe to re-run -- it reuses an existing .venv and just
 # reinstalls the package.
 set -euo pipefail
@@ -18,12 +18,11 @@ if [ ! -d .venv ]; then
     python3 -m venv .venv
 fi
 
-echo "Installing TerminalGames ..."
+echo "Installing Side Channel ..."
 .venv/bin/pip install --upgrade pip --quiet
-# The distribution was renamed terminalgames -> terminalgames-hacker (1.0.0).
-# Drop the old one first: both install the `terminalgames` command, and
-# uninstalling the old name later would take the command with it.
-.venv/bin/pip uninstall --yes --quiet terminalgames 2>/dev/null || true
+# The distribution was renamed terminalgames -> sidechannel (1.0.0). Drop the
+# old names first, so no stale distribution keeps an outdated command around.
+.venv/bin/pip uninstall --yes --quiet terminalgames terminalgames-hacker 2>/dev/null || true
 .venv/bin/pip install -e .
 
 echo

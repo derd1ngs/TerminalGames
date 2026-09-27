@@ -6,7 +6,7 @@ name: Release
 # repo) and attach the files to a GitHub release.
 #
 # One-time setup on pypi.org: a (pending) trusted publisher for project
-# `terminalgames-hacker`, owner `derd1ngs`, repo `TerminalGames`, workflow
+# `sidechannel`, owner `derd1ngs`, repo `sidechannel`, workflow
 # `release.yml`, environment `pypi`.
 
 on:
@@ -46,7 +46,7 @@ jobs:
           python -m venv /tmp/venv
           /tmp/venv/bin/pip install dist/*.whl
           cd /tmp
-          /tmp/venv/bin/terminalgames --list | tee stories.txt
+          /tmp/venv/bin/sidechannel --list | tee stories.txt
           grep -q story_03_night_shift stories.txt
           /tmp/venv/bin/python -m terminalgames.tools.check_story --all
 
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/terminalgames-hacker/
+      url: https://pypi.org/project/sidechannel/
     permissions:
       id-token: write  # trusted publishing
     steps:
@@ -88,4 +88,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
-            --notes "Install with \`pipx install terminalgames-hacker\`. See [CHANGELOG.md](https://github.com/derd1ngs/TerminalGames/blob/main/CHANGELOG.md)."
+            --notes "Install with \`pipx install sidechannel\`. See [CHANGELOG.md](https://github.com/derd1ngs/sidechannel/blob/main/CHANGELOG.md)."

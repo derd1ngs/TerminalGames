@@ -72,7 +72,7 @@ jobs:
           python -m venv /tmp/venv
           /tmp/venv/bin/pip install dist/*.whl
           cd /tmp
-          /tmp/venv/bin/terminalgames --list | tee stories.txt
+          /tmp/venv/bin/sidechannel --list | tee stories.txt
           grep -q story_01_zero_day stories.txt
           grep -q story_02_dead_drop stories.txt
           grep -q story_03_night_shift stories.txt
