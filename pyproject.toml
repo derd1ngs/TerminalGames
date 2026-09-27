@@ -3,10 +3,10 @@ requires = ["setuptools>=77"]  # 77+: SPDX `license` and license-files
 build-backend = "setuptools.build_meta"
 
 [project]
-# The game is "Side Channel": PyPI name and command `sidechannel`. The
-# import package keeps its original name, `terminalgames`.
+# The game is "Side Channel": PyPI name, command and import package are all
+# `sidechannel` (the package was `terminalgames` up to 1.0.0).
 name = "sidechannel"
-dynamic = ["version"]  # from terminalgames/__init__.py -- the one place to bump it
+dynamic = ["version"]  # from sidechannel/__init__.py -- the one place to bump it
 description = "Side Channel: a hacker-themed text adventure with a fake terminal, playable in a terminal or a browser"
 readme = "README.md"
 license = "GPL-3.0-or-later"
@@ -42,16 +42,16 @@ Issues = "https://github.com/derd1ngs/sidechannel/issues"
 Changelog = "https://github.com/derd1ngs/sidechannel/blob/main/CHANGELOG.md"
 
 [project.scripts]
-sidechannel = "terminalgames.main:main"
+sidechannel = "sidechannel.main:main"
 
 [tool.setuptools.packages.find]
-include = ["terminalgames*"]
+include = ["sidechannel*"]
 
 [tool.setuptools.dynamic]
-version = {attr = "terminalgames.__version__"}
+version = {attr = "sidechannel.__version__"}
 
 [tool.setuptools.package-data]
-terminalgames = ["stories/**/*.yaml"]
+sidechannel = ["stories/**/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -3,10 +3,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Story, StoryLoadError, apply_effects, check_requires
+from sidechannel.engine.state import GameState
+from sidechannel.engine.story import Story, StoryLoadError, apply_effects, check_requires
 
-ZERO_DAY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+ZERO_DAY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 
 
 def test_zero_day_loads_and_validates():

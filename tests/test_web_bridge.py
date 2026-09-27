@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from terminalgames import web_bridge as bridge
+from sidechannel import web_bridge as bridge
 
 # The Zero Day spine up to the trust_call choice, as the page would send it:
 # ("choose", index) or ("cmd", line).

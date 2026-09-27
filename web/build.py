@@ -1,7 +1,7 @@
 """Build the static browser version into OUT_DIR (default: _site/).
 
 Copies the page assets from web/ and zips just the Python the page runs in
-Pyodide -- terminalgames/__init__.py, engine/, stories/ and web_bridge.py,
+Pyodide -- sidechannel/__init__.py, engine/, stories/ and web_bridge.py,
 never the Textual frontend. The zip's content hash is stamped into app.js
 and the service worker (sw.js), so a new deploy is never served a stale
 cached zip and replaces the offline cache.
@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
-PACKAGE_DIR = ROOT / "terminalgames"
+PACKAGE_DIR = ROOT / "sidechannel"
 ASSETS = ["index.html", "style.css"]
 STAMPED = ["app.js", "sw.js"]  # get the build id in place of __BUILD_ID__
 PYTHON_PARTS = ["__init__.py", "engine", "stories", "web_bridge.py"]
@@ -59,7 +59,7 @@ def build(out_dir: Path) -> None:
     for name in ASSETS:
         shutil.copyfile(WEB_DIR / name, out_dir / name)
     data = python_zip()
-    (out_dir / "terminalgames.zip").write_bytes(data)
+    (out_dir / "sidechannel.zip").write_bytes(data)
     build_id = compute_build_id(data)
     for name in STAMPED:
         (out_dir / name).write_text((WEB_DIR / name).read_text().replace("__BUILD_ID__", build_id))

@@ -5,10 +5,10 @@ gated by `all`/`not` requires combinators."""
 
 from pathlib import Path
 
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.story import Story
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.story import Story
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_02_dead_drop"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_02_dead_drop"
 RUNBOOK = [
     "systemctl status replica",
     "set /etc/replica/replica.conf mode primary",

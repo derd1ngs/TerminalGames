@@ -1,14 +1,14 @@
 """Structural check, run against every shipped story: no unreachable
 scenes/endings, and every terminal scene's win_flag is actually settable
 by something in that story's network.yaml/npcs.yaml. See
-terminalgames/tools/check_story.py for how the search works and what it
+sidechannel/tools/check_story.py for how the search works and what it
 deliberately doesn't model (documented there rather than repeated here).
 """
 
 import pytest
 
-from terminalgames.engine.loader import discover_stories
-from terminalgames.tools.check_story import check_story_dir
+from sidechannel.engine.loader import discover_stories
+from sidechannel.tools.check_story import check_story_dir
 
 STORIES = discover_stories()
 

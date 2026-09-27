@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Story
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.state import GameState
+from sidechannel.engine.story import Story
 
-STORIES = Path(__file__).parent.parent / "terminalgames" / "stories"
+STORIES = Path(__file__).parent.parent / "sidechannel" / "stories"
 
 # Choices (by text prefix) that route through every terminal scene of each story.
 ROUTES = {

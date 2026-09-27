@@ -10,14 +10,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from terminalgames.engine.journal import JournalEntry
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.shell import Network
-from terminalgames.engine.state import EmailMessage, GameState
-from terminalgames.engine.story import Story
-from terminalgames.tui import ComposeMailScreen, GameApp
+from sidechannel.engine.journal import JournalEntry
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.shell import Network
+from sidechannel.engine.state import EmailMessage, GameState
+from sidechannel.engine.story import Story
+from sidechannel.tui import ComposeMailScreen, GameApp
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 
 
 def build_app(tmp_path: Path) -> GameApp:

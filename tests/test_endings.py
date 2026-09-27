@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from terminalgames.engine.endings import ending_title, found_endings, gallery, record_ending
-from terminalgames.engine.loader import list_save_slots, save_slot_path
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.story import Scene, Story
+from sidechannel.engine.endings import ending_title, found_endings, gallery, record_ending
+from sidechannel.engine.loader import list_save_slots, save_slot_path
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.story import Scene, Story
 
-DEAD_DROP_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_02_dead_drop"
+DEAD_DROP_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_02_dead_drop"
 DEAD_DROP = Story.load(DEAD_DROP_DIR)
 
 

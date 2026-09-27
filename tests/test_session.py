@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames.engine.journal import JournalEntry
-from terminalgames.engine.puzzles import parse_config_text
-from terminalgames.engine.session import GameSession, StaleSaveError
-from terminalgames.engine.shell import Host, Network
-from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
+from sidechannel.engine.journal import JournalEntry
+from sidechannel.engine.puzzles import parse_config_text
+from sidechannel.engine.session import GameSession, StaleSaveError
+from sidechannel.engine.shell import Host, Network
+from sidechannel.engine.state import GameState
+from sidechannel.engine.story import Chapter, Choice, Scene, Story, TerminalBlock, Trace
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 
 
 def build_session(tmp_path: Path) -> GameSession:

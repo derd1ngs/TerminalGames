@@ -1,4 +1,4 @@
-from terminalgames.engine.puzzles import (
+from sidechannel.engine.puzzles import (
     caesar_decode,
     check_command_order,
     decode_cipher,

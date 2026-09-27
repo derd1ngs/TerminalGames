@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from terminalgames.engine.loader import list_save_slots, save_slot_path
-from terminalgames.engine.savefile import SaveFileError, export_slot, import_slot
-from terminalgames.engine.session import GameSession
-from terminalgames.engine.state import GameState
-from terminalgames.engine.story import Story
+from sidechannel.engine.loader import list_save_slots, save_slot_path
+from sidechannel.engine.savefile import SaveFileError, export_slot, import_slot
+from sidechannel.engine.session import GameSession
+from sidechannel.engine.state import GameState
+from sidechannel.engine.story import Story
 
-STORY_DIR = Path(__file__).parent.parent / "terminalgames" / "stories" / "story_01_zero_day"
+STORY_DIR = Path(__file__).parent.parent / "sidechannel" / "stories" / "story_01_zero_day"
 STORY = Story.load(STORY_DIR)
 
 

@@ -30,9 +30,9 @@ but never read. `--graph` prints the
 scene graph as a Mermaid flowchart instead of checking.
 
 Usage:
-    python -m terminalgames.tools.check_story <story_dir_name_or_id>
-    python -m terminalgames.tools.check_story --all
-    python -m terminalgames.tools.check_story <story> --graph
+    python -m sidechannel.tools.check_story <story_dir_name_or_id>
+    python -m sidechannel.tools.check_story --all
+    python -m sidechannel.tools.check_story <story> --graph
 """
 
 from __future__ import annotations
@@ -431,7 +431,7 @@ def check_story_dir(story_dir: Path) -> Report:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        prog="python -m terminalgames.tools.check_story",
+        prog="python -m sidechannel.tools.check_story",
         description="Check a shipped story for unreachable scenes/endings and win_flags "
         "that are never structurally set.",
     )

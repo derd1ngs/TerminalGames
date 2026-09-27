@@ -1,4 +1,4 @@
-from terminalgames.engine.journal import Journal, JournalEntry
+from sidechannel.engine.journal import Journal, JournalEntry
 
 
 def make_entry(entry_id="lead1", category="lead"):

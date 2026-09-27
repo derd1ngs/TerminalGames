@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from terminalgames.engine.journal import JournalEntry
-from terminalgames.engine.state import EmailMessage, GameState
+from sidechannel.engine.journal import JournalEntry
+from sidechannel.engine.state import EmailMessage, GameState
 
 
 def build_state() -> GameState:
