@@ -157,10 +157,21 @@ async function deadDrop(browser) {
   }
   await page.waitForSelector("#choices-pane:not([hidden])");
   check((await page.textContent("#story-log")).includes("It's yours now."), "runbook procedure solved");
-  const pinned = await page.evaluate(() => {
-    const l = document.getElementById("story-log");
-    return l.scrollHeight - l.scrollTop - l.clientHeight < 2;
-  });
+  // The page re-pins the log in the next animation frame; wait for it rather
+  // than measuring once (measuring immediately made this check flaky on CI).
+  const pinned = await page
+    .waitForFunction(
+      () => {
+        const l = document.getElementById("story-log");
+        return l.scrollHeight - l.scrollTop - l.clientHeight < 2;
+      },
+      null,
+      { timeout: 2000 },
+    )
+    .then(
+      () => true,
+      () => false,
+    );
   check(pinned, "story log pinned to the newest text");
   await page.screenshot({ path: SHOTS + "dead-drop.png" });
   await page.keyboard.press("2"); // Burn it (went in alone)
