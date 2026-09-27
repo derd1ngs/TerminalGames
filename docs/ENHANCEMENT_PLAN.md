@@ -1,7 +1,7 @@
 # Enhancement plan
 
 Status as of 2026-09-26. Phases 0, 1, 3, 4 and 5 are done; Phase 2 was
-skipped. Phases 6-8 are done; Phase 9 is a proposal. Each phase is
+skipped. Phases 6-8 are done; Phase 9 is prepared, waiting on the PyPI side. Each phase is
 sized to be one PR and leaves the test suite and CI green.
 
 ## Phase 0 -- bug fixes and the session refactor (done)
@@ -284,10 +284,36 @@ outside the repo.
    hides dotfiles), `history`, `clear`, `man <cmd>`, with a man page for
    every command.
 
-## Phase 9 -- distribution
+## Phase 9 -- distribution (prepared; waiting on the PyPI side)
 
-After Phase 6's packaging fix: a version bump, a changelog, and a release
-workflow publishing to PyPI, so `pipx install terminalgames` works.
+**The game is now "Side Channel".** `terminalgames` clashes with PyPI's
+existing `terminal-games`, and the owner chose a distinct name over a
+suffix. The PyPI distribution, the command and the GitHub repo are
+`sidechannel`, and the site moves to `derd1ngs.github.io/sidechannel/`. The
+import package keeps its original name, `terminalgames`. Version 1.0.0, with
+no TestPyPI run.
+
+Done:
+- pyproject metadata: README, license file, classifiers, URLs;
+- the version is single-sourced from `terminalgames/__init__.py`;
+- `CHANGELOG.md`;
+- `.github/workflows/release.yml`: a `vX.Y.Z` tag builds and checks, installs
+  the wheel into a clean venv and runs it, publishes via trusted publishing
+  (environment `pypi`), then creates a GitHub release;
+- `setup.sh` drops the old distributions, so a stale command never lingers;
+- the renamed player-facing names, the command and all URLs.
+
+Left open: an SPDX `license` expression. It depends on whether the project
+is "GPL-3.0-only" or "GPL-3.0-or-later", which is the owner's call.
+
+Remaining, in order:
+1. Rename the GitHub repo to `sidechannel` (GitHub redirects the repo; the
+   old Pages URL stops working), merge, and check the site at the new URL.
+2. On pypi.org, add a pending trusted publisher: project `sidechannel`, owner
+   `derd1ngs`, repo `sidechannel`, workflow `release.yml`, environment `pypi`
+   (owner only).
+3. Push the tag `v1.0.0` on main, which runs `release.yml`.
+4. Check `pipx install sidechannel` from a clean environment.
 
 ## Suggested order (Phases 6-9)
 
@@ -299,4 +325,5 @@ wanted.
 
 1. Phase 2 was skipped in favour of Phase 3.
 2. Save download/import shipped as a follow-up to Phase 3.
-3. The site uses the default URL, `derd1ngs.github.io/TerminalGames/`.
+3. The site used the default URL `derd1ngs.github.io/TerminalGames/`, and
+   moved to `derd1ngs.github.io/sidechannel/` with the rename to Side Channel.

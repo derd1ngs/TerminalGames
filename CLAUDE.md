@@ -1,4 +1,4 @@
-# TerminalGames -- notes for Claude
+# Side Channel (repo: sidechannel, formerly TerminalGames) -- notes for Claude
 
 - A `.venv` created before the project directory was moved/renamed is broken
   (`.venv/bin/pytest: bad interpreter`, `No module named 'terminalgames'`
@@ -10,19 +10,19 @@
   calling a change done.
 - `main` is branch-protected and requires PR branches to be up to date: when
   a PR is "BEHIND" (e.g. after merging the lower PR of a stack), run
-  `gh api -X PUT repos/derd1ngs/TerminalGames/pulls/<N>/update-branch`, wait
+  `gh api -X PUT repos/derd1ngs/sidechannel/pulls/<N>/update-branch`, wait
   for CI, then `gh pr merge <N> --merge`. That API call is refused (403, no
   `workflow` scope) when `main` changed a file under `.github/workflows/`:
   then `git merge origin/main` locally and `git push` instead, or for a
   Dependabot PR comment `@dependabot rebase`.
 - `gh pr edit` fails on this machine's gh 2.45 ("Projects (classic) is being
   deprecated"); change a PR's base with
-  `gh api -X PATCH repos/derd1ngs/TerminalGames/pulls/<N> -f base=main`.
+  `gh api -X PATCH repos/derd1ngs/sidechannel/pulls/<N> -f base=main`.
 - That gh also has no `--json` on `gh pr checks`, and its tab-separated
   output breaks `awk '{print $2}'` on names like `test (3.10)`: read results
   with `gh pr checks <N> | cut -f1,2`.
 - `gh run view <run> --log` can come back empty; fetch a job's log via REST
-  instead: `gh api repos/derd1ngs/TerminalGames/actions/jobs/<job-id>/logs`
+  instead: `gh api repos/derd1ngs/sidechannel/actions/jobs/<job-id>/logs`
   (job ids: `gh api .../actions/runs/<run>/jobs -q '.jobs[] | .name, .id'`).
 - `terminalgames/engine/` and `web_bridge.py` must stay importable with only
   PyYAML (the browser build runs them in Pyodide) -- enforced by
@@ -55,3 +55,11 @@
   entry (a test enforces it) and, if it touches a host, a place in
   `TRACED_COMMANDS` -- otherwise it slips past scenes' trace meters. Adding a
   command can also change completion results that tests pin.
+- Names: the game is "Side Channel" -- PyPI distribution, command and GitHub
+  repo are `sidechannel` (site: derd1ngs.github.io/sidechannel/); the import
+  package kept the original name `terminalgames`. Exported browser saves keep
+  the format tag `terminalgames-save` so older exports still import. The
+  version lives only in `terminalgames/__init__.py` (pyproject reads it
+  dynamically); a release is a `vX.Y.Z` tag matching it
+  (`.github/workflows/release.yml` checks that). Build locally with
+  `build`/`twine` in a scratch venv, never the project venv.

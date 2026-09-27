@@ -1,11 +1,11 @@
-# TerminalGames
+# Side Channel
 
-[![Tests](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/TerminalGames/actions/workflows/tests.yml)
+[![Tests](https://github.com/derd1ngs/sidechannel/actions/workflows/tests.yml/badge.svg)](https://github.com/derd1ngs/sidechannel/actions/workflows/tests.yml)
 
-A hacker-themed text adventure engine with a fake terminal, in the spirit of
+*A terminal hacking thriller.* A hacker-themed text adventure with a fake terminal, in the spirit of
 *Hackers*, *WarGames*, and *23*. Play it in your terminal (a full-screen
 Textual app) or right in your browser at
-**https://derd1ngs.github.io/TerminalGames/**, with nothing to install. Ships
+**https://derd1ngs.github.io/sidechannel/**, with nothing to install. Ships
 with three complete stories:
 
 - **Zero Day** -- a 3-chapter campaign that also doubles as an in-fiction
@@ -25,7 +25,19 @@ with three complete stories:
   off -- with one retry. Tools you pick up along the way (the key, a
   colleague's packet sniffer) open hosts and endings.
 
-## Running it
+## Installing
+
+```bash
+pipx install sidechannel   # or: pip install sidechannel
+sidechannel                # play
+```
+
+Saves go to your user data directory, e.g. `~/.local/share/sidechannel/saves/`
+on Linux. (Inside, the Python package is still called `terminalgames`, the
+game's original name.) Or skip installing entirely
+and play in the browser: **https://derd1ngs.github.io/sidechannel/**.
+
+## Running from a checkout
 
 ```bash
 ./setup.sh   # one-time: creates .venv and installs the package into it
@@ -34,7 +46,7 @@ with three complete stories:
 
 `setup.sh` is safe to re-run (e.g. after pulling changes) -- it reuses the
 existing `.venv` and just reinstalls the package. `start.sh` forwards any
-arguments straight to `terminalgames`, e.g. `./start.sh zero_day --new`, and
+arguments straight to `sidechannel`, e.g. `./start.sh zero_day --new`, and
 tells you to run `setup.sh` first if `.venv` doesn't exist yet.
 
 If you'd rather manage the virtual environment yourself:
@@ -42,12 +54,12 @@ If you'd rather manage the virtual environment yourself:
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e .
-.venv/bin/terminalgames
+.venv/bin/sidechannel
 # or: .venv/bin/python -m terminalgames.main
 ```
 
 With no arguments, story/save-slot selection is a plain pre-flight prompt. You
-can skip it with CLI args instead (via `./start.sh` or `.venv/bin/terminalgames`
+can skip it with CLI args instead (via `./start.sh` or `.venv/bin/sidechannel`
 directly -- both take the same arguments):
 
 ```bash
@@ -76,7 +88,7 @@ version shows the same gallery in its slot menu.
 `saves/` is the repo's own folder when you run from a checkout (as
 `setup.sh` does). An installed copy (`pip install .`, or later from PyPI)
 keeps its saves in your user data directory instead, e.g.
-`~/.local/share/terminalgames/saves/` on Linux. If a story was edited so
+`~/.local/share/sidechannel/saves/` on Linux. If a story was edited so
 that a save's scene no longer exists, continuing explains that and offers
 to restart the slot.
 
@@ -117,7 +129,7 @@ Run the test suite with `.venv/bin/pip install -e ".[test]" && .venv/bin/pytest`
 ## Playing in a browser
 
 The same game runs in a browser with nothing to install:
-**https://derd1ngs.github.io/TerminalGames/** (deployed from `main` by
+**https://derd1ngs.github.io/sidechannel/** (deployed from `main` by
 `.github/workflows/pages.yml`). The unchanged Python engine runs client-side
 in [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly); the
 first visit downloads about 10 MB. After that one visit the game **works

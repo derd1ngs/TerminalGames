@@ -115,7 +115,7 @@ def test_an_installed_copy_saves_to_the_user_data_dir(tmp_path, monkeypatch):
     site_packages = tmp_path / "site-packages"
     assert (
         main_module.default_saves_dir(site_packages / "terminalgames")
-        == tmp_path / "data" / "terminalgames" / "saves"
+        == tmp_path / "data" / "sidechannel" / "saves"
     )
 
 
